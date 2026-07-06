@@ -77,6 +77,37 @@ Standalone payment follow-up page: paid vs pending summary + per-student table (
 
 ---
 
+## Deployment Fixes (Railway)
+
+### 8. `students/migrations/0016_...py` — trimmed before push
+The auto-generated `0016` also contained `CreateModel(LearningVideo)`, `CreateModel(VideoProgress)` and several `AlterField` choices ops (pre-existing un-migrated models in the repo). To keep the deploy purely additive and avoid touching existing server tables, `0016` was **trimmed to only the two School `AddField` operations**. (These models remain un-migrated, same as before — a pre-existing repo condition.)
+
+### 9. `Procfile`
+`web` command changed to run migrate before gunicorn:
+```
+web: python manage.py migrate --noinput && gunicorn ift_platform.wsgi --bind 0.0.0.0:$PORT
+```
+(Note: Railway builds from the Dockerfile, so Procfile is effectively ignored — see #10. Kept for parity.)
+
+### 10. `Dockerfile` — the actual deploy fix
+Railway deploys from the Dockerfile, whose `CMD` was gunicorn-only, so migrations never ran on deploy (caused `column students_school.designated_teacher_name does not exist` on prod). Fixed:
+```dockerfile
+CMD ["sh", "-c", "python manage.py migrate --noinput && gunicorn ift_platform.wsgi --bind 0.0.0.0:8000"]
+```
+Now every container start applies pending migrations.
+
+---
+
+## Push History (branch: main → github.com/techinfinitydevelopers/IFT)
+- `17e1975` — feat: school dashboard widgets, charts, payment tracking, teacher fields + admin.E108 fix
+- `9389532` — fix(deploy): run migrate on web startup (Procfile)
+- `2f86594` — fix(deploy): run migrate in Dockerfile CMD (real fix, Procfile was ignored)
+
+Pushed via a Personal Access Token supplied in chat — **that token must be rotated/revoked** (it was exposed).
+
+---
+
 ## Setup notes (local)
 - `.env` created from `.env.example` (gitignored).
 - `db.sqlite3` and `.env` are gitignored — local users/data do not reach the server (Railway uses PostgreSQL).
+- Local dev DB (SQLite) already has the full `0016` (incl. LearningVideo/VideoProgress); the server only gets the trimmed School fields.
