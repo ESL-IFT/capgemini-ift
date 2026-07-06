@@ -86,6 +86,8 @@ class School(models.Model):
     country = models.CharField(max_length=100, blank=True, default='India')
     principal_name = models.CharField(max_length=200, blank=True)
     principal_email = models.EmailField(blank=True)
+    designated_teacher_name = models.CharField(max_length=150, blank=True)
+    designated_teacher_mobile = models.CharField(max_length=15, blank=True)
     contact_email = models.EmailField(blank=True)
     contact_phone = models.CharField(max_length=15, blank=True)
     website = models.URLField(blank=True)

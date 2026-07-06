@@ -85,7 +85,7 @@ class TeamMembershipAdmin(admin.ModelAdmin):
 
 @admin.register(IdeaSuggestion)
 class IdeaSuggestionAdmin(admin.ModelAdmin):
-    list_display = ('submission', 'suggested_by', 'field_name', 'status', 'created_at')
+    list_display = ('submission', 'suggested_by', 'status', 'created_at')
     list_filter = ('status',)
 
 

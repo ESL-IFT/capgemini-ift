@@ -503,6 +503,10 @@ def school_dashboard(request):
         school.principal_email = request.POST.get('principal_email', school.principal_email)
         school.website = request.POST.get('website', school.website)
 
+        # Section D - Designated Teacher
+        school.designated_teacher_name = request.POST.get('designated_teacher_name', school.designated_teacher_name)
+        school.designated_teacher_mobile = request.POST.get('designated_teacher_mobile', school.designated_teacher_mobile)
+
         # Check required fields to activate
         required_filled = all([
             school.board,
@@ -510,6 +514,8 @@ def school_dashboard(request):
             school.pin_code,
             school.principal_name,
             school.principal_email,
+            school.designated_teacher_name,
+            school.designated_teacher_mobile,
         ])
 
         if required_filled:
@@ -582,6 +588,50 @@ def school_dashboard(request):
     # Phases for competition progress
     phases = list(Phase.objects.all().order_by('order')[:6])
 
+    # ---- Grade-wise submissions (this school) ----
+    grade_qs = ideas.values('student__grade').annotate(count=Count('id')).order_by('student__grade')
+    grade_data = [
+        {'grade': (g['student__grade'] or 'N/A'), 'count': g['count']}
+        for g in grade_qs
+    ]
+
+    # ---- Payment status (payment gateway not built yet; all pending) ----
+    paid_count = 0
+    unpaid_count = student_count - paid_count
+
+    # ---- Live status funnel (this school) ----
+    funnel = {
+        'registered': student_count,
+        'payment': paid_count,
+        'team_formation': students_in_teams,
+        'idea_submission': ideas_count,
+    }
+
+    # ---- Team Formation Status pie (this school) ----
+    working_on_ideas = students_in_teams  # students in a team = actively working on ideas
+    team_pie = {
+        'registered': student_count,
+        'paid': paid_count,
+        'working': working_on_ideas,
+        'submitted': ideas_count,
+    }
+
+    # ---- Platform-wide counts (across all schools) ----
+    platform_schools = School.objects.filter(status='active').count()
+    platform_students = Student.objects.count()
+    platform_teams = Team.objects.filter(is_active=True).count()
+    platform_ideas = IdeaSubmission.objects.exclude(status='draft').count()
+
+    # ---- Days left for submission (from submission Phase, fallback 15 Oct 2026) ----
+    from datetime import date
+    sub_phase = Phase.objects.filter(name__icontains='submission').order_by('order').first()
+    if sub_phase:
+        days_left = sub_phase.days_remaining
+        submission_deadline = sub_phase.end_date
+    else:
+        submission_deadline = date(2026, 10, 15)
+        days_left = max(0, (submission_deadline - timezone.now().date()).days)
+
     context = {
         'school': school,
         'is_pending': False,
@@ -596,8 +646,80 @@ def school_dashboard(request):
         'recent': recent,
         'announcements': announcements,
         'phases': phases,
+        'grade_data': grade_data,
+        'paid_count': paid_count,
+        'unpaid_count': unpaid_count,
+        'funnel': funnel,
+        'team_pie': team_pie,
+        'platform_schools': platform_schools,
+        'platform_students': platform_students,
+        'platform_teams': platform_teams,
+        'platform_ideas': platform_ideas,
+        'days_left': days_left,
+        'submission_deadline': submission_deadline,
     }
     return render(request, 'students/school_dashboard.html', context)
+
+
+@login_required
+def school_payments(request):
+    """Detailed payment status of this school's students for follow-ups."""
+    from students.models import IdeaSubmission
+    try:
+        school = request.user.school_profile
+    except School.DoesNotExist:
+        messages.error(request, 'No school profile found for this account.')
+        return redirect('accounts:sign_in')
+
+    students = Student.objects.filter(school=school).select_related('user').order_by('user__first_name')
+    rows = []
+    for s in students:
+        has_submission = IdeaSubmission.objects.filter(student=s).exclude(status='draft').exists()
+        rows.append({
+            'name': s.user.get_full_name() or s.user.username,
+            'email': s.user.email,
+            'grade': s.grade or '-',
+            'phone': getattr(s, 'phone', '') or getattr(s, 'mobile', '') or '-',
+            # Payment gateway not integrated yet -> everyone pending
+            'is_paid': False,
+            'has_submission': has_submission,
+        })
+
+    paid = [r for r in rows if r['is_paid']]
+    unpaid = [r for r in rows if not r['is_paid']]
+
+    context = {
+        'school': school,
+        'rows': rows,
+        'paid_count': len(paid),
+        'unpaid_count': len(unpaid),
+        'total_count': len(rows),
+    }
+    return render(request, 'students/school_payments.html', context)
+
+
+def platform_live_stats(request):
+    """JSON endpoint for the live ticker (platform-wide, refreshed daily)."""
+    from datetime import date
+    from admins.models import Phase
+    from students.models import Team, IdeaSubmission
+
+    sub_phase = Phase.objects.filter(name__icontains='submission').order_by('order').first()
+    if sub_phase:
+        days_left = sub_phase.days_remaining
+        deadline = sub_phase.end_date
+    else:
+        deadline = date(2026, 10, 15)
+        days_left = max(0, (deadline - timezone.now().date()).days)
+
+    return JsonResponse({
+        'days_left': days_left,
+        'deadline': deadline.strftime('%d %b %Y'),
+        'schools': School.objects.filter(status='active').count(),
+        'students': Student.objects.count(),
+        'teams': Team.objects.filter(is_active=True).count(),
+        'ideas': IdeaSubmission.objects.exclude(status='draft').count(),
+    })
 
 
 @login_required
