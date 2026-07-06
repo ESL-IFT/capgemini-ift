@@ -1,4 +1,4 @@
-# Railway deployment - v3
+# Railway deployment - v4 (run migrations on startup)
 FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -20,4 +20,4 @@ RUN python manage.py collectstatic --noinput 2>/dev/null || true
 
 EXPOSE 8000
 
-CMD ["gunicorn", "ift_platform.wsgi", "--bind", "0.0.0.0:8000"]
+CMD ["sh", "-c", "python manage.py migrate --noinput && gunicorn ift_platform.wsgi --bind 0.0.0.0:8000"]
