@@ -96,6 +96,7 @@ class School(models.Model):
     school_type = models.CharField(max_length=20, choices=SCHOOL_TYPE_CHOICES, blank=True)
     medium = models.CharField(max_length=100, blank=True)
     is_active = models.BooleanField(default=True)
+    is_tata_classedge = models.BooleanField(default=False)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
     created_at = models.DateTimeField(auto_now_add=True)
 

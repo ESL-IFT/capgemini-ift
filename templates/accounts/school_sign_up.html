@@ -16,6 +16,13 @@
         {% if form.school_name.errors %}<p class="field-error">{{ form.school_name.errors.0 }}</p>{% endif %}
     </div>
 
+    <!-- Coordinator Name -->
+    <div class="form-group">
+        <div class="icon"><iconify-icon icon="mdi:account-outline"></iconify-icon></div>
+        <input type="text" class="form-control" name="coordinator_name" placeholder="School Coordinator Name" required value="{{ form.coordinator_name.value|default:'' }}">
+        {% if form.coordinator_name.errors %}<p class="field-error">{{ form.coordinator_name.errors.0 }}</p>{% endif %}
+    </div>
+
     <!-- Email -->
     <div class="form-group">
         <div class="icon"><iconify-icon icon="mage:email"></iconify-icon></div>
@@ -42,6 +49,22 @@
         <div class="icon"><iconify-icon icon="mdi:map-marker-outline"></iconify-icon></div>
         <input type="text" class="form-control" name="state" placeholder="State" required value="{{ form.state.value|default:'' }}">
         {% if form.state.errors %}<p class="field-error">{{ form.state.errors.0 }}</p>{% endif %}
+    </div>
+
+    <!-- Tata ClassEdge Network -->
+    <div class="form-group" style="text-align:left;padding-left:0.25rem;">
+        <label style="display:block;font-size:0.9rem;font-weight:500;margin-bottom:0.5rem;color:#333;">
+            Is your school a Tata ClassEdge Network School?
+        </label>
+        <div style="display:flex;gap:1.5rem;align-items:center;">
+            <label style="display:flex;align-items:center;gap:0.35rem;cursor:pointer;font-size:0.9rem;">
+                <input type="radio" name="is_tata_classedge" value="yes" required {% if form.is_tata_classedge.value == 'yes' %}checked{% endif %}> Yes
+            </label>
+            <label style="display:flex;align-items:center;gap:0.35rem;cursor:pointer;font-size:0.9rem;">
+                <input type="radio" name="is_tata_classedge" value="no" required {% if form.is_tata_classedge.value == 'no' %}checked{% endif %}> No
+            </label>
+        </div>
+        {% if form.is_tata_classedge.errors %}<p class="field-error">{{ form.is_tata_classedge.errors.0 }}</p>{% endif %}
     </div>
 
     <!-- Terms -->

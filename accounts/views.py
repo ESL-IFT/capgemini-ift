@@ -53,6 +53,7 @@ def sign_up(request):
     if request.user.is_authenticated:
         return redirect('accounts:role_redirect')
 
+    show_school_not_registered = False
     if request.method == 'POST':
         form = StudentSignUpForm(request.POST)
         if form.is_valid():
@@ -91,10 +92,18 @@ def sign_up(request):
                 pass
 
             return redirect('students:dashboard')
+        else:
+            posted_school = request.POST.get('school', '').strip()
+            posted_school_name = request.POST.get('school_name_typed', '').strip()
+            if 'school' in form.errors and (not posted_school or posted_school_name):
+                show_school_not_registered = True
     else:
         form = StudentSignUpForm()
 
-    return render(request, 'accounts/sign_up.html', {'form': form})
+    return render(request, 'accounts/sign_up.html', {
+        'form': form,
+        'show_school_not_registered': show_school_not_registered,
+    })
 
 
 def sign_out(request):
@@ -140,10 +149,12 @@ def school_sign_up(request):
             school = School.objects.create(
                 user=user,
                 name=form.cleaned_data['school_name'],
+                designated_teacher_name=form.cleaned_data['coordinator_name'],
                 contact_email=email,
                 contact_phone=form.cleaned_data['contact_phone'],
                 city=form.cleaned_data['city'],
                 state=form.cleaned_data['state'],
+                is_tata_classedge=(form.cleaned_data['is_tata_classedge'] == 'yes'),
                 status='pending',
                 is_active=False,
             )

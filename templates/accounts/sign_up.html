@@ -55,8 +55,8 @@
             <iconify-icon icon="mdi:school-outline"></iconify-icon>
         </div>
         <div style="position:relative;width:100%;">
-            <input type="text" class="form-control" id="schoolSearch" placeholder="Search School..." autocomplete="off">
-            <input type="hidden" name="school" id="schoolId">
+            <input type="text" class="form-control" id="schoolSearch" name="school_name_typed" placeholder="Search School..." autocomplete="off" value="{{ request.POST.school_name_typed|default:'' }}">
+            <input type="hidden" name="school" id="schoolId" value="{{ form.school.value|default:'' }}">
             <div id="schoolDropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid #ddd;border-radius:8px;max-height:200px;overflow-y:auto;z-index:100;box-shadow:0 4px 12px rgba(0,0,0,0.1);"></div>
         </div>
         {% if form.school.errors %}<p class="field-error">{{ form.school.errors.0 }}</p>{% endif %}
@@ -118,6 +118,20 @@
 <div class="signin-link">
     Already have an account? <a href="{% url 'accounts:sign_in' %}">Sign In</a>
 </div>
+
+<!-- School-Not-Registered Modal -->
+<div id="schoolNotRegisteredModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;align-items:center;justify-content:center;padding:1rem;">
+    <div style="background:#fff;border-radius:12px;max-width:460px;width:100%;padding:1.75rem;box-shadow:0 20px 40px rgba(0,0,0,0.2);text-align:center;">
+        <div style="font-size:2.5rem;line-height:1;margin-bottom:0.75rem;color:#F59E0B;">
+            <iconify-icon icon="mdi:alert-circle-outline"></iconify-icon>
+        </div>
+        <h2 style="font-size:1.15rem;font-weight:700;color:#222;margin:0 0 0.75rem;">School Not Registered</h2>
+        <p style="font-size:0.9rem;color:#555;line-height:1.55;margin:0 0 1.25rem;">
+            Your school has not yet registered for the India Future Tycoons (IFT) Programme. Please request your school to complete its registration first. Once your school is registered, you will be able to proceed with your registration and payment.
+        </p>
+        <button type="button" id="schoolNotRegisteredClose" class="btn-primary" style="width:auto;padding:0.6rem 1.5rem;">Okay</button>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -126,8 +140,18 @@ let searchTimeout;
 const schoolSearch = document.getElementById('schoolSearch');
 const schoolDropdown = document.getElementById('schoolDropdown');
 const schoolId = document.getElementById('schoolId');
+const modal = document.getElementById('schoolNotRegisteredModal');
+const modalClose = document.getElementById('schoolNotRegisteredClose');
+const signupForm = schoolSearch.closest('form');
 
+function openSchoolModal() { modal.style.display = 'flex'; }
+function closeSchoolModal() { modal.style.display = 'none'; }
+modalClose.addEventListener('click', closeSchoolModal);
+modal.addEventListener('click', function(e) { if (e.target === modal) closeSchoolModal(); });
+
+// Clear picked school id whenever the user edits the text after a selection.
 schoolSearch.addEventListener('input', function() {
+    schoolId.value = '';
     clearTimeout(searchTimeout);
     const q = this.value.trim();
     if (q.length < 2) { schoolDropdown.style.display = 'none'; return; }
@@ -136,7 +160,7 @@ schoolSearch.addEventListener('input', function() {
         .then(r => r.json())
         .then(data => {
             if (data.length === 0) {
-                schoolDropdown.innerHTML = '<div style="padding:12px;color:#999;font-size:0.85rem;">No schools found</div>';
+                schoolDropdown.innerHTML = '<div style="padding:12px;color:#999;font-size:0.85rem;">No schools found — your school may not be registered yet.</div>';
             } else {
                 schoolDropdown.innerHTML = data.map(s =>
                     `<div class="school-option" data-id="${s.id}" data-name="${s.name}" style="padding:10px 14px;cursor:pointer;font-size:0.9rem;border-bottom:1px solid #f0f0f0;">${s.name}${s.city ? ' <span style="color:#999;font-size:0.8rem;">(' + s.city + ')</span>' : ''}</div>`
@@ -161,5 +185,15 @@ document.addEventListener('click', function(e) {
         schoolDropdown.style.display = 'none';
     }
 });
+
+// Block submit + show popup when a school was typed but not chosen from suggestions.
+signupForm.addEventListener('submit', function(e) {
+    if (schoolSearch.value.trim() && !schoolId.value) {
+        e.preventDefault();
+        openSchoolModal();
+    }
+});
+
+{% if show_school_not_registered %}openSchoolModal();{% endif %}
 </script>
 {% endblock %}
