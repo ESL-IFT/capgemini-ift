@@ -2013,6 +2013,7 @@ def content_list(request):
         'total': all_content.count(),
         'announcements': all_content.filter(content_type='announcement').count(),
         'faqs': all_content.filter(content_type='faq').count(),
+        'trainings': all_content.filter(content_type='training').count(),
         'published': all_content.filter(status='published').count(),
         'draft': all_content.filter(status='draft').count(),
     }
@@ -2051,6 +2052,9 @@ def content_create(request):
         visibility = data.get('visibility', 'all')
         tags = data.get('tags', '').strip()
         scheduled_at = data.get('scheduled_at', '') or None
+        event_date = data.get('event_date', '') or None
+        event_time = data.get('event_time', '').strip()
+        event_mode = data.get('event_mode', '').strip() or 'Online'
 
         if not all([content_type, title]):
             return JsonResponse({'success': False, 'message': 'Title and content type are required.'}, status=400)
@@ -2065,6 +2069,9 @@ def content_create(request):
             tags=tags,
             author=request.user,
             scheduled_at=scheduled_at,
+            event_date=event_date,
+            event_time=event_time,
+            event_mode=event_mode,
         )
 
         return JsonResponse({
@@ -2098,6 +2105,9 @@ def content_edit(request, content_id):
         visibility = data.get('visibility', content.visibility)
         tags = data.get('tags', '').strip()
         scheduled_at = data.get('scheduled_at', '') or None
+        event_date = data.get('event_date', '') or None
+        event_time = data.get('event_time', '').strip()
+        event_mode = data.get('event_mode', '').strip() or 'Online'
 
         if not title:
             return JsonResponse({'success': False, 'message': 'Title is required.'}, status=400)
@@ -2109,6 +2119,9 @@ def content_edit(request, content_id):
         content.visibility = visibility
         content.tags = tags
         content.scheduled_at = scheduled_at
+        content.event_date = event_date
+        content.event_time = event_time
+        content.event_mode = event_mode
         content.save()
 
         return JsonResponse({

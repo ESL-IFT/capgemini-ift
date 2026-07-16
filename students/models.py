@@ -38,6 +38,10 @@ class Student(models.Model):
     state = models.CharField(max_length=100, blank=True)
     pin_code = models.CharField(max_length=10, blank=True)
 
+    # Payment
+    is_paid = models.BooleanField(default=False)
+    payment_transaction_id = models.CharField(max_length=100, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     @property

@@ -632,6 +632,25 @@ def school_dashboard(request):
         submission_deadline = date(2026, 10, 15)
         days_left = max(0, (submission_deadline - timezone.now().date()).days)
 
+    # ---- Upcoming training calendar (managed by super admin via Content) ----
+    today = timezone.now().date()
+    training_qs = Content.objects.filter(
+        content_type='training',
+        status='published',
+        visibility__in=['all', 'schools'],
+        event_date__gte=today,
+    ).order_by('event_date')
+    training_sessions = [
+        {
+            'title': c.title,
+            'subtitle': c.subtitle,
+            'date': c.event_date,
+            'time': c.event_time,
+            'mode': c.event_mode or 'Online',
+        }
+        for c in training_qs
+    ]
+
     context = {
         'school': school,
         'is_pending': False,
@@ -657,6 +676,7 @@ def school_dashboard(request):
         'platform_ideas': platform_ideas,
         'days_left': days_left,
         'submission_deadline': submission_deadline,
+        'training_sessions': training_sessions,
     }
     return render(request, 'students/school_dashboard.html', context)
 
@@ -1530,9 +1550,9 @@ def mark_all_notifications_read(request):
 
 @login_required
 def school_teams(request):
-    """School admin — view teams from this school."""
-    from students.models import School, Student, Team, TeamMembership, IdeaSubmission
-    from ai_assistant.models import AIEvaluation
+    """School admin — Idea Submissions list (with team members column)."""
+    from students.models import School, TeamMembership, IdeaSubmission
+    from django.core.paginator import Paginator
 
     try:
         school = request.user.school_profile
@@ -1543,70 +1563,94 @@ def school_teams(request):
         return redirect('students:school_dashboard')
 
     search = request.GET.get('q', '').strip()
+    status_filter = request.GET.get('status', '')
 
-    # Get teams where leader is from this school
-    leader_memberships = TeamMembership.objects.filter(
-        student__school=school, role='leader'
-    ).select_related('team', 'student__user')
+    submissions = IdeaSubmission.objects.filter(
+        student__school=school
+    ).select_related('student__user').order_by('-created_at')
 
-    team_list = []
-    for lm in leader_memberships:
-        team = lm.team
-        if search and search.lower() not in team.name.lower():
-            continue
+    if search:
+        submissions = submissions.filter(
+            Q(title__icontains=search) |
+            Q(student__user__first_name__icontains=search) |
+            Q(student__user__last_name__icontains=search) |
+            Q(q3_solution_simple__icontains=search)
+        )
 
-        members = team.memberships.filter(status='active').select_related('student__user')
-        member_count = members.count()
+    if status_filter:
+        submissions = submissions.filter(status=status_filter)
 
-        # Get team's idea submission
-        idea = IdeaSubmission.objects.filter(student=lm.student).exclude(status='draft').first()
-        idea_title = ''
-        idea_status = 'no-idea'
+    # Build list with extra data
+    sub_list = []
+    for s in submissions:
         ai_score = None
-        if idea:
-            idea_title = (idea.title or idea.q3_solution_simple or '')[:50]
-            idea_status = idea.status
-            try:
-                ai_score = idea.ai_evaluation.final_score
-            except:
-                pass
+        is_top_400 = False
+        try:
+            ev = s.ai_evaluation
+            ai_score = ev.final_score
+            is_top_400 = ev.is_top_400
+        except Exception:
+            pass
 
-        team_list.append({
-            'id': team.id,
-            'name': team.name,
-            'code': team.team_code,
-            'track': team.get_track_display() if team.track else '',
-            'leader_name': lm.student.user.get_full_name(),
-            'member_count': member_count,
-            'max_members': 3,
-            'members': [{'name': m.student.user.get_full_name(), 'initial': m.student.user.first_name[:1].upper() if m.student and m.student.user.first_name else 'S', 'role': m.role} for m in members if m.student],
-            'idea_title': idea_title,
-            'idea_status': idea_status,
+        # Resolve team (leader membership preferred) for name + members
+        leader_membership = TeamMembership.objects.filter(
+            student=s.student, role='leader'
+        ).select_related('team').first()
+        team = leader_membership.team if leader_membership else None
+        if team is None:
+            membership = TeamMembership.objects.filter(
+                student=s.student
+            ).select_related('team').first()
+            team = membership.team if membership else None
+
+        team_name = team.name if team else s.student.user.get_full_name()
+        member_dots = []
+        if team:
+            for m in team.memberships.filter(status='active').select_related('student__user'):
+                if not m.student:
+                    continue
+                mu = m.student.user
+                full = mu.get_full_name() or mu.username
+                initial = (mu.first_name[:1] or mu.username[:1]).upper()
+                member_dots.append({'name': full, 'initial': initial, 'role': m.role})
+
+        sub_list.append({
+            'id': s.id,
+            'title': (s.title or s.q3_solution_simple or 'Untitled')[:60],
+            'student_name': s.student.user.get_full_name(),
+            'team_name': team_name,
+            'members': member_dots,
+            'track': s.get_competition_track_display() if s.competition_track else '',
+            'status': s.status,
+            'status_label': s.get_status_display(),
             'ai_score': ai_score,
-            'created_at': team.created_at,
+            'is_top_400': is_top_400,
+            'submitted_at': s.submitted_at or s.created_at,
+            'grade': s.student.grade,
         })
 
     # Stats
-    total_teams = len(team_list)
-    full_teams = sum(1 for t in team_list if t['member_count'] >= 3)
-    with_ideas = sum(1 for t in team_list if t['idea_status'] != 'no-idea')
-    avg_size = round(sum(t['member_count'] for t in team_list) / max(total_teams, 1), 1)
+    all_subs = IdeaSubmission.objects.filter(student__school=school)
+    total = all_subs.count()
+    draft_count = all_subs.filter(status='draft').count()
+    submitted_count = all_subs.filter(status='submitted').count()
+    evaluated_count = all_subs.filter(status='evaluated').count()
 
     # Pagination
-    from django.core.paginator import Paginator
-    paginator = Paginator(team_list, 20)
+    paginator = Paginator(sub_list, 20)
     page_obj = paginator.get_page(request.GET.get('page', 1))
 
     context = {
         'school': school,
-        'teams': page_obj,
-        'total_teams': total_teams,
-        'full_teams': full_teams,
-        'with_ideas': with_ideas,
-        'avg_size': avg_size,
+        'submissions': page_obj,
+        'total': total,
+        'draft_count': draft_count,
+        'submitted_count': submitted_count,
+        'evaluated_count': evaluated_count,
         'search_query': search,
+        'status_filter': status_filter,
     }
-    return render(request, 'students/school_teams.html', context)
+    return render(request, 'students/school_submissions.html', context)
 
 
 @login_required
@@ -1685,6 +1729,8 @@ def school_students(request):
             'status': stu_status,
             'phone': s.phone,
             'created_at': s.created_at,
+            'is_paid': s.is_paid,
+            'payment_transaction_id': s.payment_transaction_id,
         })
 
     # Stats
@@ -1693,6 +1739,14 @@ def school_students(request):
     in_teams = sum(1 for sl in student_list if sl['status'] in ['in-team', 'submitted'])
     no_teams = total - in_teams
     submitted = sum(1 for sl in student_list if sl['status'] == 'submitted')
+
+    # Bento-box metrics for the Students tab
+    from students.models import Team as _Team
+    registered_count = total
+    paid_count = all_students.filter(is_paid=True).count()
+    school_total_students = school.total_students or total
+    teams_count = _Team.objects.filter(memberships__student__school=school).distinct().count()
+    ideas_count = IdeaSubmission.objects.filter(student__school=school).exclude(status='draft').count()
 
     # Grades for filter
     grades = all_students.values_list('grade', flat=True).distinct().order_by('grade')
@@ -1713,13 +1767,23 @@ def school_students(request):
         'search_query': search,
         'grade_filter': grade_filter,
         'status_filter': status_filter,
+        'registered_count': registered_count,
+        'paid_count': paid_count,
+        'school_total_students': school_total_students,
+        'teams_count': teams_count,
+        'ideas_count': ideas_count,
     }
     return render(request, 'students/school_students.html', context)
 
 
 @login_required
 def school_submissions(request):
-    """School admin — view idea submissions from this school."""
+    """Merged into school_teams — redirect for backward compat."""
+    return redirect('students:school_teams')
+
+
+def _school_submissions_legacy(request):
+    """(kept only for reference; no longer routed)"""
     from students.models import School, Student, IdeaSubmission, TeamMembership
     from ai_assistant.models import AIEvaluation
     from django.db.models import Q
@@ -2227,6 +2291,17 @@ def student_faq(request):
         visibility__in=['all', 'students']
     ).order_by('created_at')
     return render(request, 'students/student_faq.html', {'student': student, 'faqs': faqs})
+
+
+@login_required
+def school_learning_resources(request):
+    """School Learning Resources page — same module videos as the student page."""
+    from students.models import School
+    try:
+        school = request.user.school_profile
+    except School.DoesNotExist:
+        return redirect('accounts:sign_in')
+    return render(request, 'students/school_learning_resources.html', {'school': school})
 
 
 @login_required

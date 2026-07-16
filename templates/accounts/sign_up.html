@@ -76,6 +76,20 @@
         {% if form.grade.errors %}<p class="field-error">{{ form.grade.errors.0 }}</p>{% endif %}
     </div>
 
+    <!-- Gender -->
+    <div class="form-group">
+        <div class="icon">
+            <iconify-icon icon="mdi:gender-male-female"></iconify-icon>
+        </div>
+        <select class="form-control" id="gender" name="gender" required>
+            <option value="" disabled {% if not form.gender.value %}selected{% endif %}>Select Gender</option>
+            {% for value, label in form.gender.field.choices %}
+            <option value="{{ value }}" {% if form.gender.value == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+        {% if form.gender.errors %}<p class="field-error">{{ form.gender.errors.0 }}</p>{% endif %}
+    </div>
+
     <!-- Phone -->
     <div class="form-group">
         <div class="icon">

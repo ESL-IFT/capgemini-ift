@@ -47,10 +47,11 @@ class EvaluatorAssignment(models.Model):
 
 
 class Content(models.Model):
-    """Content management for Announcements and FAQs"""
+    """Content management for Announcements, FAQs and Training sessions"""
     TYPE_CHOICES = [
         ('announcement', 'Announcement'),
         ('faq', 'FAQ'),
+        ('training', 'Upcoming Training Calendar'),
     ]
     STATUS_CHOICES = [
         ('draft', 'Draft'),
@@ -75,6 +76,10 @@ class Content(models.Model):
     tags = models.CharField(max_length=500, blank=True)
     author = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='contents')
     scheduled_at = models.DateTimeField(null=True, blank=True)
+    # Training-calendar specific fields
+    event_date = models.DateField(null=True, blank=True)
+    event_time = models.CharField(max_length=50, blank=True)
+    event_mode = models.CharField(max_length=50, blank=True, default='Online')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

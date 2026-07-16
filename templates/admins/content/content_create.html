@@ -688,7 +688,40 @@
                                     <p class="type-desc">Common questions & answers</p>
                                 </div>
                             </label>
+                            <label class="type-option" onclick="selectType('training', this)">
+                                <input type="radio" name="contentType" value="training" />
+                                <div class="type-icon" style="background:rgba(94,42,151,0.1); color:var(--primary);">
+                                    <span class="material-symbols-outlined" style="font-size:20px;">event</span>
+                                </div>
+                                <div>
+                                    <p class="type-label">Upcoming Training Calendar</p>
+                                    <p class="type-desc">Training sessions shown to schools</p>
+                                </div>
+                            </label>
                         </div>
+                    </div>
+
+                    <!-- Training Session Details (only for training type) -->
+                    <div class="form-card" id="trainingFields" style="display:none;">
+                        <div class="form-card-title">
+                            <span class="material-symbols-outlined">event</span>
+                            Training Session Details
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="field-label" for="eventDate">Date <span style="color:#ef4444;">*</span></label>
+                                <input type="date" id="eventDate" class="form-input" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="field-label" for="eventTime">Time</label>
+                                <input type="text" id="eventTime" class="form-input" placeholder="e.g. 4:00 PM" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="field-label" for="eventMode">Mode</label>
+                                <input type="text" id="eventMode" class="form-input" placeholder="Online" value="Online" />
+                            </div>
+                        </div>
+                        <p class="field-hint mt-2">These sessions appear in each school's "Upcoming Training Calendar" card and notifications. Set visibility to "Schools Only" or "All Users".</p>
                     </div>
 
                     <!-- Basic Info -->
@@ -874,7 +907,8 @@
 // ── Content Type ───────────────────────────────────────────────────────────────
 const typeLabelMap = {
     announcement: 'Announcement',
-    faq:          'FAQ'
+    faq:          'FAQ',
+    training:     'Upcoming Training Calendar'
 };
 
 let currentType = 'announcement';
@@ -900,6 +934,13 @@ function selectType(type, el) {
         titleInput.placeholder = 'Enter the frequently asked question...';
         subtitleInput.placeholder = 'Optional short context for the question...';
         bodyInput.placeholder = 'Write the detailed answer here. You can use Markdown for formatting...';
+    } else if (type === 'training') {
+        titleLabel.innerHTML = 'Session Title <span style="color:#ef4444;">*</span>';
+        subtitleLabel.textContent = 'Subtitle / Short Description';
+        bodyCardTitle.textContent = 'Session Details (optional)';
+        titleInput.placeholder = 'e.g. Problem Identification Workshop';
+        subtitleInput.placeholder = 'Optional one-line summary...';
+        bodyInput.placeholder = 'Optional agenda / notes for this session...';
     } else {
         titleLabel.innerHTML = 'Title <span style="color:#ef4444;">*</span>';
         subtitleLabel.textContent = 'Subtitle / Short Description';
@@ -908,6 +949,10 @@ function selectType(type, el) {
         subtitleInput.placeholder = 'Optional one-line summary...';
         bodyInput.placeholder = 'Write the full content here. You can use Markdown for formatting...';
     }
+
+    // Show training-only fields
+    const trainingFields = document.getElementById('trainingFields');
+    if (trainingFields) trainingFields.style.display = (type === 'training') ? 'block' : 'none';
 }
 
 // ── Status ─────────────────────────────────────────────────────────────────────
@@ -961,7 +1006,14 @@ function validate() {
     const body  = document.getElementById('contentBody').value.trim();
 
     if (!title) { showToast('Title is required.', 'warning'); return false; }
-    if (!body)  { showToast('Content body cannot be empty.', 'warning'); return false; }
+
+    if (currentType === 'training') {
+        if (!document.getElementById('eventDate').value) {
+            showToast('Please set the training session date.', 'warning'); return false;
+        }
+    } else if (!body) {
+        showToast('Content body cannot be empty.', 'warning'); return false;
+    }
 
     if (currentStatus === 'scheduled') {
         const dt = document.getElementById('scheduleDate').value;
@@ -986,6 +1038,11 @@ function buildPayload(status) {
     };
     if (status === 'scheduled') {
         payload.scheduled_at = document.getElementById('scheduleDate').value;
+    }
+    if (currentType === 'training') {
+        payload.event_date = document.getElementById('eventDate').value;
+        payload.event_time = document.getElementById('eventTime').value.trim();
+        payload.event_mode = document.getElementById('eventMode').value.trim() || 'Online';
     }
     return payload;
 }

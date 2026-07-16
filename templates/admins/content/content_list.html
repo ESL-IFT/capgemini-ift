@@ -458,6 +458,7 @@
 
         .badge-type.announcement { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
         .badge-type.faq { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+        .badge-type.training { background: rgba(94, 42, 151, 0.1); color: #5E2A97; }
 
         /* Content title cell */
         .content-title-cell {
@@ -478,6 +479,7 @@
 
         .content-type-icon.announcement { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
         .content-type-icon.faq { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+        .content-type-icon.training { background: rgba(94, 42, 151, 0.1); color: #5E2A97; }
 
         .content-title-text {
             font-weight: 600;
@@ -818,6 +820,11 @@
                             FAQs
                             <span class="tab-count">{{ stats.faqs|default:"0" }}</span>
                         </a>
+                        <a class="tab-btn {% if selected_type == 'training' %}active{% endif %}" href="?type=training{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}">
+                            <span class="material-symbols-outlined" style="font-size:17px;">event</span>
+                            Training
+                            <span class="tab-count">{{ stats.trainings|default:"0" }}</span>
+                        </a>
                     </div>
                 </div>
 
@@ -868,7 +875,7 @@
                                     <div class="content-title-cell">
                                         <div class="content-type-icon {{ item.content_type }}">
                                             <span class="material-symbols-outlined" style="font-size:18px;">
-                                                {% if item.content_type == 'announcement' %}campaign{% elif item.content_type == 'faq' %}help{% else %}article{% endif %}
+                                                {% if item.content_type == 'announcement' %}campaign{% elif item.content_type == 'faq' %}help{% elif item.content_type == 'training' %}event{% else %}article{% endif %}
                                             </span>
                                         </div>
                                         <div>

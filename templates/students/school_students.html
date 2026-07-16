@@ -410,10 +410,6 @@
                 </a>
                 <a class="nav-item" href="{% url 'students:school_teams' %}">
                     <span class="material-symbols-outlined">groups</span>
-                    <span class="nav-text">Teams</span>
-                </a>
-                <a class="nav-item" href="{% url 'students:school_submissions' %}">
-                    <span class="material-symbols-outlined">assignment</span>
                     <span class="nav-text">Submissions</span>
                 </a>
                 <a class="nav-item" href="{% url 'students:school_results' %}">
@@ -427,6 +423,10 @@
                 <a class="nav-item" href="{% url 'students:school_reports' %}">
                     <span class="material-symbols-outlined">analytics</span>
                     <span class="nav-text">Reports</span>
+                </a>
+                <a class="nav-item" href="{% url 'students:school_learning_resources' %}">
+                    <span class="material-symbols-outlined">play_circle</span>
+                    <span class="nav-text">Learning Resources</span>
                 </a>
                 <a class="nav-item" href="{% url 'students:school_faq' %}">
                     <span class="material-symbols-outlined">help</span>
@@ -513,49 +513,60 @@
                     </div>
                 </div>
 
-                <!-- Stats Grid -->
+                <!-- Bento Stats Grid -->
                 <div class="row g-3 mb-4">
-                    <div class="col-6 col-md-3">
+                    <div class="col-6 col-md-4 col-lg">
                         <div class="stat-card">
                             <div class="stat-icon purple">
+                                <span class="material-symbols-outlined">how_to_reg</span>
+                            </div>
+                            <div>
+                                <p class="stat-label">Students Registered</p>
+                                <h3 class="stat-value">{{ registered_count }}</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-4 col-lg">
+                        <div class="stat-card">
+                            <div class="stat-icon green">
+                                <span class="material-symbols-outlined">payments</span>
+                            </div>
+                            <div>
+                                <p class="stat-label">Students Paid</p>
+                                <h3 class="stat-value">{{ paid_count }}</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-4 col-lg">
+                        <div class="stat-card">
+                            <div class="stat-icon blue">
                                 <span class="material-symbols-outlined">school</span>
                             </div>
                             <div>
-                                <p class="stat-label">Total Enrolled</p>
-                                <h3 class="stat-value">{{ total }}</h3>
+                                <p class="stat-label">Total Students</p>
+                                <h3 class="stat-value">{{ school_total_students }}</h3>
                             </div>
                         </div>
                     </div>
-                    <div class="col-6 col-md-3">
+                    <div class="col-6 col-md-4 col-lg">
                         <div class="stat-card">
-                            <div class="stat-icon green">
-                                <span class="material-symbols-outlined">check_circle</span>
-                            </div>
-                            <div>
-                                <p class="stat-label">Active</p>
-                                <h3 class="stat-value">{{ active_count }}</h3>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-6 col-md-3">
-                        <div class="stat-card">
-                            <div class="stat-icon blue">
+                            <div class="stat-icon amber">
                                 <span class="material-symbols-outlined">groups</span>
                             </div>
                             <div>
-                                <p class="stat-label">In Teams</p>
-                                <h3 class="stat-value">{{ in_teams }}</h3>
+                                <p class="stat-label">Teams</p>
+                                <h3 class="stat-value">{{ teams_count }}</h3>
                             </div>
                         </div>
                     </div>
-                    <div class="col-6 col-md-3">
+                    <div class="col-6 col-md-4 col-lg">
                         <div class="stat-card">
-                            <div class="stat-icon amber">
-                                <span class="material-symbols-outlined">person_off</span>
+                            <div class="stat-icon purple">
+                                <span class="material-symbols-outlined">lightbulb</span>
                             </div>
                             <div>
-                                <p class="stat-label">Without Teams</p>
-                                <h3 class="stat-value">{{ no_teams }}</h3>
+                                <p class="stat-label">Total Ideas</p>
+                                <h3 class="stat-value">{{ ideas_count }}</h3>
                             </div>
                         </div>
                     </div>
@@ -601,6 +612,8 @@
                                     <th>Grade</th>
                                     <th>Idea Description</th>
                                     <th>Status</th>
+                                    <th>Payment</th>
+                                    <th>Transaction ID</th>
                                     <th style="text-align: right;">Result</th>
                                 </tr>
                             </thead>
@@ -639,13 +652,23 @@
                                         <span class="badge-status no-team">No Team</span>
                                         {% endif %}
                                     </td>
+                                    <td>
+                                        {% if student.is_paid %}
+                                        <span class="badge-status submitted">Paid</span>
+                                        {% else %}
+                                        <span class="badge-status no-team">Unpaid</span>
+                                        {% endif %}
+                                    </td>
+                                    <td style="font-family:monospace;font-size:0.8rem;color:var(--text-muted);">
+                                        {% if student.payment_transaction_id %}{{ student.payment_transaction_id }}{% else %}&mdash;{% endif %}
+                                    </td>
                                     <td style="text-align:right;{% if student.ai_score %}font-weight:700;color:var(--primary);{% else %}color:var(--text-muted);{% endif %}">
                                         {% if student.ai_score %}{{ student.ai_score }}/100{% else %}&mdash;{% endif %}
                                     </td>
                                 </tr>
                                 {% empty %}
                                 <tr>
-                                    <td colspan="6" style="text-align: center; padding: 48px 20px; color: var(--text-muted);">
+                                    <td colspan="8" style="text-align: center; padding: 48px 20px; color: var(--text-muted);">
                                         <span class="material-symbols-outlined" style="font-size: 48px; display: block; margin-bottom: 12px; opacity: 0.3;">school</span>
                                         No students found{% if search_query %} for "{{ search_query }}"{% endif %}.
                                     </td>

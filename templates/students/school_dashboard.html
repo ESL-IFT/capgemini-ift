@@ -614,10 +614,6 @@
             </a>
             <a class="nav-item" href="{% url 'students:school_teams' %}">
                 <span class="material-symbols-outlined">groups</span>
-                <span class="nav-text">Teams</span>
-            </a>
-            <a class="nav-item" href="{% url 'students:school_submissions' %}">
-                <span class="material-symbols-outlined">assignment</span>
                 <span class="nav-text">Submissions</span>
             </a>
             <a class="nav-item" href="{% url 'students:school_results' %}">
@@ -631,6 +627,10 @@
             <a class="nav-item" href="{% url 'students:school_reports' %}">
                 <span class="material-symbols-outlined">analytics</span>
                 <span class="nav-text">Reports</span>
+            </a>
+            <a class="nav-item" href="{% url 'students:school_learning_resources' %}">
+                <span class="material-symbols-outlined">play_circle</span>
+                <span class="nav-text">Learning Resources</span>
             </a>
             <a class="nav-item" href="{% url 'students:school_faq' %}">
                 <span class="material-symbols-outlined">help</span>
@@ -680,8 +680,21 @@
                 </button>
             </div>
             <div style="max-height:400px; overflow-y:auto; padding:8px;">
+                {% for t in training_sessions %}
+                <div style="padding:12px; border-radius:8px; margin-bottom:4px; background:rgba(94,42,151,0.05);">
+                    <div style="display:flex; gap:12px;">
+                        <div style="width:32px; height:32px; border-radius:50%; background:rgba(94,42,151,0.12); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                            <span class="material-symbols-outlined" style="font-size:16px; color:var(--primary);">event</span>
+                        </div>
+                        <div style="flex:1;">
+                            <p style="margin:0; font-size:0.875rem; font-weight:600; color:#1e293b;">Training: {{ t.title }}</p>
+                            <p style="margin:4px 0 0; font-size:0.75rem; color:#64748b;">{{ t.date|date:"D, M d" }}{% if t.time %} &middot; {{ t.time }}{% endif %}{% if t.mode %} &middot; {{ t.mode }}{% endif %}</p>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
                 {% for ann in announcements %}
-                <div style="padding:12px; border-radius:8px; margin-bottom:4px; background:{% if forloop.first %}rgba(94,42,151,0.05){% else %}transparent{% endif %};">
+                <div style="padding:12px; border-radius:8px; margin-bottom:4px; background:transparent;">
                     <div style="display:flex; gap:12px;">
                         <div style="width:32px; height:32px; border-radius:50%; background:rgba(94,42,151,0.1); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
                             <span class="material-symbols-outlined" style="font-size:16px; color:var(--primary);">campaign</span>
@@ -693,9 +706,10 @@
                         </div>
                     </div>
                 </div>
-                {% empty %}
-                <p style="padding:16px; text-align:center; color:var(--text-muted); font-size:0.875rem;">No notifications</p>
                 {% endfor %}
+                {% if not announcements and not training_sessions %}
+                <p style="padding:16px; text-align:center; color:var(--text-muted); font-size:0.875rem;">No notifications</p>
+                {% endif %}
             </div>
         </div>
 
@@ -1022,61 +1036,45 @@
                 </div>
             </div>
 
-            <!-- Recent Activity + Announcements -->
+            <!-- Upcoming Training Calendar + Announcements/Recent Activity -->
             <div class="row g-4 mb-4">
+                <!-- Upcoming Training Calendar (main, left) -->
                 <div class="col-12 col-lg-8">
                     <div class="section-card" style="height:auto;">
                         <div class="section-header">
-                            <h3 class="section-title">Recent Activity</h3>
+                            <h3 class="section-title">Upcoming Training Calendar</h3>
+                            <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600;">Every Friday</span>
                         </div>
-                        {% if recent %}
-                        <div class="row g-4">
-                            <div class="col-12 col-lg-6">
-                                {% for sub in recent %}
-                                {% if forloop.counter <= 3 %}
-                                <div class="feed-item">
-                                    <div class="feed-icon {% if sub.status == 'submitted' %}feed-icon-success{% elif sub.status == 'evaluated' %}feed-icon-blue{% elif sub.status == 'draft' %}feed-icon-warning{% else %}feed-icon-info{% endif %}">
-                                        <span class="material-symbols-outlined">
-                                            {% if sub.status == 'submitted' %}check_circle{% elif sub.status == 'evaluated' %}smart_toy{% elif sub.status == 'draft' %}edit_note{% else %}assignment{% endif %}
-                                        </span>
+                        {% if training_sessions %}
+                        <div class="row g-3">
+                            {% for t in training_sessions %}
+                            <div class="col-12 col-sm-6">
+                                <div style="display:flex; align-items:center; gap:14px; border:1px solid var(--border-light); border-radius:12px; padding:16px; height:100%;">
+                                    <div style="width:56px; height:56px; border-radius:10px; background:rgba(94,42,151,0.08); display:flex; flex-direction:column; align-items:center; justify-content:center; flex-shrink:0;">
+                                        <span style="font-size:1.25rem; font-weight:800; color:var(--primary); line-height:1;">{{ t.date|date:"d" }}</span>
+                                        <span style="font-size:0.6rem; font-weight:700; color:var(--primary); text-transform:uppercase;">{{ t.date|date:"M" }}</span>
                                     </div>
-                                    <div>
-                                        <p class="feed-title">{{ sub.student.user.get_full_name }} - {{ sub.title|default:"Untitled"|truncatechars:30 }}</p>
-                                        <p class="feed-meta">Status: {{ sub.get_status_display }}</p>
-                                        <p class="feed-meta" style="margin-top:2px; color:#94a3b8;">{{ sub.created_at|timesince }} ago</p>
-                                    </div>
-                                </div>
-                                {% endif %}
-                                {% endfor %}
-                            </div>
-                            <div class="col-12 col-lg-6">
-                                {% for sub in recent %}
-                                {% if forloop.counter > 3 %}
-                                <div class="feed-item">
-                                    <div class="feed-icon {% if sub.status == 'submitted' %}feed-icon-success{% elif sub.status == 'evaluated' %}feed-icon-blue{% elif sub.status == 'draft' %}feed-icon-warning{% else %}feed-icon-info{% endif %}">
-                                        <span class="material-symbols-outlined">
-                                            {% if sub.status == 'submitted' %}check_circle{% elif sub.status == 'evaluated' %}smart_toy{% elif sub.status == 'draft' %}edit_note{% else %}assignment{% endif %}
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <p class="feed-title">{{ sub.student.user.get_full_name }} - {{ sub.title|default:"Untitled"|truncatechars:30 }}</p>
-                                        <p class="feed-meta">Status: {{ sub.get_status_display }}</p>
-                                        <p class="feed-meta" style="margin-top:2px; color:#94a3b8;">{{ sub.created_at|timesince }} ago</p>
+                                    <div style="flex:1; min-width:0;">
+                                        <p style="font-size:0.85rem; font-weight:700; color:var(--text-dark); margin:0; line-height:1.3;">{{ t.title }}</p>
+                                        <p style="font-size:0.72rem; color:var(--text-muted); margin:4px 0 0;">
+                                            {{ t.date|date:"l" }} &middot; {{ t.time }}
+                                            <span style="color:#2563eb; font-weight:700;">&middot; <span class="material-symbols-outlined" style="font-size:12px; vertical-align:-2px;">videocam</span> {{ t.mode }}</span>
+                                        </p>
                                     </div>
                                 </div>
-                                {% endif %}
-                                {% endfor %}
                             </div>
+                            {% endfor %}
                         </div>
                         {% else %}
                         <div style="text-align:center; padding:40px 0; color:var(--text-muted);">
-                            <span class="material-symbols-outlined" style="font-size:48px; opacity:0.3;">history</span>
-                            <p style="margin-top:8px; font-size:0.875rem;">No recent activity</p>
+                            <span class="material-symbols-outlined" style="font-size:48px; opacity:0.3;">event</span>
+                            <p style="margin-top:8px; font-size:0.875rem;">No upcoming training sessions</p>
                         </div>
                         {% endif %}
                     </div>
                 </div>
 
+                <!-- Announcements + Recent Activity (right) -->
                 <div class="col-12 col-lg-4">
                     <div class="section-card" style="height:auto;">
                         <div class="section-header">
@@ -1101,6 +1099,36 @@
                         <div style="text-align:center; padding:40px 0; color:var(--text-muted);">
                             <span class="material-symbols-outlined" style="font-size:48px; opacity:0.3;">campaign</span>
                             <p style="margin-top:8px; font-size:0.875rem;">No announcements</p>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Recent Activity -->
+                    <div class="section-card" style="height:auto; margin-top:1.5rem;">
+                        <div class="section-header">
+                            <h3 class="section-title">Recent Activity</h3>
+                        </div>
+                        {% if recent %}
+                        <div style="display:flex; flex-direction:column;">
+                            {% for sub in recent %}
+                            <div class="feed-item">
+                                <div class="feed-icon {% if sub.status == 'submitted' %}feed-icon-success{% elif sub.status == 'evaluated' %}feed-icon-blue{% elif sub.status == 'draft' %}feed-icon-warning{% else %}feed-icon-info{% endif %}">
+                                    <span class="material-symbols-outlined">
+                                        {% if sub.status == 'submitted' %}check_circle{% elif sub.status == 'evaluated' %}smart_toy{% elif sub.status == 'draft' %}edit_note{% else %}assignment{% endif %}
+                                    </span>
+                                </div>
+                                <div>
+                                    <p class="feed-title">{{ sub.student.user.get_full_name }} - {{ sub.title|default:"Untitled"|truncatechars:30 }}</p>
+                                    <p class="feed-meta">Status: {{ sub.get_status_display }}</p>
+                                    <p class="feed-meta" style="margin-top:2px; color:#94a3b8;">{{ sub.created_at|timesince }} ago</p>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div style="text-align:center; padding:40px 0; color:var(--text-muted);">
+                            <span class="material-symbols-outlined" style="font-size:48px; opacity:0.3;">history</span>
+                            <p style="margin-top:8px; font-size:0.875rem;">No recent activity</p>
                         </div>
                         {% endif %}
                     </div>

@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-    <title>Teams | School | ENpower IFTx</title>
+    <title>Submissions | {{ school.name }} | IFTx</title>
 
     <link href="https://fonts.googleapis.com" rel="preconnect" />
     <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
@@ -423,10 +423,6 @@
                 </a>
                 <a class="nav-item active" href="{% url 'students:school_teams' %}">
                     <span class="material-symbols-outlined">groups</span>
-                    <span class="nav-text">Teams</span>
-                </a>
-                <a class="nav-item" href="{% url 'students:school_submissions' %}">
-                    <span class="material-symbols-outlined">assignment</span>
                     <span class="nav-text">Submissions</span>
                 </a>
                 <a class="nav-item" href="{% url 'students:school_results' %}">
@@ -440,6 +436,10 @@
                 <a class="nav-item" href="{% url 'students:school_reports' %}">
                     <span class="material-symbols-outlined">analytics</span>
                     <span class="nav-text">Reports</span>
+                </a>
+                <a class="nav-item" href="{% url 'students:school_learning_resources' %}">
+                    <span class="material-symbols-outlined">play_circle</span>
+                    <span class="nav-text">Learning Resources</span>
                 </a>
                 <a class="nav-item" href="{% url 'students:school_faq' %}">
                     <span class="material-symbols-outlined">help</span>
@@ -509,11 +509,11 @@
                 <div class="page-header">
                     <div class="row align-items-center">
                         <div class="col-12 col-md-6">
-                            <h1>Teams Overview</h1>
+                            <h1>Submissions</h1>
                             <nav aria-label="breadcrumb">
                                 <ol class="breadcrumb">
                                     <li class="breadcrumb-item"><a href="{% url 'students:school_dashboard' %}">Dashboard</a></li>
-                                    <li class="breadcrumb-item active">Teams</li>
+                                    <li class="breadcrumb-item active">Submissions</li>
                                 </ol>
                             </nav>
                         </div>
@@ -530,193 +530,123 @@
                 <div class="row g-3 mb-4">
                     <div class="col-6 col-md-3">
                         <div class="stat-card">
-                            <div class="stat-icon purple">
-                                <span class="material-symbols-outlined">groups</span>
-                            </div>
+                            <div class="stat-icon purple"><span class="material-symbols-outlined">assignment</span></div>
                             <div>
-                                <p class="stat-label">Total Teams</p>
-                                <h3 class="stat-value">{{ total_teams }}</h3>
+                                <p class="stat-label">Total</p>
+                                <h3 class="stat-value">{{ submissions_total }}</h3>
                             </div>
                         </div>
                     </div>
                     <div class="col-6 col-md-3">
                         <div class="stat-card">
-                            <div class="stat-icon green">
-                                <span class="material-symbols-outlined">task_alt</span>
-                            </div>
+                            <div class="stat-icon green"><span class="material-symbols-outlined">check_circle</span></div>
                             <div>
-                                <p class="stat-label">Full Teams</p>
-                                <h3 class="stat-value">{{ full_teams }}</h3>
+                                <p class="stat-label">Submitted</p>
+                                <h3 class="stat-value">{{ submissions_submitted }}</h3>
                             </div>
                         </div>
                     </div>
                     <div class="col-6 col-md-3">
                         <div class="stat-card">
-                            <div class="stat-icon amber">
-                                <span class="material-symbols-outlined">emoji_objects</span>
-                            </div>
+                            <div class="stat-icon blue"><span class="material-symbols-outlined">verified</span></div>
                             <div>
-                                <p class="stat-label">With Ideas</p>
-                                <h3 class="stat-value">{{ with_ideas }}</h3>
+                                <p class="stat-label">Evaluated</p>
+                                <h3 class="stat-value">{{ submissions_evaluated }}</h3>
                             </div>
                         </div>
                     </div>
                     <div class="col-6 col-md-3">
                         <div class="stat-card">
-                            <div class="stat-icon blue">
-                                <span class="material-symbols-outlined">person</span>
-                            </div>
+                            <div class="stat-icon amber"><span class="material-symbols-outlined">edit_note</span></div>
                             <div>
-                                <p class="stat-label">Avg Team Size</p>
-                                <h3 class="stat-value">{{ avg_size }}</h3>
+                                <p class="stat-label">Drafts</p>
+                                <h3 class="stat-value">{{ submissions_draft }}</h3>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Main Data Card -->
                 <div class="main-card">
-                    <!-- Search & Filters -->
-                    <div class="main-card-header">
-                        <div class="row align-items-center g-3">
-                            <div class="col-12 col-md-5">
-                                <form method="get" id="searchForm">
-                                    <div class="search-input">
-                                        <span class="material-symbols-outlined">search</span>
-                                        <input type="text" name="q" id="searchInput" placeholder="Search by team name..." value="{{ search_query }}">
-                                    </div>
-                                </form>
-                            </div>
-                            <div class="col-12 col-md-7 d-flex align-items-center gap-3 justify-content-md-end flex-wrap">
-                                <select class="form-select" id="statusFilter" style="width: auto; font-size: 0.8125rem;">
-                                    <option value="">All Status</option>
-                                    <option value="submitted">Submitted</option>
-                                    <option value="evaluated">Evaluated</option>
-                                    <option value="no-idea">No Idea</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    {% if teams %}
-                    <!-- Table -->
+                    {% if submissions %}
                     <div class="table-responsive">
                         <table class="custom-table">
                             <thead>
                                 <tr>
-                                    <th>Team Name</th>
-                                    <th>Team Leader</th>
-                                    <th>Members</th>
                                     <th>Idea Title</th>
+                                    <th>Student</th>
+                                    <th>Team</th>
+                                    <th>Members</th>
+                                    <th>Grade</th>
                                     <th>Status</th>
-                                    <th style="text-align: right;">Score</th>
+                                    <th style="text-align:right;">AI Score</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for team in teams %}
-                                <tr data-team-id="{{ team.id }}"
-                                    data-team-name="{{ team.name }}"
-                                    data-team-code="{{ team.code }}"
-                                    data-leader="{{ team.leader_name }}"
-                                    data-track="{{ team.track }}"
-                                    data-member-count="{{ team.member_count }}"
-                                    data-idea-title="{{ team.idea_title }}"
-                                    data-idea-status="{{ team.idea_status }}"
-                                    data-ai-score="{{ team.ai_score|default:'' }}"
-                                    data-members='{% for m in team.members %}{{ m.name }}|{{ m.initial }}|{{ m.role }}{% if not forloop.last %};{% endif %}{% endfor %}'>
+                                {% for s in submissions %}
+                                <tr>
+                                    <td style="font-weight:600;">{{ s.title }}</td>
+                                    <td>{{ s.student_name }}</td>
+                                    <td style="color:var(--text-muted);">{{ s.team_name }}</td>
                                     <td>
-                                        <div class="d-flex align-items-center gap-3">
-                                            <div class="avatar-circle {% if forloop.first %}primary{% else %}default{% endif %}">
-                                                {{ team.name|truncatechars:2|upper }}
-                                            </div>
-                                            <div>
-                                                <p class="team-name-text">{{ team.name }}</p>
-                                                <span class="team-leader-sub">{{ team.code }}</span>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <p style="font-weight: 500; margin: 0;">{{ team.leader_name }}</p>
-                                        {% if team.track %}<span class="team-leader-sub">{{ team.track }}</span>{% endif %}
-                                    </td>
-                                    <td>
+                                        {% if s.members %}
                                         <div class="member-stack">
-                                            {% for m in team.members %}
-                                            <div class="member-dot" style="background: {% if m.role == 'leader' %}var(--primary){% else %}#e2e8f0{% endif %}; color: {% if m.role == 'leader' %}white{% else %}#64748b{% endif %};">
+                                            {% for m in s.members %}
+                                            <div class="member-dot" style="background: {% if m.role == 'leader' %}var(--primary){% else %}#e2e8f0{% endif %}; color: {% if m.role == 'leader' %}white{% else %}#64748b{% endif %};" title="{{ m.name }}">
                                                 {{ m.initial }}
                                             </div>
                                             {% endfor %}
                                         </div>
-                                    </td>
-                                    <td>
-                                        {% if team.idea_title %}
-                                            <span style="font-weight: 500;">{{ team.idea_title }}</span>
                                         {% else %}
-                                            <span style="color: var(--text-muted);">&mdash;</span>
+                                        <span style="color:var(--text-muted);">&mdash;</span>
                                         {% endif %}
                                     </td>
+                                    <td style="color:var(--text-muted);">{{ s.grade }}</td>
                                     <td>
-                                        {% if team.idea_status == 'submitted' %}
+                                        {% if s.status == 'submitted' %}
                                             <span class="badge-status submitted">Submitted</span>
-                                        {% elif team.idea_status == 'evaluated' %}
+                                        {% elif s.status == 'evaluated' %}
                                             <span class="badge-status evaluated">Evaluated</span>
-                                        {% elif team.idea_status == 'draft' %}
-                                            <span class="badge-status in-progress">In Progress</span>
+                                        {% elif s.status == 'draft' %}
+                                            <span class="badge-status in-progress">Draft</span>
                                         {% else %}
-                                            <span class="badge-status not-started">Not Started</span>
+                                            <span class="badge-status not-started">{{ s.status_label }}</span>
                                         {% endif %}
                                     </td>
-                                    <td style="text-align: right;">
-                                        {% if team.ai_score %}
-                                            <span style="font-weight: 700; color: var(--primary);">{{ team.ai_score }}</span>
-                                        {% else %}
-                                            <span style="color: var(--text-muted);">&mdash;</span>
-                                        {% endif %}
+                                    <td style="text-align:right;{% if s.ai_score %}font-weight:700;color:var(--primary);{% else %}color:var(--text-muted);{% endif %}">
+                                        {% if s.ai_score %}{{ s.ai_score }}/100{% else %}&mdash;{% endif %}
                                     </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
                         </table>
                     </div>
-
-                    <!-- Pagination -->
+                    {% if submissions.paginator.num_pages > 1 %}
                     <div class="pagination-custom">
                         <p class="pagination-info">
-                            Showing <span style="font-weight: 600;">{{ teams.start_index }}&ndash;{{ teams.end_index }}</span> of <span style="font-weight: 600;">{{ teams.paginator.count }}</span> teams
+                            Showing <span style="font-weight:600;">{{ submissions.start_index }}&ndash;{{ submissions.end_index }}</span> of <span style="font-weight:600;">{{ submissions.paginator.count }}</span> submissions
                         </p>
                         <div class="pagination-controls">
-                            {% if teams.has_previous %}
-                            <a href="?page={{ teams.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}" class="page-btn">
-                                <span class="material-symbols-outlined" style="font-size: 18px;">chevron_left</span>
+                            {% if submissions.has_previous %}
+                            <a href="?spage={{ submissions.previous_page_number }}" class="page-btn">
+                                <span class="material-symbols-outlined" style="font-size:18px;">chevron_left</span>
                             </a>
-                            {% else %}
-                            <button class="page-btn" disabled>
-                                <span class="material-symbols-outlined" style="font-size: 18px;">chevron_left</span>
-                            </button>
                             {% endif %}
-
-                            {% for p in teams.paginator.page_range %}
-                            <a href="?page={{ p }}{% if search_query %}&q={{ search_query }}{% endif %}" class="page-btn {% if p == teams.number %}active{% endif %}">{{ p }}</a>
+                            {% for p in submissions.paginator.page_range %}
+                            <a href="?spage={{ p }}" class="page-btn {% if p == submissions.number %}active{% endif %}">{{ p }}</a>
                             {% endfor %}
-
-                            {% if teams.has_next %}
-                            <a href="?page={{ teams.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}" class="page-btn">
-                                <span class="material-symbols-outlined" style="font-size: 18px;">chevron_right</span>
+                            {% if submissions.has_next %}
+                            <a href="?spage={{ submissions.next_page_number }}" class="page-btn">
+                                <span class="material-symbols-outlined" style="font-size:18px;">chevron_right</span>
                             </a>
-                            {% else %}
-                            <button class="page-btn" disabled>
-                                <span class="material-symbols-outlined" style="font-size: 18px;">chevron_right</span>
-                            </button>
                             {% endif %}
                         </div>
                     </div>
-
+                    {% endif %}
                     {% else %}
-                    <!-- Empty State -->
                     <div class="empty-state">
-                        <span class="material-symbols-outlined">groups</span>
-                        <h3>No Teams Found</h3>
-                        <p>{% if search_query %}No teams match your search "{{ search_query }}". Try a different query.{% else %}No teams have been created by students from your school yet.{% endif %}</p>
+                        <span class="material-symbols-outlined">assignment</span>
+                        <h3>No Submissions Yet</h3>
+                        <p>Idea submissions from your school will appear here.</p>
                     </div>
                     {% endif %}
                 </div>

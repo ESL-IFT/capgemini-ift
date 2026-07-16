@@ -21,6 +21,10 @@ class StudentSignUpForm(forms.Form):
         empty_label='Select School',
     )
     grade = forms.ChoiceField(choices=[(str(i), f'Class {i}') for i in range(6, 13)])
+    gender = forms.ChoiceField(
+        choices=[('male', 'Male'), ('female', 'Female')],
+        error_messages={'required': 'Please select your gender.'},
+    )
     phone = forms.CharField(max_length=15, required=False, widget=forms.TextInput(attrs={
         'placeholder': 'Phone Number (optional)',
     }))

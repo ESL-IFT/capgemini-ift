@@ -1,11 +1,11 @@
 {% load static %}
-{% load hof_tags %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-    <title>FAQ - School Dashboard - IFT Platform</title>
+    <title>Learning Resources - School Dashboard - IFT Platform</title>
+    <link rel="icon" type="image/png" href="{% static 'images/IFT_logo.png' %}">
 
     <link href="https://fonts.googleapis.com" rel="preconnect" />
     <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
@@ -16,6 +16,7 @@
     <style>
         :root {
             --primary: #5E2A97;
+            --primary-hover: #7B3FB5;
             --secondary: #DEDE50;
             --primary-light: #E8D4F0;
             --background-light: #F7F7F7;
@@ -159,26 +160,16 @@
         }
         .header-avatar:hover { transform: scale(1.05); box-shadow: 0 0 0 4px rgba(94, 42, 151, 0.1); }
 
-        /* Dropdown panels */
-        .dropdown-panel {
-            position: absolute; top: 60px; right: 24px;
-            background: #fff; border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.12);
-            border: 1px solid #f1f5f9;
-            z-index: 200; display: none;
-        }
-        .dropdown-panel.active { display: block; }
-
         /* ===== MAIN CONTENT ===== */
         .main-content {
             flex: 1; display: flex; flex-direction: column;
             height: 100%; overflow-y: auto; position: relative; z-index: 10;
         }
 
-        .content-wrapper { flex: 1; padding: 24px; max-width: 100%; margin: 0 auto; width: 100%; }
+        .content-wrapper { flex: 1; max-width: 1280px; margin: 0 auto; padding: 32px 40px; width: 100%; }
 
-        /* ===== FAQ PAGE STYLES ===== */
-        .faq-badge {
+        /* ===== PAGE HEADER ===== */
+        .page-badge {
             background: var(--primary-light);
             color: var(--primary);
             font-size: 0.7rem;
@@ -191,14 +182,14 @@
             margin-bottom: 16px;
         }
 
-        .faq-title {
+        .page-title {
             font-size: 2.5rem;
             font-weight: 800;
             color: var(--text-dark);
             margin-bottom: 12px;
         }
 
-        .faq-subtitle {
+        .page-subtitle {
             font-size: 0.95rem;
             color: var(--text-muted);
             max-width: 700px;
@@ -206,116 +197,101 @@
             line-height: 1.6;
         }
 
-        .faq-section-header {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            margin-bottom: 20px;
+        /* ===== VIDEO CARDS ===== */
+        .video-card {
+            background: var(--surface-light);
+            border: 1px solid var(--border-light);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.25s ease;
+            height: 100%;
         }
 
-        .faq-section-icon {
-            width: 48px;
-            height: 48px;
+        .video-card:hover {
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+            transform: translateY(-2px);
+        }
+
+        .video-thumbnail {
+            position: relative;
+            overflow: hidden;
+            aspect-ratio: 16 / 9;
+            background: #f0f0f0;
+        }
+
+        .video-thumbnail img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .play-overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.25);
+            opacity: 0;
+            transition: opacity 0.25s ease;
+        }
+
+        .video-card:hover .play-overlay { opacity: 1; }
+
+        .play-btn {
+            width: 52px;
+            height: 52px;
+            background: var(--primary);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            flex-shrink: 0;
+            box-shadow: 0 4px 12px rgba(94, 42, 151, 0.4);
         }
 
-        .faq-section-icon.blue {
-            background: rgba(59, 130, 246, 0.12);
-            color: #3b82f6;
+        .play-btn .material-symbols-outlined {
+            color: #fff;
+            font-size: 28px;
+            font-variation-settings: 'FILL' 1;
         }
 
-        .faq-section-icon.green {
-            background: rgba(234, 88, 12, 0.12);
-            color: #ea580c;
-        }
-
-        .faq-section-title {
-            font-size: 1.1rem;
+        .module-badge {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: var(--primary);
+            color: #fff;
+            font-size: 0.65rem;
             font-weight: 700;
-            color: var(--text-dark);
-            margin: 0;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            padding: 4px 10px;
+            border-radius: 6px;
+            z-index: 2;
         }
 
-        .faq-item {
-            background: #fff;
-            border: 1px solid #eee;
-            border-radius: 12px;
-            padding: 18px 24px;
-            margin-bottom: 10px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
+        .video-info { padding: 14px 16px; }
 
-        .faq-item:hover {
-            box-shadow: 0 4px 16px rgba(0,0,0,0.06);
-        }
-
-        .faq-item.expanded {
-            border-left: 3px solid var(--primary);
-            background: rgba(94, 42, 151, 0.02);
-        }
-
-        .faq-question {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-        }
-
-        .faq-question-text {
-            font-size: 0.9rem;
+        .video-title {
+            font-size: 0.85rem;
             font-weight: 600;
             color: var(--text-dark);
             margin: 0;
-            flex: 1;
+            line-height: 1.4;
         }
 
-        .faq-chevron {
-            font-size: 20px;
-            color: var(--text-muted);
-            transition: transform 0.3s ease;
-            flex-shrink: 0;
-        }
-
-        .faq-item.expanded .faq-chevron {
-            transform: rotate(180deg);
-            color: var(--primary);
-        }
-
-        .faq-answer {
-            display: none;
-            padding-top: 14px;
-            margin-top: 14px;
-            border-top: 1px solid #f1f5f9;
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            line-height: 1.7;
-        }
-
-        .faq-item.expanded .faq-answer {
+        a.video-link {
+            text-decoration: none;
+            color: inherit;
             display: block;
-        }
-
-        .faq-empty {
-            text-align: center;
-            padding: 48px 24px;
-            color: var(--text-muted);
-        }
-
-        .faq-empty .material-symbols-outlined {
-            font-size: 48px;
-            color: #ddd;
-            margin-bottom: 12px;
+            height: 100%;
         }
 
         @media (max-width: 768px) {
-            .faq-title { font-size: 1.75rem; }
-            .faq-subtitle { font-size: 0.85rem; }
-            .content-wrapper { padding: 16px; }
+            .page-title { font-size: 1.75rem; }
+            .page-subtitle { font-size: 0.85rem; }
+            .content-wrapper { padding: 20px 16px; }
         }
     </style>
 </head>
@@ -357,11 +333,11 @@
                 <span class="material-symbols-outlined">analytics</span>
                 <span class="nav-text">Reports</span>
             </a>
-            <a class="nav-item" href="{% url 'students:school_learning_resources' %}">
+            <a class="nav-item active" href="{% url 'students:school_learning_resources' %}">
                 <span class="material-symbols-outlined">play_circle</span>
                 <span class="nav-text">Learning Resources</span>
             </a>
-            <a class="nav-item active" href="{% url 'students:school_faq' %}">
+            <a class="nav-item" href="{% url 'students:school_faq' %}">
                 <span class="material-symbols-outlined">help</span>
                 <span class="nav-text">FAQ</span>
             </a>
@@ -427,56 +403,172 @@
         <!-- Content -->
         <div class="content-wrapper">
             <div class="text-center mb-4">
-                <span class="faq-badge">SCHOOL SUPPORT CENTER</span>
-                <h1 class="faq-title">Frequently Asked Questions</h1>
-                <p class="faq-subtitle">Everything you need to know about monitoring your school's participation in the ENpower IFT innovation competition.</p>
+                <span class="page-badge">LEARNING</span>
+                <h1 class="page-title">Learning Resources</h1>
+                <p class="page-subtitle">Watch these videos to prepare for your IFT journey</p>
             </div>
 
-            {% if faqs %}
             <div class="row g-4">
-                <!-- Left Column -->
-                <div class="col-lg-6">
-                    {% for faq in faqs %}
-                        {% if forloop.counter|divisibleby:2 %}{% else %}
-                        <div class="faq-item" data-faq-col="left">
-                            <div class="faq-question">
-                                <p class="faq-question-text">{{ faq.title }}</p>
-                                <span class="material-symbols-outlined faq-chevron">expand_more</span>
+                <!-- Module 1 -->
+                <div class="col-12 col-sm-6 col-lg-3">
+                    <a class="video-link" href="https://www.youtube.com/watch?v=ZK07eFitOy4" target="_blank" rel="noopener">
+                        <div class="video-card">
+                            <div class="video-thumbnail">
+                                <span class="module-badge">Module 1</span>
+                                <img src="https://img.youtube.com/vi/ZK07eFitOy4/mqdefault.jpg" alt="IFT Introduction">
+                                <div class="play-overlay">
+                                    <div class="play-btn">
+                                        <span class="material-symbols-outlined">play_arrow</span>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="faq-answer">{{ faq.body|md_to_html }}</div>
+                            <div class="video-info">
+                                <p class="video-title">IFT Introduction</p>
+                            </div>
                         </div>
-                        {% endif %}
-                    {% endfor %}
+                    </a>
                 </div>
 
-                <!-- Right Column -->
-                <div class="col-lg-6">
-                    {% for faq in faqs %}
-                        {% if forloop.counter|divisibleby:2 %}
-                        <div class="faq-item" data-faq-col="right">
-                            <div class="faq-question">
-                                <p class="faq-question-text">{{ faq.title }}</p>
-                                <span class="material-symbols-outlined faq-chevron">expand_more</span>
+                <!-- Module 2 -->
+                <div class="col-12 col-sm-6 col-lg-3">
+                    <a class="video-link" href="https://www.youtube.com/watch?v=pFJbtqsoU2g" target="_blank" rel="noopener">
+                        <div class="video-card">
+                            <div class="video-thumbnail">
+                                <span class="module-badge">Module 2</span>
+                                <img src="https://img.youtube.com/vi/pFJbtqsoU2g/mqdefault.jpg" alt="Problem Identification">
+                                <div class="play-overlay">
+                                    <div class="play-btn">
+                                        <span class="material-symbols-outlined">play_arrow</span>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="faq-answer">{{ faq.body|md_to_html }}</div>
+                            <div class="video-info">
+                                <p class="video-title">Problem Identification</p>
+                            </div>
                         </div>
-                        {% endif %}
-                    {% endfor %}
+                    </a>
+                </div>
+
+                <!-- Module 3 -->
+                <div class="col-12 col-sm-6 col-lg-3">
+                    <a class="video-link" href="https://www.youtube.com/watch?v=vJQcBfaCirs" target="_blank" rel="noopener">
+                        <div class="video-card">
+                            <div class="video-thumbnail">
+                                <span class="module-badge">Module 3</span>
+                                <img src="https://img.youtube.com/vi/vJQcBfaCirs/mqdefault.jpg" alt="Solution Design">
+                                <div class="play-overlay">
+                                    <div class="play-btn">
+                                        <span class="material-symbols-outlined">play_arrow</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="video-info">
+                                <p class="video-title">Solution Design</p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Module 4 -->
+                <div class="col-12 col-sm-6 col-lg-3">
+                    <a class="video-link" href="https://www.youtube.com/watch?v=uT7eAdZcTpY" target="_blank" rel="noopener">
+                        <div class="video-card">
+                            <div class="video-thumbnail">
+                                <span class="module-badge">Module 4</span>
+                                <img src="https://img.youtube.com/vi/uT7eAdZcTpY/mqdefault.jpg" alt="Business Model">
+                                <div class="play-overlay">
+                                    <div class="play-btn">
+                                        <span class="material-symbols-outlined">play_arrow</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="video-info">
+                                <p class="video-title">Business Model</p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Module 5 -->
+                <div class="col-12 col-sm-6 col-lg-3">
+                    <a class="video-link" href="https://www.youtube.com/watch?v=dt9lm0UW5qE" target="_blank" rel="noopener">
+                        <div class="video-card">
+                            <div class="video-thumbnail">
+                                <span class="module-badge">Module 5</span>
+                                <img src="https://img.youtube.com/vi/dt9lm0UW5qE/mqdefault.jpg" alt="Impact Assessment">
+                                <div class="play-overlay">
+                                    <div class="play-btn">
+                                        <span class="material-symbols-outlined">play_arrow</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="video-info">
+                                <p class="video-title">Impact Assessment</p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Module 6 -->
+                <div class="col-12 col-sm-6 col-lg-3">
+                    <a class="video-link" href="https://www.youtube.com/watch?v=LlRsO_D-zM4" target="_blank" rel="noopener">
+                        <div class="video-card">
+                            <div class="video-thumbnail">
+                                <span class="module-badge">Module 6</span>
+                                <img src="https://img.youtube.com/vi/LlRsO_D-zM4/mqdefault.jpg" alt="Team Building">
+                                <div class="play-overlay">
+                                    <div class="play-btn">
+                                        <span class="material-symbols-outlined">play_arrow</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="video-info">
+                                <p class="video-title">Team Building</p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Module 7 -->
+                <div class="col-12 col-sm-6 col-lg-3">
+                    <a class="video-link" href="https://www.youtube.com/watch?v=ayC_GRXYlgc" target="_blank" rel="noopener">
+                        <div class="video-card">
+                            <div class="video-thumbnail">
+                                <span class="module-badge">Module 7</span>
+                                <img src="https://img.youtube.com/vi/ayC_GRXYlgc/mqdefault.jpg" alt="Pitch Preparation">
+                                <div class="play-overlay">
+                                    <div class="play-btn">
+                                        <span class="material-symbols-outlined">play_arrow</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="video-info">
+                                <p class="video-title">Pitch Preparation</p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Module 8 -->
+                <div class="col-12 col-sm-6 col-lg-3">
+                    <a class="video-link" href="https://www.youtube.com/watch?v=8U2K_kUDV3k" target="_blank" rel="noopener">
+                        <div class="video-card">
+                            <div class="video-thumbnail">
+                                <span class="module-badge">Module 8</span>
+                                <img src="https://img.youtube.com/vi/8U2K_kUDV3k/mqdefault.jpg" alt="Submission Guide">
+                                <div class="play-overlay">
+                                    <div class="play-btn">
+                                        <span class="material-symbols-outlined">play_arrow</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="video-info">
+                                <p class="video-title">Submission Guide</p>
+                            </div>
+                        </div>
+                    </a>
                 </div>
             </div>
-            <div style="text-align:center;padding:2rem 0 1rem;">
-                <span class="material-symbols-outlined" style="font-size:32px;color:var(--primary);margin-bottom:8px;">mail</span>
-                <p style="font-size:0.9rem;color:var(--text-muted);margin-bottom:4px;">Still have questions? We're here to help.</p>
-                <a href="mailto:contact@enlearning.in" style="color:var(--primary);font-weight:600;text-decoration:none;font-size:0.9rem;">contact@enlearning.in</a>
-            </div>
-            {% else %}
-            <div class="faq-empty">
-                <span class="material-symbols-outlined">quiz</span>
-                <p style="font-size:1rem; font-weight:600; margin-bottom:4px;">No FAQs available yet</p>
-                <p style="font-size:0.85rem;">Check back soon for answers to common questions.</p>
-                <p style="font-size:0.85rem;margin-top:24px;">Need help? Contact us at <a href="mailto:contact@enlearning.in" style="color:var(--primary);font-weight:600;text-decoration:none;">contact@enlearning.in</a></p>
-            </div>
-            {% endif %}
         </div>
     </main>
 </div>
@@ -507,15 +599,6 @@
         });
     }
 
-    document.addEventListener('click', function(e) {
-        if (sidebar && window.innerWidth < 768) {
-            if (!e.target.closest('#schoolAppSidebar') && !e.target.closest('#sidebarToggleBtn')) {
-                sidebar.classList.remove('mobile-open');
-                if (sidebarOverlay) sidebarOverlay.classList.remove('active');
-            }
-        }
-    });
-
     // ===== Fullscreen =====
     const fsBtn = document.getElementById('fullscreenBtn');
     if (fsBtn) {
@@ -531,23 +614,8 @@
             if (icon) icon.textContent = document.fullscreenElement ? 'fullscreen_exit' : 'fullscreen';
         });
     }
-
-    // ===== FAQ Accordion =====
-    document.querySelectorAll('.faq-item').forEach(function(item) {
-        item.addEventListener('click', function() {
-            const col = this.getAttribute('data-faq-col');
-            // Close others in same column
-            document.querySelectorAll('.faq-item[data-faq-col="' + col + '"]').forEach(function(other) {
-                if (other !== item) {
-                    other.classList.remove('expanded');
-                }
-            });
-            this.classList.toggle('expanded');
-        });
-    });
 })();
-</script>
-<script>
+
 // Profile dropdown toggle
 const profileBtn = document.getElementById('profileAvatarBtn');
 const profileDd = document.getElementById('profileDropdown');

@@ -72,6 +72,7 @@ def sign_up(request):
                 school=school_obj,
                 school_name=school_obj.name,
                 grade=form.cleaned_data['grade'],
+                gender=form.cleaned_data['gender'],
                 phone=form.cleaned_data.get('phone', ''),
             )
             login(request, user)
