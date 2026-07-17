@@ -295,6 +295,7 @@
         .team-grade { font-size: 0.6875rem; color: var(--text-muted); margin: 0; }
 
         .badge-status {
+            display: inline-flex; align-items: center;
             font-size: 0.6875rem; font-weight: 700; padding: 4px 10px;
             border-radius: 999px; white-space: nowrap; text-transform: uppercase;
         }
@@ -303,9 +304,9 @@
         .badge-status.evaluated { background: #d1fae5; color: #065f46; }
 
         .top-400-badge {
+            display: inline-flex; align-items: center; white-space: nowrap;
             font-size: 0.5625rem; font-weight: 700; padding: 2px 6px;
             background: rgba(94,42,151,0.1); color: var(--primary); border-radius: 4px;
-            margin-left: 6px;
         }
 
         .score-display { display: flex; align-items: center; gap: 8px; }
@@ -725,8 +726,10 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    <span class="badge-status {{ sub.status }}">{{ sub.status_label }}</span>
-                                    {% if sub.is_top_400 %}<span class="top-400-badge">TOP 400</span>{% endif %}
+                                    <div style="display:inline-flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                                        <span class="badge-status {{ sub.status }}">{{ sub.status_label }}</span>
+                                        {% if sub.is_top_400 %}<span class="top-400-badge">TOP 400</span>{% endif %}
+                                    </div>
                                 </td>
                                 <td>
                                     {% if sub.ai_score is not None %}
