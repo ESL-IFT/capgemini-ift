@@ -2318,6 +2318,53 @@ def student_faq(request):
 
 
 @login_required
+def school_submission_detail(request, submission_id):
+    """School admin — view a full submission from their own school (school chrome)."""
+    from students.models import School
+    try:
+        school = request.user.school_profile
+    except School.DoesNotExist:
+        return redirect('accounts:sign_in')
+
+    submission = get_object_or_404(IdeaSubmission, id=submission_id)
+    if not submission.student or submission.student.school_id != school.id:
+        from django.http import Http404
+        raise Http404("Submission not found.")
+
+    ai_summary = None
+    try:
+        ai_summary = submission.ai_summary
+    except Exception:
+        pass
+
+    questions = [
+        {'label': 'Target User Group', 'answer': submission.q1_target_group or submission.target_user_group or 'Not provided'},
+        {'label': 'Exact Problem', 'answer': submission.q2_exact_problem or submission.problem_definition or 'Not provided'},
+        {'label': 'Solution (Simple)', 'answer': submission.q3_solution_simple or submission.solution or 'Not provided'},
+        {'label': 'Differentiation', 'answer': submission.q4_differentiation or 'Not provided'},
+        {'label': 'Build Steps', 'answer': submission.q5_build_steps or 'Not provided'},
+        {'label': 'Resources Needed', 'answer': submission.q6_resources or 'Not provided'},
+        {'label': 'Positive Change', 'answer': submission.q7_positive_change or submission.solution_benefits or 'Not provided'},
+        {'label': 'Challenges', 'answer': submission.q8_challenges or 'Not provided'},
+        {'label': 'Team Fit', 'answer': submission.q9_team_fit or submission.why_best_equipped or 'Not provided'},
+        {'label': 'Feedback & Learning', 'answer': submission.q10_feedback or 'Not provided'},
+        {'label': 'Creative Element', 'answer': submission.q11_creative_element or 'Not provided'},
+        {'label': '60-Second Pitch', 'answer': submission.q12_pitch or 'Not provided'},
+    ]
+
+    context = {
+        'school': school,
+        'submission': submission,
+        'ai_summary': ai_summary,
+        'submitted_at': submission.submitted_at.strftime("%B %d, %Y") if submission.submitted_at else "Not submitted",
+        'status_label': submission.get_status_display(),
+        'questions': questions,
+        'uploaded_files': submission.uploaded_files.all(),
+    }
+    return render(request, 'students/school_submission_detail.html', context)
+
+
+@login_required
 def school_learning_resources(request):
     """School Learning Resources page — same module videos as the student page."""
     from students.models import School
