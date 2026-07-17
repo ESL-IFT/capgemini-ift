@@ -1034,7 +1034,7 @@ def join_team(request):
         return JsonResponse({'success': False, 'message': 'Invalid team code.'}, status=400)
 
     if team.is_full:
-        return JsonResponse({'success': False, 'message': 'Team is full (max 3 members).'}, status=400)
+        return JsonResponse({'success': False, 'message': 'Team is full (max 2 members).'}, status=400)
 
     # Check if there's a pending invite for this student's email
     pending = TeamMembership.objects.filter(team=team, email=student.user.email, status='pending').first()
@@ -1114,7 +1114,7 @@ def invite_member(request):
         return JsonResponse({'success': False, 'message': 'Team not found.'}, status=400)
 
     if team.is_full:
-        return JsonResponse({'success': False, 'message': 'Team is full (max 3 members).'}, status=400)
+        return JsonResponse({'success': False, 'message': 'Team is full (max 2 members).'}, status=400)
 
     # Check if already invited or active member with this email
     existing = TeamMembership.objects.filter(team=team, email=email).first()

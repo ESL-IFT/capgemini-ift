@@ -310,7 +310,7 @@ class IdeaSubmission(models.Model):
 
 
 class Team(models.Model):
-    """Standalone team model - max 3 members"""
+    """Standalone team model - max 2 members"""
     TRACK_CHOICES = [
         ('no-poverty', 'No Poverty'),
         ('zero-hunger', 'Zero Hunger'),
@@ -346,11 +346,11 @@ class Team(models.Model):
 
     @property
     def slots_available(self):
-        return max(0, 3 - self.member_count)
+        return max(0, 2 - self.member_count)
 
     @property
     def is_full(self):
-        return self.member_count >= 3
+        return self.member_count >= 2
 
     def __str__(self):
         return f"{self.name} ({self.team_code})"
