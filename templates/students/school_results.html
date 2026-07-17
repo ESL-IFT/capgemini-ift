@@ -682,35 +682,14 @@
                 </div>
 
                 {% if top_3 %}
-                <!-- Podium Section -- Top 3 Winners -->
+                <!-- Podium Section -- Top Team -->
                 <div class="podium-section">
                     <div class="podium-title">
-                        <h2>School Finals — Top 3</h2>
+                        <h2>School Finals — Top Team</h2>
                         <p><span style="color: rgba(255,255,255,0.7);">{{ school.name }}</span> IFTx Competition</p>
                     </div>
 
                     <div class="podium-container">
-                        {% if top_3|length >= 2 %}
-                        <!-- Second Place -->
-                        <div class="podium-card podium-second">
-                            <div class="podium-avatar-container">
-                                <div class="podium-glow"></div>
-                                <div class="podium-avatar">{{ top_3.1.student_initial }}</div>
-                                <div class="podium-rank">#2</div>
-                            </div>
-                            <div class="podium-info">
-                                <p class="podium-name">{{ top_3.1.student_name }}</p>
-                                <p class="podium-team">Grade {{ top_3.1.grade }}</p>
-                                <p class="podium-idea-label">Idea</p>
-                                <p class="podium-idea">{{ top_3.1.title }}</p>
-                                <div class="podium-score">
-                                    <span class="material-symbols-outlined">star</span>
-                                    {{ top_3.1.score }}/100
-                                </div>
-                            </div>
-                        </div>
-                        {% endif %}
-
                         {% if top_3|length >= 1 %}
                         <!-- First Place -->
                         <div class="podium-card podium-first">
@@ -728,27 +707,6 @@
                                 <div class="podium-score">
                                     <span class="material-symbols-outlined">star</span>
                                     {{ top_3.0.score }}/100
-                                </div>
-                            </div>
-                        </div>
-                        {% endif %}
-
-                        {% if top_3|length >= 3 %}
-                        <!-- Third Place -->
-                        <div class="podium-card podium-third">
-                            <div class="podium-avatar-container">
-                                <div class="podium-glow"></div>
-                                <div class="podium-avatar">{{ top_3.2.student_initial }}</div>
-                                <div class="podium-rank">#3</div>
-                            </div>
-                            <div class="podium-info">
-                                <p class="podium-name">{{ top_3.2.student_name }}</p>
-                                <p class="podium-team">Grade {{ top_3.2.grade }}</p>
-                                <p class="podium-idea-label">Idea</p>
-                                <p class="podium-idea">{{ top_3.2.title }}</p>
-                                <div class="podium-score">
-                                    <span class="material-symbols-outlined">star</span>
-                                    {{ top_3.2.score }}/100
                                 </div>
                             </div>
                         </div>
@@ -799,7 +757,7 @@
                         {% if forloop.counter|divisibleby:3 or forloop.last %}</div>{% endif %}
                         {% empty %}
                         <div class="text-center py-4">
-                            <p style="color: var(--text-muted); font-size: 0.875rem;">No additional results beyond the top 3.</p>
+                            <p style="color: var(--text-muted); font-size: 0.875rem;">No additional results beyond the top team.</p>
                         </div>
                         {% endfor %}
                     </div>
