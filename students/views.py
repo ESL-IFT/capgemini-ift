@@ -430,7 +430,17 @@ def submission_detail(request, submission_id):
         except:
             pass
 
-    if not is_owner and not is_team_member:
+    # School admin can view submissions from their own school; superadmin/staff can view any
+    is_school_admin = False
+    try:
+        school = request.user.school_profile
+        if submission.student and submission.student.school_id == school.id:
+            is_school_admin = True
+    except School.DoesNotExist:
+        pass
+    is_staff_admin = request.user.is_staff or request.user.is_superuser
+
+    if not (is_owner or is_team_member or is_school_admin or is_staff_admin):
         from django.http import Http404
         raise Http404("Submission not found.")
     
