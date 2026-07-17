@@ -209,6 +209,55 @@
         }
         .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .section-title { font-size: 1rem; font-weight: 700; color: var(--text-dark); margin: 0; }
+
+        /* ===== School & Teacher Benefits badges ===== */
+        .badge-card {
+            position: relative; height: 100%;
+            border: 1px solid var(--border-light); border-radius: 16px;
+            padding: 22px 20px 20px; text-align: center; background: #fff;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .badge-card:hover { transform: translateY(-3px); box-shadow: 0 10px 26px rgba(0,0,0,0.07); }
+        .badge-card--unlocked {
+            border-color: #e4c877;
+            background: linear-gradient(180deg, #fffdf6 0%, #fdf6e4 100%);
+            box-shadow: 0 4px 18px rgba(200,162,77,0.14);
+        }
+
+        .badge-status-pill {
+            position: absolute; top: 14px; right: 14px;
+            font-size: 0.6rem; font-weight: 800; padding: 4px 10px; border-radius: 999px;
+            text-transform: uppercase; letter-spacing: 0.05em;
+            display: inline-flex; align-items: center; gap: 3px;
+        }
+        .badge-status-pill--unlocked { color: #916206; background: rgba(200,162,77,0.22); }
+        .badge-status-pill--locked  { color: #94a3b8; background: #f1f5f9; }
+
+        .badge-medallion {
+            width: 96px; height: 96px; margin: 6px auto 14px;
+            border-radius: 50%; overflow: hidden; position: relative;
+            border: 3px solid #d9b85e;
+            box-shadow: 0 6px 16px rgba(200,162,77,0.28);
+        }
+        .badge-medallion img {
+            width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 50%;
+        }
+        .badge-medallion--locked {
+            border-color: #e0e4ea;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+        }
+        .badge-medallion--locked img { filter: grayscale(100%); opacity: 0.55; }
+
+        .badge-name { font-size: 0.9rem; font-weight: 700; color: var(--text-dark); margin: 0; line-height: 1.3; }
+        .badge-req { font-size: 0.72rem; color: var(--text-muted); margin: 4px 0 16px; }
+
+        .badge-progress-row { display: flex; align-items: center; gap: 10px; }
+        .badge-progress-track { flex: 1; height: 9px; border-radius: 6px; background: #eceef2; overflow: hidden; }
+        .badge-progress-fill { height: 100%; border-radius: 6px; background: var(--primary); transition: width 0.5s ease; }
+        .badge-progress-fill.is-gold { background: linear-gradient(90deg, #e6c15a, #b8860b); }
+        .badge-progress-pct { font-size: 0.72rem; font-weight: 800; color: var(--text-dark); min-width: 34px; text-align: right; }
+
+        .badge-footnote { font-size: 0.72rem; color: var(--text-muted); margin: 10px 0 0; }
         .section-link {
             font-size: 0.8125rem; font-weight: 600; color: var(--primary);
             text-decoration: none; display: flex; align-items: center; gap: 4px;
@@ -903,6 +952,57 @@
                 </div>
             </div>
             {% endif %}
+
+            <!-- School Participation Badges -->
+            <div class="row g-4 mb-4">
+                <div class="col-12">
+                    <div class="section-card" style="height:auto;">
+                        <div class="section-header">
+                            <h3 class="section-title">School &amp; Teacher Benefits</h3>
+                            <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600;">{{ badge_metric }} registered &amp; paid</span>
+                        </div>
+                        <div class="row g-3 badge-grid">
+                            {% for tier in badge_tiers %}
+                            <div class="col-12 col-md-4">
+                                <div class="badge-card {% if tier.achieved %}badge-card--unlocked{% endif %}">
+                                    {% if tier.achieved %}
+                                    <span class="badge-status-pill badge-status-pill--unlocked">
+                                        <span class="material-symbols-outlined" style="font-size:13px;">verified</span> Unlocked
+                                    </span>
+                                    {% else %}
+                                    <span class="badge-status-pill badge-status-pill--locked">
+                                        <span class="material-symbols-outlined" style="font-size:13px;">lock</span> Locked
+                                    </span>
+                                    {% endif %}
+
+                                    <div class="badge-medallion {% if not tier.achieved %}badge-medallion--locked{% endif %}">
+                                        <img src="{% static tier.image %}" alt="{{ tier.name }}">
+                                    </div>
+
+                                    <p class="badge-name">{{ tier.name }}</p>
+                                    <p class="badge-req">{{ tier.threshold }}+ registered &amp; paid students</p>
+
+                                    <div class="badge-progress-row">
+                                        <div class="badge-progress-track">
+                                            <div class="badge-progress-fill {% if tier.achieved %}is-gold{% endif %}" style="width:{{ tier.percent }}%;"></div>
+                                        </div>
+                                        <span class="badge-progress-pct">{{ tier.percent }}%</span>
+                                    </div>
+
+                                    <p class="badge-footnote">
+                                        {% if tier.achieved %}
+                                        <span style="color:#b8860b; font-weight:700;">Achieved</span> &middot; {{ badge_metric }}/{{ tier.threshold }} students
+                                        {% else %}
+                                        {{ badge_metric }}/{{ tier.threshold }} &middot; <strong style="color:var(--text-dark);">{{ tier.remaining }} more</strong> to unlock
+                                        {% endif %}
+                                    </p>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             <!-- Payment Status + Live Status Funnel -->
             <div class="row g-4 mb-4">

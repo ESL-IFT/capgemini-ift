@@ -595,8 +595,8 @@ def school_dashboard(request):
         for g in grade_qs
     ]
 
-    # ---- Payment status (payment gateway not built yet; all pending) ----
-    paid_count = 0
+    # ---- Payment status (registered students who have paid) ----
+    paid_count = students.filter(is_paid=True).count()
     unpaid_count = student_count - paid_count
 
     # ---- Live status funnel (this school) ----
@@ -651,10 +651,24 @@ def school_dashboard(request):
         for c in training_qs
     ]
 
+    # ---- School participation badges (based on registered + paid students) ----
+    badge_metric = paid_count  # registered students who have paid
+    badge_tiers = [
+        {'key': 'silver', 'name': 'Silver IFT Participation Badge', 'threshold': 20, 'image': 'images/badge_silver.png'},
+        {'key': 'gold', 'name': 'Gold IFT Participation Badge', 'threshold': 30, 'image': 'images/badge_gold.png'},
+        {'key': 'excellence', 'name': 'IFT School Excellence Trophy', 'threshold': 40, 'image': 'images/badge_excellence.png'},
+    ]
+    for tier in badge_tiers:
+        tier['achieved'] = badge_metric >= tier['threshold']
+        tier['percent'] = min(100, round(badge_metric * 100 / tier['threshold'])) if tier['threshold'] else 0
+        tier['remaining'] = max(0, tier['threshold'] - badge_metric)
+
     context = {
         'school': school,
         'is_pending': False,
         'student_count': student_count,
+        'badge_metric': badge_metric,
+        'badge_tiers': badge_tiers,
         'teams_count': teams_count,
         'ideas_count': ideas_count,
         'avg_score': round(avg_score, 1),
