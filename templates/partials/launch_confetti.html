@@ -1,0 +1,39 @@
+{% if launch_confetti_active %}
+{# Launch-day celebratory confetti — fires once per user (localStorage), gated server-side to 29 Jul 2026 11:00 AM IST onwards #}
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js" defer></script>
+<script>
+(function () {
+    var KEY = 'ift_launch_confetti_seen';
+    try { if (localStorage.getItem(KEY)) return; } catch (e) { /* private mode */ }
+
+    var colors = ['#5E2A97', '#DEDE50', '#7B3FB5', '#ffffff'];
+
+    function celebrate() {
+        if (typeof window.confetti !== 'function') { setTimeout(celebrate, 200); return; }
+        try { localStorage.setItem(KEY, '1'); } catch (e) {}
+
+        // Big opening burst
+        window.confetti({ particleCount: 180, spread: 100, startVelocity: 45, origin: { y: 0.6 }, colors: colors });
+
+        // Streaming side cannons for ~2.5s
+        var end = Date.now() + 2500;
+        (function frame() {
+            window.confetti({ particleCount: 5, angle: 60, spread: 60, startVelocity: 55, origin: { x: 0, y: 0.7 }, colors: colors });
+            window.confetti({ particleCount: 5, angle: 120, spread: 60, startVelocity: 55, origin: { x: 1, y: 0.7 }, colors: colors });
+            if (Date.now() < end) requestAnimationFrame(frame);
+        })();
+
+        // A final gentle top shower
+        setTimeout(function () {
+            window.confetti({ particleCount: 120, spread: 120, startVelocity: 30, gravity: 0.8, origin: { y: 0 }, colors: colors });
+        }, 700);
+    }
+
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        celebrate();
+    } else {
+        window.addEventListener('DOMContentLoaded', celebrate);
+    }
+})();
+</script>
+{% endif %}

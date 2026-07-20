@@ -84,6 +84,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'accounts.context_processors.user_role',
                 'accounts.context_processors.student_has_submission',
+                'accounts.context_processors.launch_confetti',
             ],
         },
     },
