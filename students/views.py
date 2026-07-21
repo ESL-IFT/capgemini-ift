@@ -7,10 +7,13 @@ from django.db.models import Q
 from django.http import JsonResponse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_protect
+from django.core.mail import send_mail
 from .models import Student, IdeaSubmission, UploadedFile, School
 from .forms import StudentRegistrationForm, IdeaSubmissionForm
 from ai_assistant.processors import generate_summary
 import os
+import json
 
 
 def create_notification(user, notification_type, title, message='', icon='notifications', action_url='', action_label=''):
@@ -28,8 +31,113 @@ def create_notification(user, notification_type, title, message='', icon='notifi
 
 
 def home(request):
-    """Home page"""
-    return render(request, 'students/home.html')
+    """Landing page"""
+    return render(request, 'landing/index.html')
+
+
+def privacy_policy(request):
+    """Privacy policy page"""
+    return render(request, 'landing/privacy-policy.html')
+
+
+def terms_of_service(request):
+    """Terms of service page"""
+    return render(request, 'landing/terms-of-service.html')
+
+
+# ── Landing Page Email API ──────────────────────────────────────
+
+FROM_EMAIL = 'noreply@indiafuturetycoons.com'
+LANDING_INBOX = 'info@enlearning.in'
+
+
+def _email_wrapper(title, badge, content):
+    return f'''<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;background:#f4f4f8;font-family:'Segoe UI',Arial,sans-serif;">
+  <div style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;margin-top:20px;margin-bottom:20px;box-shadow:0 4px 20px rgba(0,0,0,0.12);">
+    <div style="background:linear-gradient(135deg,#1a1a2e 0%,#2d2d54 100%);padding:30px;text-align:center;border-bottom:3px solid #f59e0b;">
+      <h2 style="color:#f59e0b;font-size:1.4rem;margin:0;font-weight:700;">{title}</h2>
+      <p style="color:#cbd5e1;font-size:13px;margin:6px 0 0;letter-spacing:1px;">INDIA\'S FUTURE TYCOONS</p>
+    </div>
+    <div style="padding:30px;">
+      <span style="display:inline-block;background:#f59e0b;color:#1a1a2e;padding:4px 12px;border-radius:50px;font-size:12px;font-weight:700;margin-bottom:14px;">{badge}</span>
+      {content}
+    </div>
+    <div style="background:#f9fafb;padding:18px 30px;text-align:center;border-top:1px solid #e5e7eb;">
+      <p style="color:#6b7280;font-size:12px;margin:0;">India\'s Future Tycoons (IFT)<br>indiasfuturetycoons.com</p>
+    </div>
+  </div>
+</body>
+</html>'''
+
+
+def _table_row(label, value):
+    v = value or '—'
+    return (f'<tr><td style="padding:12px 16px;font-size:14px;border-bottom:1px solid #f0f0f0;'
+            f'font-weight:700;color:#1a1a2e;width:40%;background:#fafafa;">{label}</td>'
+            f'<td style="padding:12px 16px;font-size:14px;border-bottom:1px solid #f0f0f0;color:#555;">{v}</td></tr>')
+
+
+def _build_table(rows):
+    html = '<p style="color:#555;font-size:14px;margin-bottom:20px;line-height:1.6;">You have received a new inquiry from the IFT website.</p>'
+    html += '<table style="width:100%;border-collapse:collapse;margin-bottom:20px;border:1px solid #f0f0f0;border-radius:8px;overflow:hidden;">'
+    for label, value in rows:
+        html += _table_row(label, value)
+    html += '</table>'
+    return html
+
+
+@require_POST
+@csrf_protect
+def landing_school_inquiry(request):
+    """Handle school inquiry form from landing page."""
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'success': False, 'message': 'Invalid JSON'}, status=400)
+
+    content = _build_table([
+        ('Full Name', data.get('name')),
+        ('Role', data.get('role')),
+        ('Email', data.get('email')),
+        ('Contact Number', data.get('contact')),
+        ('School Name & City', data.get('school')),
+    ])
+    subject = 'New School Inquiry — IFT Website'
+    html_body = _email_wrapper('New School Inquiry', 'Bring IFT to My School', content)
+
+    try:
+        send_mail(subject, '', FROM_EMAIL, [LANDING_INBOX], html_message=html_body, fail_silently=False)
+        return JsonResponse({'success': True, 'message': 'Inquiry sent successfully'})
+    except Exception:
+        return JsonResponse({'success': False, 'message': 'Failed to send email'}, status=500)
+
+
+@require_POST
+@csrf_protect
+def landing_partner_inquiry(request):
+    """Handle partner inquiry form from landing page."""
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'success': False, 'message': 'Invalid JSON'}, status=400)
+
+    content = _build_table([
+        ('Organization / Foundation', data.get('organization')),
+        ('Designation', data.get('designation')),
+        ('Email', data.get('email')),
+        ('Contact Number', data.get('contact')),
+    ])
+    subject = 'New Partner Inquiry — IFT Website'
+    html_body = _email_wrapper('New Partner Inquiry', 'Partner With IFT', content)
+
+    try:
+        send_mail(subject, '', FROM_EMAIL, [LANDING_INBOX], html_message=html_body, fail_silently=False)
+        return JsonResponse({'success': True, 'message': 'Inquiry sent successfully'})
+    except Exception:
+        return JsonResponse({'success': False, 'message': 'Failed to send email'}, status=500)
 
 
 def register(request):

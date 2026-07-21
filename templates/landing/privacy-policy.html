@@ -1,0 +1,946 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <link rel="icon" type="image/png" href="{% static 'landing/favicon.png' %}">
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Privacy Policy | IFT</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+    <!-- Google Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;800&family=Montserrat:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet" />
+
+    <!-- Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet" />
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg-base: #0a0612;
+            --bg-section: #14091f;
+            --bg-section-tinted: #1a0f2e;
+            --bg-section-dark: #110826;
+            --bg-card: #1d1230;
+            --purple-bright: #c89cf0;
+            --purple-mid: #b07ce8;
+            --purple-deep: #6c32a8;
+            --gold-accent: #e5a93e;
+            --text-heading: #f0e6f8;
+            --text-body: #b8a8c8;
+            --text-muted: #8a7a99;
+            --border-subtle: rgba(176, 124, 232, 0.12);
+            --border-soft: rgba(176, 124, 232, 0.18);
+            --border-gold: rgba(229, 169, 62, 0.3);
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: var(--bg-base);
+            background-image:
+                radial-gradient(ellipse 80% 50% at 50% -10%, rgba(108, 50, 168, 0.18), transparent 60%),
+                radial-gradient(ellipse 60% 40% at 80% 110%, rgba(229, 169, 62, 0.08), transparent 60%);
+            background-attachment: fixed;
+            color: var(--text-heading);
+            min-height: 100vh;
+        }
+
+        h1,
+        h2,
+        h3 {
+            font-family: 'Space Grotesk', sans-serif;
+        }
+
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+
+        /* ===== Main Content ===== */
+        .pp-main {
+            max-width: 1180px;
+            margin: 0 auto;
+            padding: 140px 24px 100px;
+        }
+
+        /* ===== Header Badge ===== */
+        .pp-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 50px;
+            background: rgba(176, 124, 232, 0.12);
+            border: 1px solid var(--border-soft);
+            color: var(--purple-bright);
+            font-weight: 600;
+            font-size: 0.85rem;
+            margin-bottom: 24px;
+        }
+
+        .pp-badge .material-symbols-outlined {
+            font-size: 16px;
+            font-variation-settings: 'FILL' 1;
+            color: var(--purple-bright);
+        }
+
+        /* ===== Page Title ===== */
+        .pp-title {
+            font-size: 3.2rem;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+            color: var(--text-heading);
+            line-height: 1.1;
+            margin-bottom: 20px;
+        }
+
+        .pp-title .pp-accent {
+            color: var(--gold-accent);
+        }
+
+        .pp-subtitle {
+            color: var(--text-body);
+            font-size: 1.05rem;
+            line-height: 1.7;
+            font-weight: 300;
+            max-width: 640px;
+        }
+
+        /* ===== Sections ===== */
+        .pp-sections {
+            display: flex;
+            flex-direction: column;
+            gap: 48px;
+            margin-top: 64px;
+        }
+
+        .pp-section {
+            padding: 32px;
+            border-radius: 16px;
+            background: var(--bg-section);
+            border: 1px solid var(--border-subtle);
+        }
+
+        .pp-section--tinted {
+            background: var(--bg-section-tinted);
+            border: 1px solid var(--border-soft);
+        }
+
+        .pp-section--dark {
+            background: var(--bg-section-dark);
+            border: 1px solid var(--border-subtle);
+        }
+
+        .pp-section--contact {
+            background: linear-gradient(135deg, rgba(108, 50, 168, 0.18), rgba(229, 169, 62, 0.08));
+            border: 1px solid var(--border-gold);
+        }
+
+        .pp-section-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 16px;
+        }
+
+        .pp-section-num {
+            color: #fff;
+            font-weight: 800;
+        }
+
+        .pp-section-text {
+            color: var(--text-body);
+            line-height: 1.75;
+            font-size: 0.95rem;
+        }
+
+        .pp-section-text p+p {
+            margin-top: 16px;
+        }
+
+        /* ===== Info Collection Cards ===== */
+        .pp-info-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 32px;
+        }
+
+        .pp-info-item {
+            display: flex;
+            gap: 20px;
+        }
+
+        .pp-info-icon {
+            flex-shrink: 0;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: rgba(176, 124, 232, 0.15);
+            border: 1px solid var(--border-soft);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--purple-bright);
+        }
+
+
+        .pp-info-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-heading);
+            margin-bottom: 8px;
+        }
+
+        .pp-info-text {
+            color: var(--text-body);
+            line-height: 1.7;
+            font-size: 0.95rem;
+        }
+
+        .pp-sub-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            color: var(--text-body);
+            font-size: 0.95rem;
+            line-height: 1.7;
+        }
+
+        .pp-sub-list li::before {
+            content: '•';
+            color: var(--gold-accent);
+            font-weight: 700;
+            margin-right: 8px;
+        }
+
+        /* ===== Data Usage List ===== */
+        .pp-usage-list {
+            list-style: none;
+            padding: 0;
+            margin: 24px 0 0;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .pp-usage-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            color: var(--text-body);
+            font-size: 0.95rem;
+        }
+
+        .pp-usage-item .material-symbols-outlined {
+            color: var(--gold-accent);
+            margin-top: 2px;
+            font-size: 20px;
+        }
+
+        /* ===== Rights Cards ===== */
+        .pp-rights-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .pp-rights-card {
+            padding: 24px;
+            border-radius: 16px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+        }
+
+        .pp-rights-title {
+            font-weight: 700;
+            color: var(--text-heading);
+            margin-bottom: 8px;
+        }
+
+        .pp-rights-text {
+            color: var(--text-body);
+            font-size: 0.875rem;
+            line-height: 1.7;
+        }
+
+        /* ===== Contact Section ===== */
+        .pp-contact-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--purple-bright);
+            margin-bottom: 8px;
+        }
+
+        .pp-contact-text {
+            color: var(--text-body);
+            margin-bottom: 16px;
+            font-size: 0.95rem;
+        }
+
+        .pp-contact-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--gold-accent);
+            font-weight: 700;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .pp-contact-link:hover {
+            text-decoration: underline;
+            text-underline-offset: 4px;
+            color: var(--purple-bright);
+        }
+
+        .pp-contact-link .material-symbols-outlined {
+            font-size: 16px;
+        }
+
+        /* ===== Responsive ===== */
+        @media (max-width: 640px) {
+            .pp-main {
+                padding: 60px 16px 80px;
+            }
+
+            .pp-title {
+                font-size: 2.2rem;
+            }
+
+            .pp-subtitle {
+                font-size: 0.95rem;
+            }
+
+            .pp-section {
+                padding: 24px 20px;
+            }
+
+            .pp-info-item {
+                flex-direction: column;
+                gap: 12px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <style>
+    .site-nav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        z-index: 1000;
+        padding: 0px 24px;
+        height: auto;
+        min-height: 96px;
+        display: flex;
+        align-items: center;
+        background: rgba(10, 6, 18, 0.85);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border-bottom: 1px solid rgba(176, 124, 232, 0.1);
+        transition: all 0.4s ease;
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    .site-nav.scrolled {
+        background: rgba(10, 6, 18, 0.95);
+        border-bottom-color: rgba(176, 124, 232, 0.2);
+    }
+
+    .site-nav-inner {
+        max-width: 1280px;
+        margin: 0 auto;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .site-nav-logo img {
+        height: 95px;
+        width: auto;
+        object-fit: contain;
+        transition: transform 0.3s ease;
+    }
+
+    .site-nav-logo:hover img {
+        transform: scale(1.05);
+    }
+
+    .site-nav-links {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+
+    .site-nav-links a {
+        color: #fff;
+        text-decoration: none;
+        font-size: 0.875rem;
+        font-weight: 500;
+        padding: 8px 14px;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+    }
+
+    .site-nav-links a:hover {
+        color: #F5C518;
+        background: rgba(255, 255, 255, 0.05);
+    }
+
+    .site-nav-cta {
+        background: #F5C518;
+        color: #0A0A0A !important;
+        padding: 10px 22px !important;
+        border-radius: 50px !important;
+        font-weight: 700 !important;
+        font-size: 0.875rem !important;
+        box-shadow: 0 4px 15px rgba(245, 197, 24, 0.3);
+        margin-left: 12px;
+    }
+
+    .site-nav-cta:hover {
+        background: #D4A80F !important;
+        color: #0A0A0A !important;
+    }
+
+    .mobile-menu-toggle {
+        display: none;
+        background: none;
+        border: none;
+        color: #fff;
+        cursor: pointer;
+        padding: 6px;
+    }
+
+    .mobile-menu-toggle .material-icons {
+        font-size: 28px;
+    }
+
+    @media (max-width: 968px) {
+        .mobile-menu-toggle {
+            display: flex;
+        }
+
+        .site-nav-links {
+            display: none;
+            position: absolute;
+            top: 72px;
+            left: 16px;
+            right: 16px;
+            flex-direction: column;
+            background: rgba(20, 9, 31, 0.97);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(176, 124, 232, 0.15);
+            border-radius: 12px;
+            padding: 16px;
+            gap: 4px;
+        }
+
+        .site-nav-links.active {
+            display: flex;
+        }
+
+        .site-nav-links a {
+            padding: 12px 16px;
+        }
+
+        .site-nav-cta {
+            margin-left: 0;
+            text-align: center;
+            margin-top: 8px;
+        }
+    }
+</style>
+
+<nav class="site-nav" id="mainNav">
+    <div class="site-nav-inner">
+        <a href="/" class="site-nav-logo">
+            <img src="{% static 'landing/IFT Logo_revised-White.png' %}" alt="IFT - India's Future Tycoons" />
+        </a>
+        <ul class="site-nav-links" id="navLinks">
+            <li><a href="/#about">What is IFT?</a></li>
+            <li><a href="/#journey">Journey</a></li>
+            <li><a href="/#schools">For Schools</a></li>
+            <li><a href="/#mentors">Mentors</a></li>
+            <li><a href="/#hall-of-fame">Hall of Fame</a></li>
+            <li><a href="/#contact" class="site-nav-cta">Register Now</a></li>
+        </ul>
+        <button class="mobile-menu-toggle" id="mobileMenuToggle">
+            <span class="material-icons">menu</span>
+        </button>
+    </div>
+</nav>
+
+
+    <main class="pp-main">
+        <!-- Header -->
+        <header style="margin-bottom: 0;">
+            <div class="pp-badge">
+                <span class="material-symbols-outlined">security</span>
+                Trust &amp; Safety
+            </div>
+            <h1 class="pp-title">Privacy <span class="pp-accent">Policy</span></h1>
+            <p class="pp-subtitle">
+                Your privacy is paramount. This document outlines how ENpower collects, uses, and protects your data.
+            </p>
+        </header>
+
+        <!-- Policy Sections -->
+        <div class="pp-sections">
+
+            <!-- 1. Introduction -->
+            <section class="pp-section pp-section--tinted">
+                <h2 class="pp-section-title"><span class="pp-section-num">1.</span> Introduction</h2>
+                <div class="pp-section-text">
+                    <p>
+                        We at ENpower (Enlearning Skill Development Ltd.) are committed to protecting the privacy of our
+                        users, including students, educators, and partners. This Privacy Policy explains how we collect,
+                        use, store, and share personal data across our programs, platforms, and initiatives, including
+                        India's Future Tycoons (IFT).
+                    </p>
+                </div>
+            </section>
+
+            <!-- 2. Information We Collect -->
+            <section class="pp-section">
+                <h2 class="pp-section-title" style="margin-bottom: 24px;"><span class="pp-section-num">2.</span>
+                    Information We Collect</h2>
+                <div class="pp-info-grid">
+                    <div class="pp-info-item">
+                        <div class="pp-info-icon">
+                            <span class="material-symbols-outlined">person</span>
+                        </div>
+                        <div>
+                            <h3 class="pp-info-title">a. Personal Information</h3>
+                            <ul class="pp-sub-list">
+                                <li>Name, age, grade, school/institution</li>
+                                <li>Contact details (email, phone number)</li>
+                                <li>Location (city/state)</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="pp-info-item">
+                        <div class="pp-info-icon">
+                            <span class="material-symbols-outlined">school</span>
+                        </div>
+                        <div>
+                            <h3 class="pp-info-title">b. Program &amp; Participation Data</h3>
+                            <ul class="pp-sub-list">
+                                <li>Registrations and submissions</li>
+                                <li>Student ideas, projects, and prototypes</li>
+                                <li>Performance, assessments, and progress data (e.g., Skill Passport)</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="pp-info-item">
+                        <div class="pp-info-icon">
+                            <span class="material-symbols-outlined">photo_camera</span>
+                        </div>
+                        <div>
+                            <h3 class="pp-info-title">c. Media &amp; Content</h3>
+                            <ul class="pp-sub-list">
+                                <li>Photos, videos, testimonials</li>
+                                <li>Event participation content</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="pp-info-item">
+                        <div class="pp-info-icon">
+                            <span class="material-symbols-outlined">devices</span>
+                        </div>
+                        <div>
+                            <h3 class="pp-info-title">d. Technical Data (if applicable)</h3>
+                            <ul class="pp-sub-list">
+                                <li>Device/browser information</li>
+                                <li>Website usage data (via cookies or analytics tools)</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. How We Use Information -->
+            <section class="pp-section pp-section--dark">
+                <h2 class="pp-section-title" style="margin-bottom: 24px;"><span class="pp-section-num">3.</span> How We
+                    Use Information</h2>
+                <p class="pp-section-text">We use data to:</p>
+                <ul class="pp-usage-list">
+                    <li class="pp-usage-item">
+                        <span class="material-symbols-outlined">check_circle</span>
+                        <span>Deliver and manage programs and learning experiences</span>
+                    </li>
+                    <li class="pp-usage-item">
+                        <span class="material-symbols-outlined">check_circle</span>
+                        <span>Evaluate submissions and provide mentorship</span>
+                    </li>
+                    <li class="pp-usage-item">
+                        <span class="material-symbols-outlined">check_circle</span>
+                        <span>Track student progress and outcomes</span>
+                    </li>
+                    <li class="pp-usage-item">
+                        <span class="material-symbols-outlined">check_circle</span>
+                        <span>Communicate updates and program-related information</span>
+                    </li>
+                    <li class="pp-usage-item">
+                        <span class="material-symbols-outlined">check_circle</span>
+                        <span>Showcase student work, achievements, and impact</span>
+                    </li>
+                    <li class="pp-usage-item">
+                        <span class="material-symbols-outlined">check_circle</span>
+                        <span>Improve our programs and platform experience</span>
+                    </li>
+                </ul>
+            </section>
+
+            <!-- 4. Data Sharing -->
+            <section class="pp-section">
+                <h2 class="pp-section-title" style="margin-bottom: 16px;"><span class="pp-section-num">4.</span> Data
+                    Sharing</h2>
+                <p class="pp-section-text" style="margin-bottom: 16px;">We may share data with:</p>
+                <ul class="pp-usage-list">
+                    <li class="pp-usage-item">
+                        <span class="material-symbols-outlined">check_circle</span>
+                        <span>Schools and educational institutions</span>
+                    </li>
+                    <li class="pp-usage-item">
+                        <span class="material-symbols-outlined">check_circle</span>
+                        <span>CSR partners and program sponsors</span>
+                    </li>
+                    <li class="pp-usage-item">
+                        <span class="material-symbols-outlined">check_circle</span>
+                        <span>Mentors, judges, and evaluators</span>
+                    </li>
+                    <li class="pp-usage-item">
+                        <span class="material-symbols-outlined">check_circle</span>
+                        <span>Government or regulatory bodies (if required)</span>
+                    </li>
+                </ul>
+                <p class="pp-section-text" style="margin-top: 16px;">We aim to share limited or aggregated data wherever
+                    possible.</p>
+            </section>
+
+            <!-- 5. Student Data & Minor Protection -->
+            <section class="pp-section pp-section--tinted">
+                <h2 class="pp-section-title"><span class="pp-section-num">5.</span> Student Data &amp; Minor Protection
+                </h2>
+                <div class="pp-section-text">
+                    <p>Our programs involve participants under the age of 18. We take steps to ensure that student data
+                        is handled responsibly and used only for educational and program-related purposes.</p>
+                </div>
+            </section>
+
+            <!-- 6. Intellectual Property & Submissions -->
+            <section class="pp-section">
+                <h2 class="pp-section-title"><span class="pp-section-num">6.</span> Intellectual Property &amp;
+                    Submissions</h2>
+                <div class="pp-section-text">
+                    <p>Students may submit ideas, projects, or innovations as part of ENpower programs and IFT. These
+                        submissions may be evaluated, mentored, and showcased on public platforms.</p>
+                </div>
+            </section>
+
+            <!-- 7. Media Usage -->
+            <section class="pp-section pp-section--tinted">
+                <h2 class="pp-section-title" style="margin-bottom: 16px;"><span class="pp-section-num">7.</span> Media
+                    Usage</h2>
+                <p class="pp-section-text" style="margin-bottom: 16px;">We may capture and use photographs, videos, and
+                    testimonials from programs and events for:</p>
+                <ul class="pp-usage-list">
+                    <li class="pp-usage-item">
+                        <span class="material-symbols-outlined">check_circle</span>
+                        <span>Website and social media</span>
+                    </li>
+                    <li class="pp-usage-item">
+                        <span class="material-symbols-outlined">check_circle</span>
+                        <span>Reports and case studies</span>
+                    </li>
+                    <li class="pp-usage-item">
+                        <span class="material-symbols-outlined">check_circle</span>
+                        <span>Marketing and promotional purposes</span>
+                    </li>
+                </ul>
+            </section>
+
+            <!-- 8. Data Retention -->
+            <section class="pp-section">
+                <h2 class="pp-section-title"><span class="pp-section-num">8.</span> Data Retention</h2>
+                <div class="pp-section-text">
+                    <p>We may retain user data for program continuity, alumni engagement, and impact tracking. Users may
+                        request deletion of their data by contacting us.</p>
+                </div>
+            </section>
+
+            <!-- 9. User Rights -->
+            <section class="pp-section pp-section--dark">
+                <h2 class="pp-section-title" style="margin-bottom: 16px;"><span class="pp-section-num">9.</span> User
+                    Rights</h2>
+                <p class="pp-section-text" style="margin-bottom: 16px;">Users may:</p>
+                <ul class="pp-usage-list">
+                    <li class="pp-usage-item">
+                        <span class="material-symbols-outlined">check_circle</span>
+                        <span>Request access to their data</span>
+                    </li>
+                    <li class="pp-usage-item">
+                        <span class="material-symbols-outlined">check_circle</span>
+                        <span>Request corrections</span>
+                    </li>
+                    <li class="pp-usage-item">
+                        <span class="material-symbols-outlined">check_circle</span>
+                        <span>Request deletion (subject to applicable requirements)</span>
+                    </li>
+                </ul>
+            </section>
+
+            <!-- 10. Cookies & Tracking -->
+            <section class="pp-section">
+                <h2 class="pp-section-title" style="margin-bottom: 16px;"><span class="pp-section-num">10.</span>
+                    Cookies &amp; Tracking</h2>
+                <p class="pp-section-text" style="margin-bottom: 16px;">Our website may use cookies and similar
+                    technologies to:</p>
+                <ul class="pp-usage-list">
+                    <li class="pp-usage-item">
+                        <span class="material-symbols-outlined">check_circle</span>
+                        <span>Ensure proper functioning</span>
+                    </li>
+                    <li class="pp-usage-item">
+                        <span class="material-symbols-outlined">check_circle</span>
+                        <span>Understand user behavior</span>
+                    </li>
+                    <li class="pp-usage-item">
+                        <span class="material-symbols-outlined">check_circle</span>
+                        <span>Improve user experience</span>
+                    </li>
+                </ul>
+            </section>
+
+            <!-- 11. Contact Us -->
+            <section class="pp-section pp-section--contact">
+                <h2 class="pp-contact-title"><span class="pp-section-num">11.</span> Contact Us</h2>
+                <p class="pp-contact-text">
+                    For any privacy-related queries, please contact:
+                </p>
+                <a class="pp-contact-link" href="mailto:info@enlearning.in">
+                    info@enlearning.in
+                    <span class="material-symbols-outlined">arrow_forward</span>
+                </a>
+            </section>
+
+        </div>
+    </main>
+
+    <style>
+    .site-footer {
+        border-top: 1px solid rgba(176, 124, 232, 0.1);
+        background: #0A0A0A;
+        padding: 48px 24px;
+    }
+
+    .site-footer-inner {
+        max-width: 1280px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 24px;
+    }
+
+    @media (min-width: 768px) {
+        .site-footer-inner {
+            flex-direction: row;
+            justify-content: space-between;
+        }
+    }
+
+    .site-footer-logo img {
+        height: 96px;
+        width: auto;
+        object-fit: contain;
+    }
+
+    .site-footer-info {
+        color: #6b7280;
+        font-size: 0.875rem;
+        text-align: center;
+    }
+
+    @media (min-width: 768px) {
+        .site-footer-info {
+            text-align: left;
+        }
+    }
+
+    .site-footer-legal {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        margin-top: 8px;
+    }
+
+    .site-footer-legal a {
+        color: #6b7280;
+        text-decoration: none;
+        transition: color 0.3s ease;
+    }
+
+    .site-footer-legal a:hover {
+        color: #7B2D8E;
+    }
+
+    .site-footer-legal span {
+        color: #6b7280;
+    }
+
+    .site-footer-social {
+        display: flex;
+        gap: 24px;
+    }
+
+    .site-footer-social a {
+        color: #6b7280;
+        transition: color 0.3s ease;
+        text-decoration: none;
+    }
+
+    .site-footer-social a:hover {
+        color: #7B2D8E;
+    }
+
+    .site-footer-social svg {
+        width: 24px;
+        height: 24px;
+        fill: currentColor;
+    }
+
+    .back-to-top {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: #7B2D8E;
+        color: #fff;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+        z-index: 999;
+        box-shadow: 0 4px 12px rgba(123, 45, 142, 0.3);
+    }
+
+    .back-to-top.show {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .back-to-top:hover {
+        background: #5A1D6B;
+        transform: translateY(-2px);
+    }
+</style>
+
+<footer class="site-footer">
+    <div class="site-footer-inner">
+        <a href="/" class="site-footer-logo">
+            <img src="{% static 'landing/IFT Logo_revised-White.png' %}" alt="IFT - India's Future Tycoons" />
+        </a>
+        <div class="site-footer-info">
+            &copy; 2026 ENpower. All rights reserved.
+            <span>Designed & Developed By <a href="https://www.techinfinity.io/" target="_blank" style="color:inherit;">Techinfinity</a></span>
+            <div class="site-footer-legal">
+                <a href="{% url 'students:privacy_policy' %}">Privacy Policy</a>
+                <span>|</span>
+                <a href="{% url 'students:terms_of_service' %}">Terms & Conditions</a>
+            </div>
+        </div>
+        <div class="site-footer-social">
+            <a href="https://www.facebook.com/indiafuturetycoons" target="_blank" title="Follow us on Facebook">
+                <span class="material-icons">facebook</span>
+            </a>
+            <a href="https://www.instagram.com/indiasfuture.tycoons?igsh=MWhlNnNrNXkxcTJ2aA==" target="_blank"
+                title="Follow us on Instagram">
+                <svg viewBox="0 0 24 24">
+                    <path
+                        d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
+                </svg>
+            </a>
+            <a href="mailto:info@enlearning.in" title="Email Us">
+                <span class="material-icons">mail</span>
+            </a>
+        </div>
+    </div>
+</footer>
+
+<button class="back-to-top" id="backToTop">
+    <span class="material-icons">arrow_upward</span>
+</button>
+
+
+    <script>
+        // Nav functionality
+        const nav = document.getElementById('mainNav');
+        const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+        const navLinks = document.getElementById('navLinks');
+        const backToTopButton = document.getElementById('backToTop');
+
+        if (nav) {
+            setTimeout(() => { nav.style.opacity = '1'; nav.style.transform = 'translateY(0)'; }, 100);
+        }
+
+        window.addEventListener('scroll', () => {
+            if (nav) {
+                if (window.scrollY > 50) nav.classList.add('scrolled');
+                else nav.classList.remove('scrolled');
+            }
+            if (backToTopButton) {
+                if (window.pageYOffset > 300) backToTopButton.classList.add('show');
+                else backToTopButton.classList.remove('show');
+            }
+        });
+
+        if (mobileMenuToggle && navLinks) {
+            mobileMenuToggle.addEventListener('click', function (e) {
+                e.stopPropagation();
+                this.classList.toggle('active');
+                navLinks.classList.toggle('active');
+            });
+        }
+
+        if (backToTopButton) {
+            backToTopButton.addEventListener('click', function () {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        }
+    </script>
+
+</body>
+
+</html>

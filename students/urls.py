@@ -6,6 +6,10 @@ app_name = 'students'
 
 urlpatterns = [
     path('', views.home, name='home'),
+    path('privacy-policy/', views.privacy_policy, name='privacy_policy'),
+    path('terms-of-service/', views.terms_of_service, name='terms_of_service'),
+    path('api/school-inquiry', views.landing_school_inquiry, name='landing_school_inquiry'),
+    path('api/partner-inquiry', views.landing_partner_inquiry, name='landing_partner_inquiry'),
     # Old auth URLs — redirect to new accounts app
     path('register/', lambda r: redirect('accounts:sign_up'), name='register'),
     path('login/', lambda r: redirect('accounts:sign_in'), name='login'),
