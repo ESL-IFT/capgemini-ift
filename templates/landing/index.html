@@ -1112,12 +1112,10 @@
             <div class="absolute inset-0 bg-bg-dark z-0 overflow-hidden">
                 <canvas id="hero-star-canvas" class="hidden"></canvas>
 
-                <!-- YouTube Video Background -->
+                <!-- Video Background -->
                 <div class="absolute inset-0 w-full h-full pointer-events-none z-0">
-                    <iframe
-                        class="absolute top-1/2 left-1/2 w-[150vw] h-[84.375vw] min-h-[150vh] min-w-[266.66vh] -translate-x-1/2 -translate-y-1/2 opacity-30 object-cover"
-                        src="https://www.youtube.com/embed/x96mWTkI9X0?autoplay=1&mute=1&controls=0&loop=1&playlist=x96mWTkI9X0&showinfo=0&rel=0&modestbranding=1"
-                        frameborder="0" allow="autoplay; fullscreen" allowfullscreen></iframe>
+                    <video class="absolute top-1/2 left-1/2 w-[150vw] h-[84.375vw] min-h-[150vh] min-w-[266.66vh] -translate-x-1/2 -translate-y-1/2 opacity-30 object-cover"
+                        src="{% static 'landing/ift-final-promo-season4.mp4' %}" autoplay muted loop playsinline></video>
                 </div>
 
                 <div
