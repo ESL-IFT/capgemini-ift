@@ -2696,3 +2696,44 @@ def video_completion_status(request):
                 })
 
     return JsonResponse({'my_progress': my_progress, 'team_progress': team_progress})
+
+
+@login_required
+def test_payment(request):
+    """Test payment page — Rs 1 Razorpay checkout to verify integration."""
+    import razorpay
+    from django.conf import settings
+
+    client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+
+    if request.method == 'POST':
+        import json as json_mod
+        data = json_mod.loads(request.body)
+        razorpay_payment_id = data.get('razorpay_payment_id')
+        razorpay_order_id = data.get('razorpay_order_id')
+        razorpay_signature = data.get('razorpay_signature')
+
+        try:
+            client.utility.verify_payment_signature({
+                'razorpay_order_id': razorpay_order_id,
+                'razorpay_payment_id': razorpay_payment_id,
+                'razorpay_signature': razorpay_signature,
+            })
+            return JsonResponse({'success': True, 'message': 'Payment verified successfully!', 'payment_id': razorpay_payment_id})
+        except razorpay.errors.SignatureVerificationError:
+            return JsonResponse({'success': False, 'message': 'Payment verification failed.'}, status=400)
+
+    order = client.order.create({
+        'amount': 100,
+        'currency': 'INR',
+        'payment_capture': 1,
+    })
+
+    context = {
+        'razorpay_key_id': settings.RAZORPAY_KEY_ID,
+        'order_id': order['id'],
+        'amount': 100,
+        'currency': 'INR',
+        'user': request.user,
+    }
+    return render(request, 'students/test_payment.html', context)
