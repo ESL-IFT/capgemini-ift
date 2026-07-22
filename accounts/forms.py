@@ -44,8 +44,10 @@ class SchoolSignUpForm(forms.Form):
     coordinator_name = forms.CharField(max_length=150, widget=forms.TextInput(attrs={'placeholder': 'School Coordinator Name'}))
     contact_email = forms.EmailField(widget=forms.EmailInput(attrs={'placeholder': 'School Email'}))
     contact_phone = forms.CharField(max_length=15, widget=forms.TextInput(attrs={'placeholder': 'Phone Number'}))
+    address = forms.CharField(widget=forms.Textarea(attrs={'placeholder': 'School Address', 'rows': 2}))
     city = forms.CharField(max_length=100, widget=forms.TextInput(attrs={'placeholder': 'City'}))
     state = forms.CharField(max_length=100, widget=forms.TextInput(attrs={'placeholder': 'State'}))
+    pin_code = forms.CharField(max_length=10, widget=forms.TextInput(attrs={'placeholder': 'PIN Code'}))
     is_tata_classedge = forms.ChoiceField(
         choices=[('yes', 'Yes'), ('no', 'No')],
         widget=forms.RadioSelect,

@@ -37,6 +37,13 @@
         {% if form.contact_phone.errors %}<p class="field-error">{{ form.contact_phone.errors.0 }}</p>{% endif %}
     </div>
 
+    <!-- Address -->
+    <div class="form-group">
+        <div class="icon"><iconify-icon icon="mdi:map-marker-outline"></iconify-icon></div>
+        <textarea class="form-control" name="address" placeholder="School Address" rows="2" required>{{ form.address.value|default:'' }}</textarea>
+        {% if form.address.errors %}<p class="field-error">{{ form.address.errors.0 }}</p>{% endif %}
+    </div>
+
     <!-- City -->
     <div class="form-group">
         <div class="icon"><iconify-icon icon="mdi:city-variant-outline"></iconify-icon></div>
@@ -49,6 +56,13 @@
         <div class="icon"><iconify-icon icon="mdi:map-marker-outline"></iconify-icon></div>
         <input type="text" class="form-control" name="state" placeholder="State" required value="{{ form.state.value|default:'' }}">
         {% if form.state.errors %}<p class="field-error">{{ form.state.errors.0 }}</p>{% endif %}
+    </div>
+
+    <!-- PIN Code -->
+    <div class="form-group">
+        <div class="icon"><iconify-icon icon="mdi:numeric"></iconify-icon></div>
+        <input type="text" class="form-control" name="pin_code" placeholder="PIN Code" required value="{{ form.pin_code.value|default:'' }}">
+        {% if form.pin_code.errors %}<p class="field-error">{{ form.pin_code.errors.0 }}</p>{% endif %}
     </div>
 
     <!-- Tata ClassEdge Network -->
