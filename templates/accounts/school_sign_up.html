@@ -39,8 +39,8 @@
 
     <!-- Address -->
     <div class="form-group">
-        <div class="icon"><iconify-icon icon="mdi:map-marker-outline"></iconify-icon></div>
-        <textarea class="form-control" name="address" placeholder="School Address" rows="2" required>{{ form.address.value|default:'' }}</textarea>
+        <div class="icon" style="align-self:center;"><iconify-icon icon="mdi:map-marker-outline"></iconify-icon></div>
+        <input type="text" class="form-control" name="address" placeholder="School Address" required value="{{ form.address.value|default:'' }}">
         {% if form.address.errors %}<p class="field-error">{{ form.address.errors.0 }}</p>{% endif %}
     </div>
 
@@ -104,8 +104,10 @@
 <script>
 function initAutocomplete() {
     var input = document.getElementById('schoolNameInput');
+    var addressInput = document.querySelector('input[name="address"]');
     var cityInput = document.querySelector('input[name="city"]');
     var stateInput = document.querySelector('input[name="state"]');
+    var pinInput = document.querySelector('input[name="pin_code"]');
 
     var autocomplete = new google.maps.places.Autocomplete(input, {
         types: ['establishment'],
@@ -118,6 +120,9 @@ function initAutocomplete() {
         if (place.name) {
             input.value = place.name;
         }
+        if (place.formatted_address) {
+            addressInput.value = place.formatted_address;
+        }
         if (place.address_components) {
             for (var i = 0; i < place.address_components.length; i++) {
                 var comp = place.address_components[i];
@@ -127,6 +132,9 @@ function initAutocomplete() {
                 }
                 if (types.indexOf('administrative_area_level_1') !== -1) {
                     stateInput.value = comp.long_name;
+                }
+                if (types.indexOf('postal_code') !== -1) {
+                    pinInput.value = comp.long_name;
                 }
             }
         }
