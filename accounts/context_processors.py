@@ -14,6 +14,17 @@ def launch_confetti(request):
         return {'launch_confetti_active': False}
 
 
+def unread_notification_count(request):
+    if request.user.is_authenticated:
+        try:
+            from students.models import Notification
+            count = Notification.objects.filter(user=request.user, is_read=False).count()
+            return {'unread_notification_count': count}
+        except Exception:
+            pass
+    return {'unread_notification_count': 0}
+
+
 def user_role(request):
     if request.user.is_authenticated:
         try:
