@@ -1639,7 +1639,6 @@ def notifications_page(request):
 
     notifications = Notification.objects.filter(user=request.user)
 
-    # Also fetch published announcements
     from admins.models import Content
     announcements = Content.objects.filter(
         status='published',
@@ -1647,12 +1646,18 @@ def notifications_page(request):
         visibility__in=['all', 'students']
     ).order_by('-created_at')[:10]
 
+    combined = []
+    for n in notifications[:50]:
+        combined.append({'type': 'notif', 'id': n.id, 'title': n.title, 'message': n.message, 'icon': n.icon or 'notifications', 'is_read': n.is_read, 'created_at': n.created_at, 'notif_type': n.notification_type, 'action_url': n.action_url})
+    for a in announcements:
+        combined.append({'type': 'announcement', 'id': f'ann-{a.id}', 'title': a.title, 'message': a.body or '', 'icon': 'campaign', 'is_read': False, 'created_at': a.created_at, 'notif_type': 'announcement', 'action_url': ''})
+    combined.sort(key=lambda x: x['created_at'], reverse=True)
+
     context = {
         'student': student,
-        'notifications': notifications[:50],
-        'announcements': announcements,
-        'total': notifications.count(),
-        'unread': notifications.filter(is_read=False).count(),
+        'combined_notifications': combined,
+        'total': len(combined),
+        'unread': notifications.filter(is_read=False).count() + announcements.count(),
         'team_count': notifications.filter(notification_type='team').count(),
         'submission_count': notifications.filter(notification_type='submission').count(),
         'announcement_count': notifications.filter(notification_type='announcement').count() + announcements.count(),

@@ -140,7 +140,7 @@
         .notification-card {
             background: var(--surface-light); border-radius: 0.75rem; border: 1px solid var(--border-light);
             padding: 1.25rem; transition: all 0.2s ease; cursor: pointer;
-            display: flex; gap: 1rem; position: relative;
+            display: flex; gap: 1rem; position: relative; margin-bottom: 10px;
         }
         .notification-card:hover { border-color: rgba(94,42,151,0.3); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
         .notification-card.unread { background: rgba(94,42,151,0.03); border-left: 4px solid var(--primary); }
@@ -264,34 +264,26 @@
 
                 <!-- Notifications List -->
                 <div class="notifications-list">
-                    {% for notif in notifications %}
-                    <div class="notification-card {% if not notif.is_read %}unread{% endif %}"
-                         data-type="{{ notif.notification_type }}"
-                         data-id="{{ notif.id }}">
-                        {% if not notif.is_read %}
+                    {% for item in combined_notifications %}
+                    <div class="notification-card {% if not item.is_read %}unread{% endif %}"
+                         data-type="{{ item.notif_type }}"
+                         data-id="{{ item.id }}">
+                        {% if not item.is_read %}
                         <div class="notification-badge-unread"></div>
                         {% endif %}
-                        <div class="notification-icon-wrapper {% if notif.notification_type == 'team' %}success{% elif notif.notification_type == 'submission' %}warning{% elif notif.notification_type == 'announcement' %}info{% else %}primary{% endif %}">
-                            <span class="material-symbols-outlined">{{ notif.icon }}</span>
+                        <div class="notification-icon-wrapper {% if item.notif_type == 'team' %}success{% elif item.notif_type == 'submission' %}warning{% elif item.notif_type == 'announcement' %}info{% else %}primary{% endif %}">
+                            <span class="material-symbols-outlined">{{ item.icon }}</span>
                         </div>
                         <div class="notification-content">
                             <div class="notification-header">
-                                <h3 class="notification-title">{{ notif.title }}</h3>
+                                <h3 class="notification-title">{{ item.title }}</h3>
                                 <span class="notification-time">
                                     <span class="material-symbols-outlined" style="font-size: 14px;">schedule</span>
-                                    {{ notif.created_at|timesince }} ago
+                                    {{ item.created_at|timesince }} ago
                                 </span>
                             </div>
-                            {% if notif.message %}
-                            <p class="notification-message">{{ notif.message }}</p>
-                            {% endif %}
-                            {% if notif.action_url and notif.action_label %}
-                            <div class="notification-actions">
-                                <a href="{{ notif.action_url }}" class="notification-action-btn primary" onclick="event.stopPropagation();">
-                                    <span class="material-symbols-outlined">{{ notif.icon }}</span>
-                                    {{ notif.action_label }}
-                                </a>
-                            </div>
+                            {% if item.message %}
+                            <p class="notification-message">{{ item.message|truncatewords:20 }}</p>
                             {% endif %}
                         </div>
                     </div>
@@ -302,28 +294,6 @@
                         </div>
                         <h3 class="empty-title">No notifications yet</h3>
                         <p class="empty-message">When you get notifications about teams, submissions, or announcements, they will appear here.</p>
-                    </div>
-                    {% endfor %}
-
-                    {% for ann in announcements %}
-                    <div class="notification-card"
-                         data-type="announcement"
-                         data-id="ann-{{ ann.id }}">
-                        <div class="notification-icon-wrapper info">
-                            <span class="material-symbols-outlined">campaign</span>
-                        </div>
-                        <div class="notification-content">
-                            <div class="notification-header">
-                                <h3 class="notification-title">{{ ann.title }}</h3>
-                                <span class="notification-time">
-                                    <span class="material-symbols-outlined" style="font-size: 14px;">schedule</span>
-                                    {{ ann.created_at|timesince }} ago
-                                </span>
-                            </div>
-                            {% if ann.body %}
-                            <p class="notification-message">{{ ann.body|truncatewords:20 }}</p>
-                            {% endif %}
-                        </div>
                     </div>
                     {% endfor %}
                 </div>
