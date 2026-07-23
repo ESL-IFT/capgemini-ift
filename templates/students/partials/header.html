@@ -9,10 +9,13 @@
         <button class="header-icon-btn" id="notifBtn" title="Notifications" style="position:relative;">
             <span class="material-symbols-outlined">notifications</span>
             {% if unread_notification_count > 0 %}
-            <span style="position:absolute;top:4px;right:4px;width:8px;height:8px;background:#ef4444;border-radius:50%;border:2px solid #fff;animation:notifBlink 1.5s ease-in-out infinite;"></span>
+            <span class="notif-badge-dot">{{ unread_notification_count }}</span>
             {% endif %}
         </button>
-        <style>@keyframes notifBlink{0%,100%{opacity:1;}50%{opacity:0.3;}}</style>
+        <style>
+        .notif-badge-dot{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;background:#ef4444;border-radius:99px;border:2px solid #fff;color:#fff;font-size:0.6rem;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 4px;animation:notifPulse 2s ease-in-out infinite;box-shadow:0 0 0 0 rgba(239,68,68,0.7);}
+        @keyframes notifPulse{0%{box-shadow:0 0 0 0 rgba(239,68,68,0.7);transform:scale(1);}50%{box-shadow:0 0 0 8px rgba(239,68,68,0);transform:scale(1.1);}100%{box-shadow:0 0 0 0 rgba(239,68,68,0);transform:scale(1);}}
+        </style>
         <button class="header-icon-btn" id="helpBtn" title="Help & Support">
             <span class="material-symbols-outlined">help_outline</span>
         </button>
