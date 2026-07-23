@@ -29,10 +29,15 @@ def unread_notification_count(request):
                 status='published', content_type='announcement',
                 visibility__in=['all', 'students']
             ).order_by('-created_at')[:3])
+            combined = []
+            for n in recent_notifs:
+                combined.append({'type': 'notif', 'title': n.title, 'message': n.message, 'icon': n.icon or 'notifications', 'is_read': n.is_read, 'created_at': n.created_at, 'notif_type': n.notification_type})
+            for a in recent_announcements:
+                combined.append({'type': 'announcement', 'title': a.title, 'message': a.body or '', 'icon': 'campaign', 'is_read': False, 'created_at': a.created_at, 'notif_type': 'announcement'})
+            combined.sort(key=lambda x: x['created_at'], reverse=True)
             return {
                 'unread_notification_count': notif_count + announcement_count,
-                'header_notifications': recent_notifs,
-                'header_announcements': recent_announcements,
+                'header_notifications_combined': combined[:5],
             }
         except Exception:
             pass
