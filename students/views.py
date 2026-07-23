@@ -1444,6 +1444,13 @@ def publish_idea(request, submission_id):
 
     threading.Thread(target=run_ai, args=(submission.id,), daemon=True).start()
 
+    # Auto-send the Participation certificate (background, once per student)
+    try:
+        from admins.views import send_participation_certificate
+        send_participation_certificate(submission.student, sent_by=request.user)
+    except Exception:
+        pass
+
     return JsonResponse({'success': True, 'message': 'Your idea has been published and submitted for review!'})
 
 

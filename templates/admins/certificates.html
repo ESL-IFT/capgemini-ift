@@ -767,6 +767,22 @@
                 .pill-failed { background:#fee2e2; color:#dc2626; }
                 .pill-test { background:#e0e7ff; color:#4338ca; }
                 .cert-empty { color:var(--text-muted); font-size:.85rem; padding:1rem 0; }
+                /* autocomplete single-send */
+                .cert-suggest-box { position:relative; }
+                .cert-name-input { width:100%; padding:.5rem .6rem; border:1px solid var(--border-light); border-radius:8px; font-size:.85rem; }
+                .cert-name-input:focus { outline:none; border-color:var(--primary); }
+                .cert-suggest-list { position:absolute; left:0; right:0; top:calc(100% + 4px); background:#fff; border:1px solid var(--border-light); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.12); z-index:20; max-height:230px; overflow-y:auto; display:none; }
+                .cert-suggest-list.open { display:block; }
+                .suggest-item { padding:.5rem .65rem; cursor:pointer; display:flex; justify-content:space-between; align-items:center; gap:.5rem; border-bottom:1px solid var(--border-light); }
+                .suggest-item:last-child { border-bottom:none; }
+                .suggest-item:hover, .suggest-item.active { background:var(--primary-light); }
+                .suggest-item .si-name { font-size:.83rem; font-weight:600; color:#222; }
+                .suggest-item .si-email { font-size:.72rem; color:var(--text-muted); }
+                .suggest-item .si-tag { font-size:.62rem; font-weight:700; padding:.1rem .4rem; border-radius:999px; white-space:nowrap; }
+                .si-tag.sent { background:#dcfce7; color:#16a34a; }
+                .suggest-empty { padding:.6rem .65rem; font-size:.8rem; color:var(--text-muted); }
+                .cert-selected { display:none; margin-top:.5rem; font-size:.78rem; color:#16a34a; font-weight:600; }
+                .cert-selected.show { display:block; }
             </style>
 
             <!-- Page Header -->
@@ -800,35 +816,29 @@
                     </div>
 
                     <div class="cert-actions">
-                        <div class="cert-test">
-                            <span class="test-label">Preview / send a test</span>
-                            <form method="post" action="{% url 'admins:send_test_certificate' %}">
-                                {% csrf_token %}
-                                <input type="hidden" name="cert_type" value="{{ card.type }}">
-                                <div class="row-inline" style="margin-bottom:.45rem;">
-                                    <input name="name" id="name-{{ card.type }}" placeholder="Full name" value="Student Full Name">
-                                </div>
-                                <div class="row-inline">
-                                    <input name="email" type="email" placeholder="you@email.com">
-                                    <button type="button" class="btn-cert btn-cert-ghost" onclick="previewCert('{{ card.type }}')">
-                                        <span class="material-symbols-outlined" style="font-size:16px;">visibility</span>Preview
+                        <div class="cert-test cert-suggest" data-type="{{ card.type }}">
+                            <span class="test-label">{% if card.type == 'school_champion' %}Send to a school{% else %}Send to a student{% endif %}</span>
+                            <div class="cert-suggest-box">
+                                <input class="cert-name-input" type="text" autocomplete="off"
+                                       placeholder="{% if card.type == 'school_champion' %}Type a school name…{% else %}Type a student name…{% endif %}">
+                                <div class="cert-suggest-list"></div>
+                            </div>
+                            <div class="cert-selected"><span class="material-symbols-outlined" style="font-size:15px;vertical-align:-3px;">check_circle</span> <span class="sel-text"></span></div>
+                            <div class="row-inline" style="margin-top:.55rem;">
+                                <button type="button" class="btn-cert btn-cert-ghost cert-preview-btn">
+                                    <span class="material-symbols-outlined" style="font-size:16px;">visibility</span>Preview
+                                </button>
+                                <form method="post" action="{% url 'admins:send_single_certificate' %}" class="cert-send-one" style="display:inline;flex:1;">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="cert_type" value="{{ card.type }}">
+                                    <input type="hidden" name="kind" class="sel-kind">
+                                    <input type="hidden" name="entity_id" class="sel-id">
+                                    <button type="submit" class="btn-cert btn-cert-primary sel-send" style="width:100%;justify-content:center;" disabled>
+                                        <span class="material-symbols-outlined" style="font-size:16px;">send</span>Send
                                     </button>
-                                    <button type="submit" class="btn-cert btn-cert-soft">
-                                        <span class="material-symbols-outlined" style="font-size:16px;">send</span>Test
-                                    </button>
-                                </div>
-                            </form>
+                                </form>
+                            </div>
                         </div>
-
-                        <form method="post" action="{% url 'admins:send_certificates_batch' %}"
-                              onsubmit="return confirm('Send {{ card.label|escapejs }} certificates to {{ card.pending }} student(s) now? Emails will be sent immediately.');">
-                            {% csrf_token %}
-                            <input type="hidden" name="cert_type" value="{{ card.type }}">
-                            <button type="submit" class="btn-cert btn-cert-primary cert-send-all" {% if card.pending == 0 %}disabled{% endif %}>
-                                <span class="material-symbols-outlined" style="font-size:18px;">outgoing_mail</span>
-                                Send to all pending ({{ card.pending }})
-                            </button>
-                        </form>
                     </div>
                 </div>
                 {% endfor %}
@@ -842,7 +852,7 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>Type</th><th>Name</th><th>Email</th><th>Status</th><th>By</th><th>When</th>
+                            <th>Type</th><th>Name</th><th>Email</th><th>Status</th><th>By</th><th>When</th><th>Certificate</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -857,6 +867,7 @@
                             </td>
                             <td>{% if r.sent_by %}{{ r.sent_by.get_full_name|default:r.sent_by.username }}{% else %}—{% endif %}</td>
                             <td>{{ r.created_at|date:"d M Y, H:i" }}</td>
+                            <td><a class="btn-cert btn-cert-ghost" style="padding:.28rem .6rem;font-size:.75rem;" target="_blank" href="{% url 'admins:preview_certificate' r.cert_type %}?name={{ r.name_used|urlencode }}"><span class="material-symbols-outlined" style="font-size:15px;">visibility</span>View</a></td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -889,11 +900,77 @@ if (umToggle) {
         umToggle.closest('.nav-dropdown').classList.toggle('open');
     });
 }
-function previewCert(t) {
-    const el = document.getElementById('name-' + t);
-    const n = (el && el.value.trim()) ? el.value.trim() : 'Student Full Name';
-    window.open('/super-admin/certificates/preview/' + t + '/?name=' + encodeURIComponent(n), '_blank');
+// ── Certificate: name autocomplete + single (manual) send ──
+function certEsc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
 }
+document.querySelectorAll('.cert-suggest').forEach(function (box) {
+    const type = box.dataset.type;
+    const input = box.querySelector('.cert-name-input');
+    const list = box.querySelector('.cert-suggest-list');
+    const selKind = box.querySelector('.sel-kind');
+    const selId = box.querySelector('.sel-id');
+    const selBox = box.querySelector('.cert-selected');
+    const selText = box.querySelector('.sel-text');
+    const sendBtn = box.querySelector('.sel-send');
+    const sendForm = box.querySelector('.cert-send-one');
+    let timer = null, lastSent = false;
+
+    function clearSelection() {
+        selKind.value = ''; selId.value = '';
+        selBox.classList.remove('show'); sendBtn.disabled = true; lastSent = false;
+    }
+    function render(results) {
+        if (!results.length) {
+            list.innerHTML = '<div class="suggest-empty">No matching recipients</div>';
+            list.classList.add('open'); return;
+        }
+        list.innerHTML = results.map(function (r) {
+            return '<div class="suggest-item" data-kind="' + r.kind + '" data-id="' + r.id +
+                '" data-name="' + encodeURIComponent(r.name) + '" data-email="' + encodeURIComponent(r.email) +
+                '" data-sent="' + (r.sent ? '1' : '0') + '">' +
+                '<span><span class="si-name">' + certEsc(r.name) + '</span><br>' +
+                '<span class="si-email">' + certEsc(r.email) + '</span></span>' +
+                (r.sent ? '<span class="si-tag sent">Sent</span>' : '') + '</div>';
+        }).join('');
+        list.classList.add('open');
+    }
+    input.addEventListener('input', function () {
+        clearSelection();
+        const q = input.value.trim();
+        clearTimeout(timer);
+        timer = setTimeout(function () {
+            fetch('/super-admin/certificates/suggest/' + type + '/?q=' + encodeURIComponent(q))
+                .then(function (r) { return r.json(); })
+                .then(function (d) { render(d.results || []); })
+                .catch(function () { list.classList.remove('open'); });
+        }, 200);
+    });
+    input.addEventListener('focus', function () { if (list.innerHTML.trim()) list.classList.add('open'); });
+    list.addEventListener('click', function (e) {
+        const it = e.target.closest('.suggest-item'); if (!it || !it.dataset.id) return;
+        const name = decodeURIComponent(it.dataset.name), email = decodeURIComponent(it.dataset.email);
+        input.value = name;
+        selKind.value = it.dataset.kind; selId.value = it.dataset.id;
+        lastSent = it.dataset.sent === '1';
+        selText.textContent = name + ' <' + email + '>' + (lastSent ? ' — already sent' : '');
+        selBox.classList.add('show'); sendBtn.disabled = false;
+        list.classList.remove('open');
+    });
+    document.addEventListener('click', function (e) { if (!box.contains(e.target)) list.classList.remove('open'); });
+    box.querySelector('.cert-preview-btn').addEventListener('click', function () {
+        const n = input.value.trim() || 'Student Full Name';
+        window.open('/super-admin/certificates/preview/' + type + '/?name=' + encodeURIComponent(n), '_blank');
+    });
+    sendForm.addEventListener('submit', function (e) {
+        if (!selId.value) { e.preventDefault(); return; }
+        if (!confirm((lastSent ? 'Already sent. Resend' : 'Send') + ' certificate to ' + selText.textContent + '? An email will be sent now.')) {
+            e.preventDefault();
+        }
+    });
+});
 function showToast(message, type) {
     type = type || 'success';
     const container = document.getElementById('toastContainer');

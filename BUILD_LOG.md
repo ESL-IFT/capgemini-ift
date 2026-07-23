@@ -1,5 +1,17 @@
 # Build Log
 
+## 2026-07-21 — Certificates: manual per-recipient send with name autocomplete
+- Removed the **"Send to all pending"** bulk button from all 4 cards (client sends individually).
+- Each card now has **"Send to a student/school"**: a name autocomplete input — type a partial name (e.g. "aar") → dropdown of eligible recipients (name + email, "Sent" tag if already sent) → select → **Send** (real, tracked). Preview kept.
+- New views `admins/views.py`: `certificate_suggestions(cert_type)` (JSON, filters `_certificate_recipients` by name/email `?q=`, unsent-first) and `send_single_certificate` (POST cert_type+kind+entity_id → real `_send_certificate`, is_test=False). URLs `certificates/suggest/<cert_type>/` and `certificates/send-one/`. `send_certificates_batch` view left in place but no longer linked from UI.
+- Also added a **"View"** action per Recent-activity row → opens that row's certificate PDF (`preview_certificate` with the row's name+type).
+- Verified locally (console forced): suggest 'mee'→Meera(unsent)/'aar'→Aarav(sent); send-one creates 1 real row + sent-flag flips; invalid id guarded. Browser: autocomplete dropdown + select + Send-enable confirmed (screenshot).
+
+## 2026-07-21 — Participation certificate: auto-send on submit
+- **Participation** now emails **automatically** when a student publishes their idea (`students/views.py:publish_idea`). Other 3 types stay **manual** (per client: rankings vary, send on click).
+- New helper `admins/views.py:send_participation_certificate(student, sent_by)` — background daemon thread, dedupes via CertificateIssue (one per student), swallows all errors so it never affects the submission. Reuses `_send_certificate`.
+- Verified locally (console backend forced): 1st publish → 1 cert row (full name), 2nd call → 0 (dedupe). Note: on live (ZeptoMail env) this sends a REAL email on every new publish. Pre-existing submitted ideas won't auto-send (hook fires only on new publish) — use the manual batch button for those.
+
 ## 2026-07-21 — Certificate emailing feature (admin-triggered)
 
 **Goal:** Email PDF certificates with each student's proper name (Dancing Script, black), triggered manually by super-admin.

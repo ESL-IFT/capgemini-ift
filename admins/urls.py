@@ -73,4 +73,6 @@ urlpatterns = [
     path('certificates/preview/<str:cert_type>/', views.preview_certificate, name='preview_certificate'),
     path('certificates/send-test/', views.send_test_certificate, name='send_test_certificate'),
     path('certificates/send-batch/', views.send_certificates_batch, name='send_certificates_batch'),
+    path('certificates/suggest/<str:cert_type>/', views.certificate_suggestions, name='certificate_suggestions'),
+    path('certificates/send-one/', views.send_single_certificate, name='send_single_certificate'),
 ]

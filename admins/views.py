@@ -2981,6 +2981,34 @@ def _send_certificate(cert_type, name, email, student=None, school=None,
     return ok, error
 
 
+def send_participation_certificate(student, sent_by=None):
+    """Auto-email the Participation certificate to a student, ONCE, in the
+    background. Safe to call from a request handler — it never blocks or raises
+    (any error is swallowed). Skips if the student was already sent one, or has
+    no email. Called when a student publishes/submits their idea.
+    """
+    import threading
+
+    def _run():
+        try:
+            from admins.models import CertificateIssue
+            from admins.certificates import student_display_name
+            if CertificateIssue.objects.filter(
+                    cert_type='participation', status='sent',
+                    is_test=False, student=student).exists():
+                return  # already sent — no duplicate
+            email = (student.user.email or '').strip()
+            if not email:
+                return
+            _send_certificate('participation', student_display_name(student),
+                              email, student=student, sent_by=sent_by,
+                              is_test=False)
+        except Exception:
+            pass  # must never affect the caller (idea submission)
+
+    threading.Thread(target=_run, daemon=True).start()
+
+
 @login_required
 @user_passes_test(is_staff_or_superuser)
 def certificates_view(request):
@@ -3090,4 +3118,61 @@ def send_certificates_batch(request):
         parts.append(f'{failed} failed')
     msg = f'{label}: ' + ', '.join(parts) + '.'
     (messages.success if failed == 0 else messages.warning)(request, msg)
+    return redirect('admins:certificates')
+
+
+@login_required
+@user_passes_test(is_staff_or_superuser)
+def certificate_suggestions(request, cert_type):
+    """Autocomplete: eligible recipients whose name/email matches ?q=.
+    Returns JSON {results: [{kind, id, name, email, sent}]} (unsent first)."""
+    from admins.certificates import active_certificate_types
+    if cert_type not in active_certificate_types():
+        return JsonResponse({'results': []})
+    q = (request.GET.get('q') or '').strip().lower()
+    sent = _sent_entity_keys(cert_type)
+    results = []
+    for r in _certificate_recipients(cert_type):
+        if q and q not in r['name'].lower() and q not in r['email'].lower():
+            continue
+        results.append({
+            'kind': r['kind'], 'id': r['entity_id'],
+            'name': r['name'], 'email': r['email'],
+            'sent': (r['kind'], r['entity_id']) in sent,
+        })
+    results.sort(key=lambda x: (x['sent'], x['name'].lower()))
+    return JsonResponse({'results': results[:20]})
+
+
+@login_required
+@user_passes_test(is_staff_or_superuser)
+def send_single_certificate(request):
+    """Send ONE certificate (real, tracked) to a chosen eligible recipient."""
+    if request.method != 'POST':
+        return redirect('admins:certificates')
+    from admins.certificates import active_certificate_types
+    cert_type = request.POST.get('cert_type', '')
+    kind = request.POST.get('kind', '')
+    entity_id = request.POST.get('entity_id', '')
+    if cert_type not in active_certificate_types() or not entity_id:
+        messages.error(request, 'Select a recipient first.')
+        return redirect('admins:certificates')
+
+    match = None
+    for r in _certificate_recipients(cert_type):
+        if r['kind'] == kind and str(r['entity_id']) == str(entity_id):
+            match = r
+            break
+    if not match:
+        messages.error(request, 'That recipient is not eligible for this certificate.')
+        return redirect('admins:certificates')
+
+    ok, error = _send_certificate(
+        cert_type, match['name'], match['email'],
+        student=match['student'], school=match['school'],
+        sent_by=request.user, is_test=False)
+    if ok:
+        messages.success(request, f"Certificate sent to {match['name']} ({match['email']}).")
+    else:
+        messages.error(request, f"Failed to send to {match['name']}: {error}")
     return redirect('admins:certificates')
