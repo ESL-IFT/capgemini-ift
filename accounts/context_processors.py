@@ -18,11 +18,25 @@ def unread_notification_count(request):
     if request.user.is_authenticated:
         try:
             from students.models import Notification
-            count = Notification.objects.filter(user=request.user, is_read=False).count()
-            return {'unread_notification_count': count}
+            from admins.models import Content
+            notif_count = Notification.objects.filter(user=request.user, is_read=False).count()
+            announcement_count = Content.objects.filter(
+                status='published', content_type='announcement',
+                visibility__in=['all', 'students']
+            ).count()
+            recent_notifs = list(Notification.objects.filter(user=request.user).order_by('-created_at')[:5])
+            recent_announcements = list(Content.objects.filter(
+                status='published', content_type='announcement',
+                visibility__in=['all', 'students']
+            ).order_by('-created_at')[:3])
+            return {
+                'unread_notification_count': notif_count + announcement_count,
+                'header_notifications': recent_notifs,
+                'header_announcements': recent_announcements,
+            }
         except Exception:
             pass
-    return {'unread_notification_count': 0}
+    return {'unread_notification_count': 0, 'header_notifications': [], 'header_announcements': []}
 
 
 def user_role(request):

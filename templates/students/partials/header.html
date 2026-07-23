@@ -48,41 +48,41 @@
     <!-- Notifications Dropdown -->
     <div class="header-dropdown notif-dropdown" id="notifDropdown">
         <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:12px;border-bottom:1px solid #f0f0f0;margin-bottom:12px;">
-            <h4 style="font-size:1rem;font-weight:700;margin:0;">Notifications</h4>
+            <h4 style="font-size:1rem;font-weight:700;margin:0;">Notifications {% if unread_notification_count > 0 %}<span style="font-size:0.75rem;color:#fff;background:#ef4444;padding:2px 8px;border-radius:99px;font-weight:600;vertical-align:middle;">{{ unread_notification_count }}</span>{% endif %}</h4>
             <button onclick="closeAllDropdowns()" style="background:none;border:none;cursor:pointer;color:var(--text-muted);"><span class="material-symbols-outlined" style="font-size:20px;">close</span></button>
         </div>
-        <div class="notif-item">
-            <div style="width:36px;height:36px;border-radius:50%;background:#dcfce7;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                <span class="material-symbols-outlined" style="font-size:18px;color:#16a34a;">group_add</span>
+        {% for notif in header_notifications %}
+        <a href="{% url 'students:notifications_page' %}" class="notif-item" style="text-decoration:none;color:inherit;{% if not notif.is_read %}background:#f5f0ff;{% endif %}">
+            <div style="width:36px;height:36px;border-radius:50%;background:{% if notif.notification_type == 'team' %}#dcfce7{% elif notif.notification_type == 'submission' %}#fef3c7{% else %}#E8D4F0{% endif %};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <span class="material-symbols-outlined" style="font-size:18px;color:{% if notif.notification_type == 'team' %}#16a34a{% elif notif.notification_type == 'submission' %}#d97706{% else %}var(--primary){% endif %};">{{ notif.icon|default:"notifications" }}</span>
             </div>
             <div>
-                <p style="font-weight:600;font-size:0.875rem;margin:0;">New Teammate Joined</p>
-                <p style="font-size:0.8rem;color:var(--text-muted);margin:0;">Priya Singh has joined your team</p>
-                <p style="font-size:0.7rem;color:#94a3b8;margin:2px 0 0;">2 hours ago</p>
+                <p style="font-weight:600;font-size:0.875rem;margin:0;">{{ notif.title }}</p>
+                <p style="font-size:0.8rem;color:var(--text-muted);margin:0;">{{ notif.message|truncatechars:50 }}</p>
+                <p style="font-size:0.7rem;color:#94a3b8;margin:2px 0 0;">{{ notif.created_at|timesince }} ago</p>
             </div>
-        </div>
-        <div class="notif-item priority">
-            <div style="width:36px;height:36px;border-radius:50%;background:#fef3c7;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                <span class="material-symbols-outlined" style="font-size:18px;color:#d97706;">priority_high</span>
-            </div>
-            <div>
-                <p style="font-weight:600;font-size:0.875rem;margin:0;">Deadline Approaching</p>
-                <p style="font-size:0.8rem;color:var(--text-muted);margin:0;">Submission due in 5 days</p>
-                <p style="font-size:0.7rem;color:#94a3b8;margin:2px 0 0;">1 day ago</p>
-            </div>
-        </div>
-        <div class="notif-item">
+        </a>
+        {% endfor %}
+        {% for ann in header_announcements %}
+        <a href="{% url 'students:notifications_page' %}" class="notif-item" style="text-decoration:none;color:inherit;background:#f5f0ff;">
             <div style="width:36px;height:36px;border-radius:50%;background:#E8D4F0;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
                 <span class="material-symbols-outlined" style="font-size:18px;color:var(--primary);">campaign</span>
             </div>
             <div>
-                <p style="font-weight:600;font-size:0.875rem;margin:0;">Webinar Alert</p>
-                <p style="font-size:0.8rem;color:var(--text-muted);margin:0;">Workshop starting tomorrow at 4 PM</p>
-                <p style="font-size:0.7rem;color:#94a3b8;margin:2px 0 0;">2 days ago</p>
+                <p style="font-weight:600;font-size:0.875rem;margin:0;">{{ ann.title }}</p>
+                <p style="font-size:0.8rem;color:var(--text-muted);margin:0;">{{ ann.body|truncatechars:50 }}</p>
+                <p style="font-size:0.7rem;color:#94a3b8;margin:2px 0 0;">{{ ann.created_at|timesince }} ago</p>
             </div>
+        </a>
+        {% endfor %}
+        {% if not header_notifications and not header_announcements %}
+        <div style="text-align:center;padding:24px 0;color:#999;">
+            <span class="material-symbols-outlined" style="font-size:32px;display:block;margin-bottom:4px;">notifications_off</span>
+            <p style="margin:0;font-size:0.85rem;">No notifications yet</p>
         </div>
+        {% endif %}
         <div style="text-align:center;padding-top:12px;border-top:1px solid #f0f0f0;margin-top:8px;">
-            <a href="#" style="color:var(--primary);font-size:0.85rem;font-weight:600;text-decoration:none;">View All Notifications</a>
+            <a href="{% url 'students:notifications_page' %}" style="color:var(--primary);font-size:0.85rem;font-weight:600;text-decoration:none;">View All Notifications</a>
         </div>
     </div>
 </header>
