@@ -762,6 +762,7 @@ def school_dashboard(request):
         {
             'title': c.title,
             'subtitle': c.subtitle,
+            'body': c.body,
             'date': c.event_date,
             'time': c.event_time,
             'mode': c.event_mode or 'Online',
@@ -1640,27 +1641,30 @@ def notifications_page(request):
     notifications = Notification.objects.filter(user=request.user)
 
     from admins.models import Content
-    announcements = Content.objects.filter(
-        status='published',
-        content_type='announcement',
-        visibility__in=['all', 'students']
-    ).order_by('-created_at')[:10]
+    from accounts.context_processors import _visibility_for_role
+    role = getattr(getattr(request.user, 'profile', None), 'role', 'student')
+    vis = _visibility_for_role(role)
+    content_qs = Content.objects.filter(
+        status='published', visibility__in=vis
+    ).order_by('-created_at')[:20]
 
     combined = []
     for n in notifications[:50]:
         combined.append({'type': 'notif', 'id': n.id, 'title': n.title, 'message': n.message, 'icon': n.icon or 'notifications', 'is_read': n.is_read, 'created_at': n.created_at, 'notif_type': n.notification_type, 'action_url': n.action_url})
-    for a in announcements:
-        combined.append({'type': 'announcement', 'id': f'ann-{a.id}', 'title': a.title, 'message': a.body or '', 'icon': 'campaign', 'is_read': False, 'created_at': a.created_at, 'notif_type': 'announcement', 'action_url': ''})
+    icon_map = {'announcement': 'campaign', 'training': 'event', 'faq': 'quiz'}
+    for c in content_qs:
+        combined.append({'type': 'content', 'id': f'content-{c.id}', 'title': c.title, 'message': c.body or c.subtitle or '', 'icon': icon_map.get(c.content_type, 'campaign'), 'is_read': False, 'created_at': c.created_at, 'notif_type': c.content_type, 'action_url': ''})
     combined.sort(key=lambda x: x['created_at'], reverse=True)
 
+    content_count = content_qs.count()
     context = {
         'student': student,
         'combined_notifications': combined,
         'total': len(combined),
-        'unread': notifications.filter(is_read=False).count() + announcements.count(),
+        'unread': notifications.filter(is_read=False).count() + content_count,
         'team_count': notifications.filter(notification_type='team').count(),
         'submission_count': notifications.filter(notification_type='submission').count(),
-        'announcement_count': notifications.filter(notification_type='announcement').count() + announcements.count(),
+        'announcement_count': notifications.filter(notification_type='announcement').count() + content_count,
     }
     return render(request, 'students/notifications.html', context)
 

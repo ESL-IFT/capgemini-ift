@@ -14,34 +14,46 @@ def launch_confetti(request):
         return {'launch_confetti_active': False}
 
 
+def _visibility_for_role(role):
+    role_map = {
+        'student': 'students',
+        'school': 'schools',
+        'jury': 'evaluators',
+        'superadmin': 'admins',
+    }
+    vis = role_map.get(role, 'students')
+    return ['all', vis]
+
+
 def unread_notification_count(request):
     if request.user.is_authenticated:
         try:
             from students.models import Notification
             from admins.models import Content
+            role = getattr(getattr(request.user, 'profile', None), 'role', 'student')
+            vis = _visibility_for_role(role)
             notif_count = Notification.objects.filter(user=request.user, is_read=False).count()
-            announcement_count = Content.objects.filter(
-                status='published', content_type='announcement',
-                visibility__in=['all', 'students']
+            content_count = Content.objects.filter(
+                status='published', visibility__in=vis
             ).count()
             recent_notifs = list(Notification.objects.filter(user=request.user).order_by('-created_at')[:5])
-            recent_announcements = list(Content.objects.filter(
-                status='published', content_type='announcement',
-                visibility__in=['all', 'students']
-            ).order_by('-created_at')[:3])
+            recent_content = list(Content.objects.filter(
+                status='published', visibility__in=vis
+            ).order_by('-created_at')[:5])
             combined = []
             for n in recent_notifs:
                 combined.append({'type': 'notif', 'title': n.title, 'message': n.message, 'icon': n.icon or 'notifications', 'is_read': n.is_read, 'created_at': n.created_at, 'notif_type': n.notification_type})
-            for a in recent_announcements:
-                combined.append({'type': 'announcement', 'title': a.title, 'message': a.body or '', 'icon': 'campaign', 'is_read': False, 'created_at': a.created_at, 'notif_type': 'announcement'})
+            icon_map = {'announcement': 'campaign', 'training': 'event', 'faq': 'quiz'}
+            for c in recent_content:
+                combined.append({'type': 'content', 'title': c.title, 'message': c.body or c.subtitle or '', 'icon': icon_map.get(c.content_type, 'campaign'), 'is_read': False, 'created_at': c.created_at, 'notif_type': c.content_type})
             combined.sort(key=lambda x: x['created_at'], reverse=True)
             return {
-                'unread_notification_count': notif_count + announcement_count,
+                'unread_notification_count': notif_count + content_count,
                 'header_notifications_combined': combined[:5],
             }
         except Exception:
             pass
-    return {'unread_notification_count': 0, 'header_notifications': [], 'header_announcements': []}
+    return {'unread_notification_count': 0, 'header_notifications_combined': []}
 
 
 def user_role(request):

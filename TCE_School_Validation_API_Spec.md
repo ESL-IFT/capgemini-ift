@@ -20,8 +20,10 @@ Bearer token via `Authorization` header. Kindly provision an API key for IFT (st
 ```json
 {
   "school_name": "Delhi Public School, Vasant Kunj",
+  "address": "Sector B-6, Vasant Kunj, New Delhi, Delhi 110070",
   "city": "New Delhi",
   "state": "Delhi",
+  "pin_code": "110070",
   "contact_email": "coordinator@dpsvasantkunj.com",
   "contact_phone": "9876543210"
 }
@@ -30,12 +32,12 @@ Bearer token via `Authorization` header. Kindly provision an API key for IFT (st
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `school_name` | string | Yes | Full school name (sourced via Google Places Autocomplete) |
+| `address` | string | Yes | Full school address |
 | `city` | string | Yes | City of the school |
 | `state` | string | Yes | State of the school |
+| `pin_code` | string | Yes | PIN code of the school |
 | `contact_email` | string | Yes | School coordinator's email |
 | `contact_phone` | string | Yes | School coordinator's phone number |
-
-> These are the fields available at school registration time. If additional fields (e.g., affiliation number, pin code) are required for matching on your end, please let us know — we can add them to our registration form.
 
 ---
 
