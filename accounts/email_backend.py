@@ -1,3 +1,4 @@
+import base64
 import requests
 from django.conf import settings
 from django.core.mail.backends.base import BaseEmailBackend
@@ -60,6 +61,26 @@ class ZeptoMailBackend(BaseEmailBackend):
             for content, mimetype in message.alternatives:
                 if mimetype == 'text/html':
                     payload['htmlbody'] = content
+
+        # Attachments (e.g. certificate PDFs). Django stores each attachment as a
+        # (filename, content, mimetype) tuple; Zepto wants base64 content inline.
+        attachments = []
+        for att in getattr(message, 'attachments', []) or []:
+            if isinstance(att, tuple):
+                filename, content, mimetype = att
+            else:  # MIMEBase instance
+                filename = att.get_filename() or 'attachment'
+                content = att.get_payload(decode=True)
+                mimetype = att.get_content_type()
+            if isinstance(content, str):
+                content = content.encode('utf-8')
+            attachments.append({
+                'content': base64.b64encode(content).decode('ascii'),
+                'mime_type': mimetype or 'application/octet-stream',
+                'name': filename or 'attachment',
+            })
+        if attachments:
+            payload['attachments'] = attachments
 
         headers = {
             'Authorization': self.api_key,

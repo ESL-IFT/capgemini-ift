@@ -2862,3 +2862,232 @@ def halloffame_delete(request, entry_id):
         entry.delete()
         return JsonResponse({'success': True, 'message': 'Entry deleted!'})
     return JsonResponse({'error': 'POST required'}, status=405)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Certificates — admin-triggered generation + emailing
+# ═══════════════════════════════════════════════════════════════════════════
+
+def _certificate_recipients(cert_type):
+    """Return deduped recipients eligible for a cert type.
+
+    Each item: {'kind','entity_id','name','email','student','school'} where
+    kind is 'student' or 'school'. Student certs go to the student; the
+    school_champion cert goes to the school (one per school, school name).
+    """
+    from admins.certificates import student_display_name
+
+    recipients = {}
+
+    def add_student(student):
+        if not student:
+            return
+        key = ('student', student.id)
+        if key in recipients:
+            return
+        email = (student.user.email or '').strip()
+        if not email:
+            return
+        recipients[key] = {
+            'kind': 'student', 'entity_id': student.id,
+            'name': student_display_name(student), 'email': email,
+            'student': student, 'school': None,
+        }
+
+    def add_school(school):
+        if not school:
+            return
+        key = ('school', school.id)
+        if key in recipients:
+            return
+        email = (school.contact_email or school.principal_email
+                 or (school.user.email if school.user else '') or '').strip()
+        if not email:
+            return
+        recipients[key] = {
+            'kind': 'school', 'entity_id': school.id,
+            'name': school.name, 'email': email,
+            'student': None, 'school': school,
+        }
+
+    def top100_evals():
+        return (AIEvaluation.objects
+                .filter(is_disqualified=False, rank__isnull=False, rank__lte=100))
+
+    if cert_type == 'participation':
+        for s in (IdeaSubmission.objects.exclude(status='draft')
+                  .select_related('student__user')):
+            add_student(s.student)
+    elif cert_type == 'top100':
+        for e in top100_evals().select_related('submission__student__user'):
+            add_student(e.submission.student)
+    elif cert_type == 'top400':
+        for e in (AIEvaluation.objects.filter(is_top_400=True)
+                  .select_related('submission__student__user')):
+            add_student(e.submission.student)
+    elif cert_type == 'school_champion':
+        for e in top100_evals().select_related(
+                'submission__student__school',
+                'submission__student__school__user'):
+            add_school(e.submission.student.school)
+
+    return list(recipients.values())
+
+
+def _sent_entity_keys(cert_type):
+    """Set of (kind, id) already successfully sent (non-test) for a cert type."""
+    from admins.models import CertificateIssue
+    qs = CertificateIssue.objects.filter(
+        cert_type=cert_type, status='sent', is_test=False)
+    if cert_type == 'school_champion':
+        return {('school', sid) for sid in
+                qs.filter(school__isnull=False).values_list('school_id', flat=True)}
+    return {('student', sid) for sid in
+            qs.filter(student__isnull=False).values_list('student_id', flat=True)}
+
+
+def _send_certificate(cert_type, name, email, student=None, school=None,
+                      sent_by=None, is_test=False):
+    """Generate + email one certificate. Records a CertificateIssue. Returns
+    (ok, error_message)."""
+    from django.core.mail import EmailMessage
+    from admins.certificates import (
+        generate_certificate_pdf, certificate_filename, EMAIL_COPY,
+    )
+    from admins.models import CertificateIssue
+
+    error = ''
+    ok = False
+    try:
+        pdf = generate_certificate_pdf(name, cert_type)
+        copy = EMAIL_COPY[cert_type]
+        msg = EmailMessage(
+            subject=copy['subject'],
+            body=copy['body'].format(name=name),
+            to=[email],
+        )
+        msg.attach(certificate_filename(name, cert_type), pdf, 'application/pdf')
+        msg.send(fail_silently=False)
+        ok = True
+    except Exception as exc:
+        error = str(exc)
+
+    CertificateIssue.objects.create(
+        student=student, school=school, cert_type=cert_type,
+        recipient_email=email, name_used=name,
+        status='sent' if ok else 'failed', error=error[:2000],
+        is_test=is_test, sent_by=sent_by,
+    )
+    return ok, error
+
+
+@login_required
+@user_passes_test(is_staff_or_superuser)
+def certificates_view(request):
+    """Dashboard: per-type eligible/sent counts + recent send log."""
+    from admins.certificates import active_certificate_types
+    from admins.models import CertificateIssue
+
+    cards = []
+    for ct, cfg in active_certificate_types().items():
+        recipients = _certificate_recipients(ct)
+        eligible_keys = {(r['kind'], r['entity_id']) for r in recipients}
+        sent_keys = _sent_entity_keys(ct)
+        eligible = len(eligible_keys)
+        sent = len(eligible_keys & sent_keys)
+        cards.append({
+            'type': ct,
+            'label': cfg['label'],
+            'description': cfg['description'],
+            'eligible': eligible,
+            'sent': sent,
+            'pending': eligible - sent,
+        })
+
+    recent = (CertificateIssue.objects
+              .select_related('student__user', 'sent_by')
+              .all()[:40])
+
+    return render(request, 'admins/certificates.html', {
+        'cards': cards,
+        'recent': recent,
+    })
+
+
+@login_required
+@user_passes_test(is_staff_or_superuser)
+def preview_certificate(request, cert_type):
+    """Return an inline PDF preview with a sample (or provided) name."""
+    from admins.certificates import CERTIFICATE_TYPES, generate_certificate_pdf
+    if cert_type not in CERTIFICATE_TYPES:
+        return HttpResponse('Unknown certificate type', status=404)
+    name = (request.GET.get('name') or 'Student Full Name').strip()[:120]
+    pdf = generate_certificate_pdf(name, cert_type)
+    resp = HttpResponse(pdf, content_type='application/pdf')
+    resp['Content-Disposition'] = f'inline; filename="preview_{cert_type}.pdf"'
+    return resp
+
+
+@login_required
+@user_passes_test(is_staff_or_superuser)
+def send_test_certificate(request):
+    """Send a single test certificate to a chosen email (marked is_test)."""
+    if request.method != 'POST':
+        return redirect('admins:certificates')
+    from admins.certificates import active_certificate_types
+    cert_type = request.POST.get('cert_type', '')
+    name = (request.POST.get('name') or '').strip()
+    email = (request.POST.get('email') or '').strip()
+    if cert_type not in active_certificate_types() or not name or not email:
+        messages.error(request, 'Certificate type, name and email are required.')
+        return redirect('admins:certificates')
+
+    ok, error = _send_certificate(
+        cert_type, name, email, sent_by=request.user, is_test=True)
+    if ok:
+        messages.success(request, f'Test certificate sent to {email}.')
+    else:
+        messages.error(request, f'Failed to send test certificate: {error}')
+    return redirect('admins:certificates')
+
+
+@login_required
+@user_passes_test(is_staff_or_superuser)
+def send_certificates_batch(request):
+    """Email a certificate type to all eligible students (skips already-sent
+    unless ?resend=1)."""
+    if request.method != 'POST':
+        return redirect('admins:certificates')
+    from admins.certificates import active_certificate_types
+
+    cert_type = request.POST.get('cert_type', '')
+    resend = request.POST.get('resend') == '1'
+    if cert_type not in active_certificate_types():
+        messages.error(request, 'Unknown certificate type.')
+        return redirect('admins:certificates')
+
+    recipients = _certificate_recipients(cert_type)
+    already = set() if resend else _sent_entity_keys(cert_type)
+
+    sent = failed = skipped = 0
+    for r in recipients:
+        if (r['kind'], r['entity_id']) in already:
+            skipped += 1
+            continue
+        ok, _ = _send_certificate(
+            cert_type, r['name'], r['email'], student=r['student'],
+            school=r['school'], sent_by=request.user, is_test=False)
+        if ok:
+            sent += 1
+        else:
+            failed += 1
+
+    label = active_certificate_types()[cert_type]['label']
+    parts = [f'{sent} sent']
+    if skipped:
+        parts.append(f'{skipped} skipped (already sent)')
+    if failed:
+        parts.append(f'{failed} failed')
+    msg = f'{label}: ' + ', '.join(parts) + '.'
+    (messages.success if failed == 0 else messages.warning)(request, msg)
+    return redirect('admins:certificates')

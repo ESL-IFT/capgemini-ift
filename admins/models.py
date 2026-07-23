@@ -1,6 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
-from students.models import IdeaSubmission
+from students.models import IdeaSubmission, Student, School
 
 
 class JuryAssignment(models.Model):
@@ -120,6 +120,54 @@ class Phase(models.Model):
 
     class Meta:
         ordering = ['order', 'start_date']
+
+
+class CertificateIssue(models.Model):
+    """Audit record of a certificate emailed to a student (or school).
+
+    One row per send attempt. The batch sender skips students who already have a
+    successful row for the same cert_type (unless the admin forces a resend).
+    """
+    CERT_TYPE_CHOICES = [
+        ('participation', 'Participation (Idea Submission)'),
+        ('top100', 'Top 100'),
+        ('top400', 'Top 400'),
+        ('school_champion', 'School Champion'),
+    ]
+    STATUS_CHOICES = [
+        ('sent', 'Sent'),
+        ('failed', 'Failed'),
+    ]
+
+    student = models.ForeignKey(
+        Student, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='certificates'
+    )
+    school = models.ForeignKey(
+        School, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='certificates'
+    )
+    cert_type = models.CharField(max_length=30, choices=CERT_TYPE_CHOICES)
+    recipient_email = models.EmailField()
+    name_used = models.CharField(max_length=300)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='sent')
+    error = models.TextField(blank=True)
+    is_test = models.BooleanField(default=False)
+    sent_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='certificates_sent'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"[{self.get_cert_type_display()}] {self.name_used} <{self.recipient_email}> ({self.status})"
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['cert_type', 'status']),
+            models.Index(fields=['student', 'cert_type']),
+        ]
 
 
 class HallOfFameEntry(models.Model):

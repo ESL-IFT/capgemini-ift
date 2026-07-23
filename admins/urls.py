@@ -67,4 +67,10 @@ urlpatterns = [
 
     # Reports
     path('reports/', views.reports_view, name='reports'),
+
+    # Certificates
+    path('certificates/', views.certificates_view, name='certificates'),
+    path('certificates/preview/<str:cert_type>/', views.preview_certificate, name='preview_certificate'),
+    path('certificates/send-test/', views.send_test_certificate, name='send_test_certificate'),
+    path('certificates/send-batch/', views.send_certificates_batch, name='send_certificates_batch'),
 ]
