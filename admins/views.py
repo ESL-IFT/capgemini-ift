@@ -1309,6 +1309,194 @@ def schools_list(request):
 
 @login_required
 @user_passes_test(is_staff_or_superuser)
+def export_schools_csv(request):
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="schools_export.csv"'
+    writer = csv.writer(response)
+    headers = [
+        'name', 'branch', 'board', 'affiliation_number', 'address', 'city', 'state',
+        'pin_code', 'country', 'principal_name', 'principal_email',
+        'designated_teacher_name', 'designated_teacher_mobile',
+        'contact_email', 'contact_phone', 'website', 'established_year',
+        'total_students', 'school_type', 'medium', 'is_tata_classedge', 'status',
+    ]
+    writer.writerow(headers)
+    for s in School.objects.all().order_by('name'):
+        writer.writerow([
+            s.name, s.branch, s.board, s.affiliation_number, s.address, s.city, s.state,
+            s.pin_code, s.country, s.principal_name, s.principal_email,
+            s.designated_teacher_name, s.designated_teacher_mobile,
+            s.contact_email, s.contact_phone, s.website, s.established_year or '',
+            s.total_students or '', s.school_type, s.medium,
+            'yes' if s.is_tata_classedge else 'no',
+            'active' if s.is_active else 'inactive',
+        ])
+    return response
+
+
+@login_required
+@user_passes_test(is_staff_or_superuser)
+def download_schools_sample_csv(request):
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="schools_sample.csv"'
+    writer = csv.writer(response)
+    headers = [
+        'name', 'branch', 'board', 'affiliation_number', 'address', 'city', 'state',
+        'pin_code', 'country', 'principal_name', 'principal_email',
+        'designated_teacher_name', 'designated_teacher_mobile',
+        'contact_email', 'contact_phone', 'website', 'established_year',
+        'total_students', 'school_type', 'medium', 'is_tata_classedge', 'status',
+    ]
+    writer.writerow(headers)
+    writer.writerow([
+        'Delhi Public School', 'Vasant Kunj', 'CBSE', '2730001', 'Sector B-6, Vasant Kunj',
+        'New Delhi', 'Delhi', '110070', 'India', 'Dr. Sharma', 'principal@dps.edu',
+        'Ravi Kumar', '9876543210', 'info@dps.edu', '9876543211', 'www.dps.edu',
+        '1990', '2500', 'private', 'English', 'no', 'active',
+    ])
+    writer.writerow([
+        'St. Xavier High School', '', 'ICSE', '1234567', 'Fort Area',
+        'Mumbai', 'Maharashtra', '400001', 'India', 'Fr. Thomas', 'principal@stxaviers.edu',
+        'Sneha Patil', '9123456789', 'info@stxaviers.edu', '9123456780', '',
+        '1965', '1800', 'private', 'English', 'yes', 'active',
+    ])
+    return response
+
+
+@login_required
+@user_passes_test(is_staff_or_superuser)
+def import_schools_csv(request):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'POST required'}, status=405)
+
+    csv_file = request.FILES.get('csv_file')
+    if not csv_file:
+        return JsonResponse({'success': False, 'message': 'No file uploaded'})
+
+    if not csv_file.name.endswith('.csv'):
+        return JsonResponse({'success': False, 'message': 'Only CSV files are allowed'})
+
+    try:
+        decoded = csv_file.read().decode('utf-8-sig')
+    except UnicodeDecodeError:
+        return JsonResponse({'success': False, 'message': 'File encoding error. Please use UTF-8 CSV.'})
+
+    reader = csv.DictReader(io.StringIO(decoded))
+
+    required_fields = ['name', 'city', 'state', 'contact_email']
+    if not reader.fieldnames:
+        return JsonResponse({'success': False, 'message': 'CSV file is empty or has no headers'})
+
+    missing = [f for f in required_fields if f not in reader.fieldnames]
+    if missing:
+        return JsonResponse({'success': False, 'message': f'Missing required columns: {", ".join(missing)}'})
+
+    VALID_BOARDS = ['CBSE', 'ICSE', 'SSC', 'IB', 'IGCSE', 'Other', '']
+    VALID_TYPES = ['private', 'government', 'aided', 'other', '']
+
+    results = {'created': 0, 'skipped': 0, 'errors': []}
+
+    for row_num, row in enumerate(reader, start=2):
+        row = {k: (v.strip() if v else '') for k, v in row.items()}
+        name = row.get('name', '')
+        contact_email = row.get('contact_email', '')
+
+        if not name:
+            results['errors'].append({'row': row_num, 'field': 'name', 'message': 'School name is required'})
+            continue
+        if not contact_email:
+            results['errors'].append({'row': row_num, 'field': 'contact_email', 'message': 'Contact email is required'})
+            continue
+
+        if School.objects.filter(name__iexact=name, city__iexact=row.get('city', '')).exists():
+            results['skipped'] += 1
+            results['errors'].append({'row': row_num, 'field': 'name', 'message': f'School "{name}" in {row.get("city", "")} already exists — skipped'})
+            continue
+
+        board = row.get('board', '').upper()
+        if board and board not in [b.upper() for b in VALID_BOARDS]:
+            results['errors'].append({'row': row_num, 'field': 'board', 'message': f'Invalid board "{board}". Use: CBSE, ICSE, SSC, IB, IGCSE, Other'})
+            continue
+
+        school_type = row.get('school_type', '').lower()
+        if school_type and school_type not in VALID_TYPES:
+            results['errors'].append({'row': row_num, 'field': 'school_type', 'message': f'Invalid school_type "{school_type}". Use: private, government, aided, other'})
+            continue
+
+        established_year = None
+        if row.get('established_year'):
+            try:
+                established_year = int(row['established_year'])
+            except ValueError:
+                results['errors'].append({'row': row_num, 'field': 'established_year', 'message': f'Invalid year "{row["established_year"]}"'})
+                continue
+
+        total_students = None
+        if row.get('total_students'):
+            try:
+                total_students = int(row['total_students'])
+            except ValueError:
+                results['errors'].append({'row': row_num, 'field': 'total_students', 'message': f'Invalid number "{row["total_students"]}"'})
+                continue
+
+        status = row.get('status', 'active').lower()
+        is_active = status != 'inactive'
+        is_tce = row.get('is_tata_classedge', 'no').lower() in ('yes', 'true', '1')
+
+        try:
+            school = School.objects.create(
+                name=name,
+                branch=row.get('branch', ''),
+                board=row.get('board', ''),
+                affiliation_number=row.get('affiliation_number', ''),
+                address=row.get('address', ''),
+                city=row.get('city', ''),
+                state=row.get('state', ''),
+                pin_code=row.get('pin_code', ''),
+                country=row.get('country', '') or 'India',
+                principal_name=row.get('principal_name', ''),
+                principal_email=row.get('principal_email', ''),
+                designated_teacher_name=row.get('designated_teacher_name', ''),
+                designated_teacher_mobile=row.get('designated_teacher_mobile', ''),
+                contact_email=contact_email,
+                contact_phone=row.get('contact_phone', ''),
+                website=row.get('website', ''),
+                established_year=established_year,
+                total_students=total_students,
+                school_type=school_type,
+                medium=row.get('medium', ''),
+                is_tata_classedge=is_tce,
+                is_active=is_active,
+                status='active' if is_active else 'inactive',
+            )
+
+            if contact_email:
+                if not User.objects.filter(email=contact_email).exists():
+                    temp_password = secrets.token_urlsafe(8)
+                    user = User.objects.create_user(
+                        username=contact_email,
+                        email=contact_email,
+                        password=temp_password,
+                    )
+                    UserProfile.objects.create(user=user, role='school')
+                    school.user = user
+                    school.save(update_fields=['user'])
+
+            results['created'] += 1
+        except Exception as e:
+            results['errors'].append({'row': row_num, 'field': 'general', 'message': str(e)})
+
+    return JsonResponse({
+        'success': True,
+        'created': results['created'],
+        'skipped': results['skipped'],
+        'error_count': len(results['errors']),
+        'errors': results['errors'][:50],
+    })
+
+
+@login_required
+@user_passes_test(is_staff_or_superuser)
 def onboard_school(request):
     """Onboard a new school."""
     if request.method == 'POST':
