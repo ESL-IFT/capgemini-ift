@@ -758,17 +758,20 @@ def school_dashboard(request):
         visibility__in=['all', 'schools'],
         event_date__gte=today,
     ).order_by('event_date')
-    training_sessions = [
-        {
+    import re
+    _url_re = re.compile(r'https?://\S+')
+    training_sessions = []
+    for c in training_qs:
+        match = _url_re.search(c.body or '')
+        training_sessions.append({
             'title': c.title,
             'subtitle': c.subtitle,
             'body': c.body,
+            'link': match.group(0) if match else '',
             'date': c.event_date,
             'time': c.event_time,
             'mode': c.event_mode or 'Online',
-        }
-        for c in training_qs
-    ]
+        })
 
     # ---- School participation badges (based on registered + paid students) ----
     badge_metric = paid_count  # registered students who have paid
