@@ -196,3 +196,5 @@ VAPID_ADMIN_EMAIL = os.getenv('VAPID_ADMIN_EMAIL', 'developers@techinfinity.io')
 # TCE School Validation API
 TCE_API_URL = os.getenv('TCE_API_URL', 'https://ce-ift.tataclassedge.com/schoolcheck/api/v1/school/validate')
 TCE_API_TOKEN = os.getenv('TCE_API_TOKEN', '')
+TCE_PROXY_URL = os.getenv('TCE_PROXY_URL', '')
+TCE_PROXY_SECRET = os.getenv('TCE_PROXY_SECRET', '')

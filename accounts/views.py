@@ -152,23 +152,31 @@ def school_sign_up(request):
             )
             UserProfile.objects.create(user=user, role='school')
 
-            # TCE API call to check if school is Tata ClassEdge partner
+            # TCE API call via Cloudflare Worker proxy
             is_tce = False
             try:
                 import requests as http_requests
                 from django.conf import settings as django_settings
-                print(f"[TCE] Token present: {bool(django_settings.TCE_API_TOKEN)}, URL: {django_settings.TCE_API_URL}")
-                if django_settings.TCE_API_TOKEN:
-                    tce_payload = {
-                        'school_name': form.cleaned_data['school_name'],
-                        'address': form.cleaned_data['address'],
-                        'city': form.cleaned_data['city'],
-                        'state': form.cleaned_data['state'],
-                        'pin_code': form.cleaned_data['pin_code'],
-                        'contact_email': email,
-                        'contact_phone': form.cleaned_data['contact_phone'],
-                    }
-                    print(f"[TCE] Payload: {tce_payload}")
+                tce_proxy_url = getattr(django_settings, 'TCE_PROXY_URL', '')
+                tce_proxy_secret = getattr(django_settings, 'TCE_PROXY_SECRET', '')
+                tce_payload = {
+                    'school_name': form.cleaned_data['school_name'],
+                    'address': form.cleaned_data['address'],
+                    'city': form.cleaned_data['city'],
+                    'state': form.cleaned_data['state'],
+                    'pin_code': form.cleaned_data['pin_code'],
+                }
+                print(f"[TCE] Payload: {tce_payload}")
+                if tce_proxy_url:
+                    print(f"[TCE] Using proxy: {tce_proxy_url}")
+                    tce_resp = http_requests.post(
+                        tce_proxy_url,
+                        json=tce_payload,
+                        headers={'X-Proxy-Secret': tce_proxy_secret},
+                        timeout=30,
+                    )
+                elif django_settings.TCE_API_TOKEN:
+                    print(f"[TCE] Using direct API: {django_settings.TCE_API_URL}")
                     tce_resp = http_requests.post(
                         django_settings.TCE_API_URL,
                         json=tce_payload,
@@ -178,16 +186,15 @@ def school_sign_up(request):
                         },
                         timeout=10,
                     )
-                    print(f"[TCE] Response: status={tce_resp.status_code}, body={tce_resp.text}")
-                    if tce_resp.status_code == 200:
-                        is_tce = tce_resp.json().get('is_tce_school', False)
                 else:
-                    print("[TCE] Skipped - no API token configured")
+                    tce_resp = None
+                    print("[TCE] Skipped - no proxy or token configured")
+                if tce_resp and tce_resp.status_code == 200:
+                    is_tce = tce_resp.json().get('is_tce_school', False)
+                    print(f"[TCE] Response: {tce_resp.text}")
                 print(f"[TCE] {form.cleaned_data['school_name']}: is_tce={is_tce}")
             except Exception as e:
-                import traceback
                 print(f"[TCE] API error: {e}")
-                traceback.print_exc()
 
             school = School.objects.create(
                 user=user,
