@@ -16,6 +16,12 @@ import os
 import json
 
 
+def _get_payment_amount(student):
+    if student.school and student.school.is_tata_classedge:
+        return 1600
+    return 2500
+
+
 def create_notification(user, notification_type, title, message='', icon='notifications', action_url='', action_label=''):
     """Helper to create a notification."""
     from students.models import Notification
@@ -315,6 +321,7 @@ def dashboard(request):
         'learning_videos': video_list,
         'videos_total': len(video_list),
         'videos_watched': len([v for v in video_list if v['watched']]),
+        'payment_amount': _get_payment_amount(student) if not student.is_paid else 0,
     }
     return render(request, 'students/dashboard_v2.html', context)
 
@@ -836,8 +843,7 @@ def school_payments(request):
             'email': s.user.email,
             'grade': s.grade or '-',
             'phone': getattr(s, 'phone', '') or getattr(s, 'mobile', '') or '-',
-            # Payment gateway not integrated yet -> everyone pending
-            'is_paid': False,
+            'is_paid': s.is_paid,
             'has_submission': has_submission,
         })
 
@@ -1067,6 +1073,11 @@ def create_team(request):
     if TeamMembership.objects.filter(student=student).exists():
         return redirect('students:team_page')
 
+    if not student.is_paid:
+        if request.method == 'POST' and request.content_type == 'application/json':
+            return JsonResponse({'success': False, 'message': 'Please complete payment before creating a team.', 'redirect': '/payment/'}, status=403)
+        return redirect('students:initiate_payment')
+
     if request.method == 'POST':
         import json as json_mod
         if request.content_type == 'application/json':
@@ -1131,6 +1142,9 @@ def join_team(request):
 
     if TeamMembership.objects.filter(student=student).exists():
         return JsonResponse({'success': False, 'message': 'You are already in a team.'}, status=400)
+
+    if not student.is_paid:
+        return JsonResponse({'success': False, 'message': 'Please complete payment before joining a team.', 'redirect': '/payment/'}, status=403)
 
     import json as json_mod
     if request.content_type == 'application/json':
@@ -2864,3 +2878,85 @@ def test_payment(request):
         'user': request.user,
     }
     return render(request, 'students/test_payment.html', context)
+
+
+@login_required
+def initiate_payment(request):
+    try:
+        student = request.user.student_profile
+    except Student.DoesNotExist:
+        return redirect('accounts:sign_in')
+
+    if student.is_paid:
+        messages.info(request, 'Payment already completed.')
+        return redirect('students:dashboard')
+
+    import razorpay
+    client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+    amount = _get_payment_amount(student)
+    amount_paise = amount * 100
+
+    order = client.order.create({
+        'amount': amount_paise,
+        'currency': 'INR',
+        'payment_capture': 1,
+        'receipt': f'ift_{student.id}',
+    })
+
+    student.razorpay_order_id = order['id']
+    student.payment_amount = amount
+    student.save(update_fields=['razorpay_order_id', 'payment_amount'])
+
+    is_tce = student.school and student.school.is_tata_classedge
+    context = {
+        'razorpay_key_id': settings.RAZORPAY_KEY_ID,
+        'order_id': order['id'],
+        'amount': amount_paise,
+        'amount_display': f'{amount:,}',
+        'currency': 'INR',
+        'student': student,
+        'school_name': student.school.name if student.school else student.school_name or 'N/A',
+        'is_tce': is_tce,
+    }
+    return render(request, 'students/payment.html', context)
+
+
+@login_required
+@require_POST
+def verify_payment(request):
+    try:
+        student = request.user.student_profile
+    except Student.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'Student not found.'}, status=400)
+
+    if student.is_paid:
+        return JsonResponse({'success': True, 'message': 'Already paid.', 'redirect': '/dashboard/'})
+
+    data = json.loads(request.body)
+    razorpay_payment_id = data.get('razorpay_payment_id')
+    razorpay_order_id = data.get('razorpay_order_id')
+    razorpay_signature = data.get('razorpay_signature')
+
+    import razorpay
+    client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+
+    try:
+        client.utility.verify_payment_signature({
+            'razorpay_order_id': razorpay_order_id,
+            'razorpay_payment_id': razorpay_payment_id,
+            'razorpay_signature': razorpay_signature,
+        })
+    except razorpay.errors.SignatureVerificationError:
+        return JsonResponse({'success': False, 'message': 'Payment verification failed.'}, status=400)
+
+    student.is_paid = True
+    student.payment_transaction_id = razorpay_payment_id
+    student.razorpay_signature = razorpay_signature
+    student.paid_at = timezone.now()
+    if not student.payment_amount:
+        student.payment_amount = _get_payment_amount(student)
+    student.save(update_fields=['is_paid', 'payment_transaction_id', 'razorpay_signature', 'paid_at', 'payment_amount'])
+
+    create_notification(request.user, 'system', 'Payment Successful', f'Your registration fee of Rs {int(student.payment_amount)} has been received.', 'check_circle', '/dashboard/', 'Go to Dashboard')
+
+    return JsonResponse({'success': True, 'message': 'Payment verified!', 'redirect': '/dashboard/'})

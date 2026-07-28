@@ -63,4 +63,7 @@ urlpatterns = [
     path('video-status/', views.video_completion_status, name='video_completion_status'),
     # Test payment
     path('test-payment/', views.test_payment, name='test_payment'),
+    # Payment
+    path('payment/', views.initiate_payment, name='initiate_payment'),
+    path('payment/verify/', views.verify_payment, name='verify_payment'),
 ]

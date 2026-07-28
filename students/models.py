@@ -41,6 +41,10 @@ class Student(models.Model):
     # Payment
     is_paid = models.BooleanField(default=False)
     payment_transaction_id = models.CharField(max_length=100, blank=True)
+    payment_amount = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
+    razorpay_order_id = models.CharField(max_length=100, blank=True)
+    razorpay_signature = models.CharField(max_length=255, blank=True)
+    paid_at = models.DateTimeField(null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
 
