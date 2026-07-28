@@ -186,3 +186,6 @@ SITE_URL = os.getenv('SITE_URL', 'http://localhost:8002')
 # Razorpay Configuration
 RAZORPAY_KEY_ID = os.getenv('RAZORPAY_KEY_ID', '')
 RAZORPAY_KEY_SECRET = os.getenv('RAZORPAY_KEY_SECRET', '')
+# TCE School Validation API
+TCE_API_URL = os.getenv('TCE_API_URL', 'https://ce-ift.tataclassedge.com/schoolcheck/api/v1/school/validate')
+TCE_API_TOKEN = os.getenv('TCE_API_TOKEN', '')

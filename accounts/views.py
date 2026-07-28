@@ -149,6 +149,35 @@ def school_sign_up(request):
             )
             UserProfile.objects.create(user=user, role='school')
 
+            # TCE API call to check if school is Tata ClassEdge partner
+            is_tce = False
+            try:
+                import requests as http_requests
+                from django.conf import settings as django_settings
+                if django_settings.TCE_API_TOKEN:
+                    tce_resp = http_requests.post(
+                        django_settings.TCE_API_URL,
+                        json={
+                            'school_name': form.cleaned_data['school_name'],
+                            'address': form.cleaned_data['address'],
+                            'city': form.cleaned_data['city'],
+                            'state': form.cleaned_data['state'],
+                            'pin_code': form.cleaned_data['pin_code'],
+                            'contact_email': email,
+                            'contact_phone': form.cleaned_data['contact_phone'],
+                        },
+                        headers={
+                            'Content-Type': 'application/json',
+                            'Authorization': f'Bearer {django_settings.TCE_API_TOKEN}',
+                        },
+                        timeout=5,
+                    )
+                    if tce_resp.status_code == 200:
+                        is_tce = tce_resp.json().get('is_tce_school', False)
+                    print(f"[TCE] {form.cleaned_data['school_name']}: is_tce={is_tce}")
+            except Exception as e:
+                print(f"[TCE] API error: {e}")
+
             school = School.objects.create(
                 user=user,
                 name=form.cleaned_data['school_name'],
@@ -159,7 +188,7 @@ def school_sign_up(request):
                 city=form.cleaned_data['city'],
                 state=form.cleaned_data['state'],
                 pin_code=form.cleaned_data['pin_code'],
-                is_tata_classedge=(form.cleaned_data['is_tata_classedge'] == 'yes'),
+                is_tata_classedge=is_tce,
                 status='pending',
                 is_active=False,
             )

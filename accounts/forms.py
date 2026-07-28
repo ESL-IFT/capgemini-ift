@@ -48,12 +48,6 @@ class SchoolSignUpForm(forms.Form):
     city = forms.CharField(max_length=100, widget=forms.TextInput(attrs={'placeholder': 'City'}))
     state = forms.CharField(max_length=100, widget=forms.TextInput(attrs={'placeholder': 'State'}))
     pin_code = forms.CharField(max_length=10, widget=forms.TextInput(attrs={'placeholder': 'PIN Code'}))
-    is_tata_classedge = forms.ChoiceField(
-        choices=[('yes', 'Yes'), ('no', 'No')],
-        widget=forms.RadioSelect,
-        label='Is your school a Tata ClassEdge Network School?',
-        error_messages={'required': 'Please select Yes or No.'},
-    )
     terms = forms.BooleanField(error_messages={'required': 'You must agree to the Terms & Conditions.'})
 
     def clean_contact_email(self):
