@@ -213,6 +213,9 @@ def dashboard(request):
             grade='10',
         )
 
+    if not student.is_paid:
+        return redirect('students:initiate_payment')
+
     from students.models import TeamMembership
 
     submissions = IdeaSubmission.objects.filter(student=student).order_by('-created_at')
@@ -2892,6 +2895,7 @@ def initiate_payment(request):
         return redirect('students:dashboard')
 
     import razorpay
+    from django.conf import settings
     client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
     amount = _get_payment_amount(student)
     amount_paise = amount * 100
@@ -2938,6 +2942,7 @@ def verify_payment(request):
     razorpay_signature = data.get('razorpay_signature')
 
     import razorpay
+    from django.conf import settings
     client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
 
     try:
@@ -2947,6 +2952,17 @@ def verify_payment(request):
             'razorpay_signature': razorpay_signature,
         })
     except razorpay.errors.SignatureVerificationError:
+        try:
+            from django.core.mail import send_mail
+            send_mail(
+                subject='Payment Failed - India\'s Future Tycoons',
+                message=f'Dear {request.user.first_name},\n\nYour payment could not be verified. If money was deducted, it will be refunded within 5-7 business days.\n\nPlease try again from your dashboard.\n\nTeam IFT\nhttps://www.indiafuturetycoons.com/',
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[request.user.email],
+                fail_silently=True,
+            )
+        except Exception:
+            pass
         return JsonResponse({'success': False, 'message': 'Payment verification failed.'}, status=400)
 
     student.is_paid = True
@@ -2958,5 +2974,18 @@ def verify_payment(request):
     student.save(update_fields=['is_paid', 'payment_transaction_id', 'razorpay_signature', 'paid_at', 'payment_amount'])
 
     create_notification(request.user, 'system', 'Payment Successful', f'Your registration fee of Rs {int(student.payment_amount)} has been received.', 'check_circle', '/dashboard/', 'Go to Dashboard')
+
+    try:
+        from django.core.mail import send_mail
+        school_name = student.school.name if student.school else student.school_name or 'N/A'
+        send_mail(
+            subject='Payment Successful - India\'s Future Tycoons',
+            message=f'Dear {request.user.first_name},\n\nYour payment of Rs {int(student.payment_amount)} has been received successfully.\n\nTransaction ID: {razorpay_payment_id}\nSchool: {school_name}\n\nYou can now create or join a team and submit your idea.\n\nLogin here: {settings.SITE_URL}/accounts/sign-in/\n\nBest regards,\nTeam IFT\nhttps://www.indiafuturetycoons.com/',
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[request.user.email],
+            fail_silently=True,
+        )
+    except Exception:
+        pass
 
     return JsonResponse({'success': True, 'message': 'Payment verified!', 'redirect': '/dashboard/'})
