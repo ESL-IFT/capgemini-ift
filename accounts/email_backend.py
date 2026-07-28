@@ -2,6 +2,31 @@ import base64
 import requests
 from django.conf import settings
 from django.core.mail.backends.base import BaseEmailBackend
+from django.utils.module_loading import import_string
+
+
+class RedirectEmailBackend(BaseEmailBackend):
+    """Wraps the real backend (settings.EMAIL_BACKEND_REAL) and rewrites every
+    message's to/cc/bcc to settings.EMAIL_REDIRECT_TO before sending, so all
+    outgoing mail lands in one inbox regardless of which view/helper sent it."""
+
+    def __init__(self, fail_silently=False, **kwargs):
+        super().__init__(fail_silently=fail_silently, **kwargs)
+        real_backend_path = getattr(settings, 'EMAIL_BACKEND_REAL', 'django.core.mail.backends.console.EmailBackend')
+        self.real_backend = import_string(real_backend_path)(fail_silently=fail_silently, **kwargs)
+        self.redirect_to = settings.EMAIL_REDIRECT_TO
+
+    def send_messages(self, email_messages):
+        if not email_messages:
+            return 0
+        for message in email_messages:
+            original_recipients = ', '.join(message.to or [])
+            if original_recipients:
+                message.subject = f'[to: {original_recipients}] {message.subject}'
+            message.to = [self.redirect_to]
+            message.cc = []
+            message.bcc = []
+        return self.real_backend.send_messages(email_messages)
 
 
 class ZeptoMailBackend(BaseEmailBackend):

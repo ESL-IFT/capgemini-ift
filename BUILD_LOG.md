@@ -1,5 +1,33 @@
 # Build Log
 
+## 2026-07-28 — Branded HTML password reset email
+- Split `templates/accounts/password_reset_email.html` into a plain-text fallback (`password_reset_email.txt`) and a new branded HTML version (`password_reset_email_html.html`, same purple/gold header + logo + CTA button style as the onboarding emails).
+- `accounts/views.py:ForgotPasswordView` now sets `html_email_template_name` (Django's `PasswordResetForm` sends both parts as multipart automatically) and injects `logo_url` via `extra_email_context`/`get_extra_email_context` + `form_valid` override.
+- Verified: test-client POST to `/accounts/forgot-password/` produced correct multipart output (plain + HTML) on console backend; HTML rendering visually confirmed in-browser via temporary preview route (added and removed same session). Test user cleaned up after.
+
+## 2026-07-28 — All outgoing mail redirected to hemant@techinfinity.io (dev safety net)
+- Added `accounts/email_backend.py:RedirectEmailBackend` — wraps whichever real backend is configured (`EMAIL_BACKEND_REAL`, console locally / ZeptoMail in prod) and rewrites every message's to/cc/bcc to `settings.EMAIL_REDIRECT_TO` before delegating, prefixing the subject with the original intended recipient(s) for traceability. Covers every send path project-wide (onboarding, certificates, password reset, landing inquiries) without touching individual call sites.
+- `ift_platform/settings.py` — `EMAIL_BACKEND` now resolves to `RedirectEmailBackend` only when `EMAIL_REDIRECT_TO` is set in env; otherwise falls back to the real backend unchanged.
+- `.env` — set `EMAIL_REDIRECT_TO=hemant@techinfinity.io`.
+- Verified via shell: `send_mail` to `someoneelse@example.com` arrived addressed to `hemant@techinfinity.io` with subject prefixed `[to: someoneelse@example.com] ...`. Restarted dev server to pick up the setting.
+- To turn off: remove/blank `EMAIL_REDIRECT_TO` in `.env`.
+
+## 2026-07-28 — Onboarding emails: HTML templates + student onboarding wired
+- Audited every event in the platform for existing/missing transactional emails (accounts, students, admins, ai_assistant, re_evaluation) — see chat history for full table; biggest gaps found: re_evaluation has zero applicant-facing email at any stage, and top 400/100/school-champion designation fires no notification.
+- Wired the first gap: `admins/views.py:onboard_student` now sends a credentials email on student onboarding (previously silent), reusing `accounts/emails.py:send_onboard_credentials` (same helper already used for school/evaluator onboarding).
+- Replaced the single generic plain-text onboarding template with branded HTML templates per role: `templates/accounts/email_onboard_{student,school,evaluator}.html`, all extending a shared `email_onboard_base.html` (purple/gold IFT branding, credentials box, CTA button). Plain-text `.txt` counterparts kept as the multipart fallback; old generic `email_onboard_credentials.txt` kept as last-resort fallback only.
+- `send_onboard_credentials` now sends `EmailMultiAlternatives` (text + HTML) instead of plain `send_mail`; role-specific template resolution via `email_onboard_{role.lower()}.{html,txt}`.
+- Verified: Django `check` clean; test-client onboarding POST renders correct subject/template/recipient on console backend; HTML rendering visually confirmed in-browser via a temporary preview route (added and removed same session) for student and evaluator variants.
+- Note: `admins/views.py:onboard_school` still creates no `User` account (School record only) — no credentials to email there; separate gap if needed later.
+- Added actual IFT crest logo to the email header (was text "ift" before). New asset `static/images/email_logo.png` (320x320, transparent bg, white-ribbon variant — legible on the dark purple header, sourced/resized from `static/landing/IFT Logo_revised-White.png`). `send_onboard_credentials` now passes an absolute `logo_url` (via `SITE_URL` + `staticfiles_storage.url(...)`) since email images must be absolute URLs, not relative static paths. Verified visually in-browser (temporary preview route, removed after).
+
+## 2026-07-28 — Fresh clone: local dev environment setup
+- Cloned repo to `/Users/hemantshah/Desktop/AI/Claude/IFT` (preserved pre-existing local `.claude/` dir).
+- Created `venv` with Python 3.12.7 (matching `runtime.txt`; system default was 3.14.4) and installed `requirements.txt`.
+- Created `.env` from provided project credentials (SECRET_KEY, OPENROUTER_API_KEY, Razorpay test keys, SQLite DB).
+- Ran `python manage.py migrate` — all 5 apps' migrations applied cleanly to a fresh SQLite DB.
+- Added `.claude/launch.json` (`ift-django` config, port 8000) and started the dev server via the browser preview tool; verified landing page renders correctly (200s on all static assets, screenshot confirmed).
+
 ## 2026-07-21 — Certificates: manual per-recipient send with name autocomplete
 - Removed the **"Send to all pending"** bulk button from all 4 cards (client sends individually).
 - Each card now has **"Send to a student/school"**: a name autocomplete input — type a partial name (e.g. "aar") → dropdown of eligible recipients (name + email, "Sent" tag if already sent) → select → **Send** (real, tracked). Preview kept.

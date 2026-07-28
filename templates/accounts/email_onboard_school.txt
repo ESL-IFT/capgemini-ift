@@ -1,0 +1,15 @@
+Welcome to India's Future Tycoons, {{ user.first_name }}!
+
+Your school's account on the IFT platform has been created. You can now log in to register students and track their progress through the program.
+
+Login Credentials:
+Email: {{ user.email }}
+Password: {{ temp_password }}
+
+Login here: {{ login_url }}
+
+For your security, please change your password after your first login.
+
+Best regards,
+Team IFT
+https://indiafuturetycoons.com/

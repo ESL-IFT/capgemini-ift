@@ -1,0 +1,15 @@
+Welcome to India's Future Tycoons, {{ user.first_name }}!
+
+You have been onboarded as an evaluator/jury member for the IFT program. You can now log in to review and evaluate student submissions assigned to you.
+
+Login Credentials:
+Email: {{ user.email }}
+Password: {{ temp_password }}
+
+Login here: {{ login_url }}
+
+For your security, please change your password after your first login.
+
+Best regards,
+Team IFT
+https://indiafuturetycoons.com/

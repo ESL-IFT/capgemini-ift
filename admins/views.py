@@ -1218,12 +1218,13 @@ def onboard_student(request):
             username = f"{base_username}{counter}"
             counter += 1
 
+        temp_password = f"ift{roll_number or '2026'}"
         user = User.objects.create_user(
             username=username,
             email=student_email,
             first_name=first_name,
             last_name=last_name,
-            password=f"ift{roll_number or '2026'}",
+            password=temp_password,
         )
 
         # Create student profile
@@ -1259,9 +1260,11 @@ def onboard_student(request):
         except (ImportError, Exception):
             pass
 
+        send_onboard_credentials(user, temp_password, 'Student', {'username': username})
+
         return JsonResponse({
             'success': True,
-            'message': f'Student {first_name} {last_name} onboarded successfully! Username: {username}',
+            'message': f'Student {first_name} {last_name} onboarded successfully! Username: {username}. Credentials sent to {student_email}.',
             'redirect': '/super-admin/user-management/students/'
         })
 

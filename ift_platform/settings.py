@@ -174,7 +174,12 @@ LOGIN_REDIRECT_URL = 'accounts:role_redirect'
 LOGOUT_REDIRECT_URL = 'accounts:sign_in'
 
 # Email Configuration
-EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
+EMAIL_BACKEND_REAL = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
+EMAIL_REDIRECT_TO = os.getenv('EMAIL_REDIRECT_TO', '')
+if EMAIL_REDIRECT_TO:
+    EMAIL_BACKEND = 'accounts.email_backend.RedirectEmailBackend'
+else:
+    EMAIL_BACKEND = EMAIL_BACKEND_REAL
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@indiafuturetycoons.com')
 ZEPTOMAIL_API_KEY = os.getenv('ZEPTOMAIL_API_KEY', '')
 SITE_URL = os.getenv('SITE_URL', 'http://localhost:8002')

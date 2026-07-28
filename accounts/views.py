@@ -11,6 +11,8 @@ from django.contrib.auth.views import (
 )
 
 import secrets
+from django.conf import settings
+from django.contrib.staticfiles.storage import staticfiles_storage
 from django.http import JsonResponse
 
 from .models import UserProfile, JuryProfile
@@ -185,8 +187,16 @@ def school_search_api(request):
 
 class ForgotPasswordView(PasswordResetView):
     template_name = 'accounts/password_reset.html'
-    email_template_name = 'accounts/password_reset_email.html'
+    email_template_name = 'accounts/password_reset_email.txt'
+    html_email_template_name = 'accounts/password_reset_email_html.html'
     success_url = '/accounts/forgot-password/done/'
+
+    def get_extra_email_context(self):
+        return {'logo_url': f"{getattr(settings, 'SITE_URL', '')}{staticfiles_storage.url('images/email_logo.png')}"}
+
+    def form_valid(self, form):
+        self.extra_email_context = self.get_extra_email_context()
+        return super().form_valid(form)
 
 
 class ForgotPasswordDoneView(PasswordResetDoneView):
