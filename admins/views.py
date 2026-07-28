@@ -2993,6 +2993,16 @@ def _send_certificate(cert_type, name, email, student=None, school=None,
     except Exception as exc:
         error = str(exc)
 
+    # In-app / push notification for the student (best-effort).
+    if ok and student is not None and getattr(student, 'user', None):
+        try:
+            from students.push import notify
+            notify(student.user, 'system', copy['subject'],
+                   'Your certificate has been emailed to you. Check your inbox!',
+                   'workspace_premium', '/dashboard/', 'View')
+        except Exception:
+            pass
+
     CertificateIssue.objects.create(
         student=student, school=school, cert_type=cert_type,
         recipient_email=email, name_used=name,

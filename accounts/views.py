@@ -80,7 +80,7 @@ def sign_up(request):
             login(request, user)
             messages.success(request, 'Account created successfully!')
 
-            # Send welcome email
+            # Send welcome email + in-app / push notification
             try:
                 from .emails import send_branded_email
                 send_branded_email(
@@ -89,6 +89,11 @@ def sign_up(request):
                     'accounts/email_welcome_student.html',
                     {'user': user},
                 )
+            except:
+                pass
+            try:
+                from students.push import notify
+                notify(user, 'system', 'Welcome to IFT Season 6!', 'Your account is ready. Start your innovation journey.', 'celebration', '/dashboard/', 'Go to Dashboard')
             except:
                 pass
 

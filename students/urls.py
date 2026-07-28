@@ -29,6 +29,7 @@ urlpatterns = [
     path('idea-corner/', views.idea_corner, name='idea_corner'),
     path('idea/<int:idea_id>/like/', views.toggle_idea_like, name='toggle_idea_like'),
     path('idea/<int:idea_id>/bookmark/', views.toggle_idea_bookmark, name='toggle_idea_bookmark'),
+    path('push/subscribe/', views.push_subscribe, name='push_subscribe'),
     path('hall-of-fame/', views.student_halloffame, name='student_halloffame'),
     path('faq/', views.student_faq, name='student_faq'),
     path('learning-resources/', views.learning_resources, name='learning_resources'),

@@ -87,3 +87,12 @@ def send_onboard_credentials(user, temp_password, role, extra_context=None):
         print(f"[EMAIL] Failed to send to {user.email}: {e}")
         import traceback
         traceback.print_exc()
+
+    # In-app / push notification for the new account.
+    try:
+        from students.push import notify
+        notify(user, 'system', f'Your {role.title()} account is ready',
+               'Log in to get started on the IFT platform.', 'account_circle',
+               '/accounts/sign-in/', 'Log In')
+    except Exception:
+        pass

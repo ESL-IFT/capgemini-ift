@@ -1,0 +1,59 @@
+{% if vapid_public_key and user.is_authenticated %}
+<script>
+(function () {
+    const VAPID_PUBLIC_KEY = "{{ vapid_public_key }}";
+    if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) return;
+
+    function urlB64ToUint8Array(base64String) {
+        const padding = '='.repeat((4 - base64String.length % 4) % 4);
+        const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+        const raw = atob(base64);
+        const arr = new Uint8Array(raw.length);
+        for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+        return arr;
+    }
+
+    function getCookie(name) {
+        const m = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+        return m ? m.pop() : '';
+    }
+
+    async function subscribe(reg) {
+        try {
+            let sub = await reg.pushManager.getSubscription();
+            if (!sub) {
+                sub = await reg.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: urlB64ToUint8Array(VAPID_PUBLIC_KEY),
+                });
+            }
+            await fetch('/push/subscribe/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+                body: JSON.stringify({ subscription: sub }),
+            });
+        } catch (e) { /* silent — push stays off */ }
+    }
+
+    async function init() {
+        try {
+            const reg = await navigator.serviceWorker.register('/static/js/push-sw.js');
+            if (Notification.permission === 'granted') {
+                subscribe(reg);
+            } else if (Notification.permission === 'default') {
+                // Ask on the first user interaction (browsers require a gesture).
+                const ask = async () => {
+                    document.removeEventListener('click', ask);
+                    const perm = await Notification.requestPermission();
+                    if (perm === 'granted') subscribe(reg);
+                };
+                document.addEventListener('click', ask, { once: true });
+            }
+        } catch (e) { /* silent */ }
+    }
+
+    if (document.readyState === 'complete') init();
+    else window.addEventListener('load', init);
+})();
+</script>
+{% endif %}

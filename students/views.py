@@ -23,17 +23,9 @@ def _get_payment_amount(student):
 
 
 def create_notification(user, notification_type, title, message='', icon='notifications', action_url='', action_label=''):
-    """Helper to create a notification."""
-    from students.models import Notification
-    Notification.objects.create(
-        user=user,
-        notification_type=notification_type,
-        title=title,
-        message=message,
-        icon=icon,
-        action_url=action_url,
-        action_label=action_label,
-    )
+    """Helper to create an in-app notification (also fires a web push)."""
+    from students.push import notify
+    notify(user, notification_type, title, message, icon, action_url, action_label)
 
 
 def home(request):
@@ -1759,6 +1751,35 @@ def toggle_idea_bookmark(request, idea_id):
 
 
 @login_required
+@require_POST
+def push_subscribe(request):
+    """Store a browser Web Push subscription for the current user."""
+    from students.models import PushSubscription
+    import json as _json
+    try:
+        data = _json.loads(request.body)
+        sub = data.get('subscription') or {}
+        endpoint = sub.get('endpoint')
+        keys = sub.get('keys') or {}
+        p256dh = keys.get('p256dh')
+        auth = keys.get('auth')
+        if not (endpoint and p256dh and auth):
+            return JsonResponse({'success': False, 'message': 'Invalid subscription.'}, status=400)
+        PushSubscription.objects.update_or_create(
+            endpoint=endpoint,
+            defaults={
+                'user': request.user,
+                'p256dh': p256dh,
+                'auth': auth,
+                'user_agent': request.META.get('HTTP_USER_AGENT', '')[:300],
+            },
+        )
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)}, status=400)
+
+
+@login_required
 def evaluator_dashboard(request):
     """Dashboard for evaluators showing assigned ideas and stats."""
     from admins.models import EvaluatorAssignment
@@ -3180,6 +3201,7 @@ def verify_payment(request):
             )
         except Exception:
             pass
+        create_notification(request.user, 'system', 'Payment Failed', 'Your payment could not be verified. Any deducted amount will be refunded. Please try again.', 'error', '/dashboard/', 'Retry')
         return JsonResponse({'success': False, 'message': 'Payment verification failed.'}, status=400)
 
     student.is_paid = True

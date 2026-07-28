@@ -520,6 +520,22 @@ class IdeaLike(models.Model):
         return f"{self.user.username} likes {self.submission_id}"
 
 
+class PushSubscription(models.Model):
+    """A browser Web Push subscription for a user (one per device/browser)."""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='push_subscriptions')
+    endpoint = models.URLField(max_length=500, unique=True)
+    p256dh = models.CharField(max_length=255)
+    auth = models.CharField(max_length=255)
+    user_agent = models.CharField(max_length=300, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [models.Index(fields=['user'])]
+
+    def __str__(self):
+        return f"Push sub for {self.user.username}"
+
+
 class IdeaBookmark(models.Model):
     """A user's saved/bookmarked idea. One per user per idea."""
     submission = models.ForeignKey(IdeaSubmission, on_delete=models.CASCADE, related_name='bookmarks')

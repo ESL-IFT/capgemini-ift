@@ -1,3 +1,9 @@
+def vapid_public_key(request):
+    """Expose the VAPID public key to templates for Web Push subscription."""
+    from django.conf import settings
+    return {'vapid_public_key': getattr(settings, 'VAPID_PUBLIC_KEY', '')}
+
+
 def launch_confetti(request):
     """Show launch-day celebratory confetti from 29 Jul 2026 11:00 AM IST onwards.
 

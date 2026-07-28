@@ -86,6 +86,7 @@ TEMPLATES = [
                 'accounts.context_processors.student_has_submission',
                 'accounts.context_processors.launch_confetti',
                 'accounts.context_processors.unread_notification_count',
+                'accounts.context_processors.vapid_public_key',
             ],
         },
     },
@@ -186,6 +187,12 @@ SITE_URL = os.getenv('SITE_URL', 'http://localhost:8002')
 # Razorpay Configuration
 RAZORPAY_KEY_ID = os.getenv('RAZORPAY_KEY_ID', '')
 RAZORPAY_KEY_SECRET = os.getenv('RAZORPAY_KEY_SECRET', '')
+
+# Web Push (VAPID) — browser/phone push notifications. Optional; if unset,
+# push is silently disabled and only in-app notifications are created.
+VAPID_PUBLIC_KEY = os.getenv('VAPID_PUBLIC_KEY', '')
+VAPID_PRIVATE_KEY = os.getenv('VAPID_PRIVATE_KEY', '')
+VAPID_ADMIN_EMAIL = os.getenv('VAPID_ADMIN_EMAIL', 'developers@techinfinity.io')
 # TCE School Validation API
 TCE_API_URL = os.getenv('TCE_API_URL', 'https://ce-ift.tataclassedge.com/schoolcheck/api/v1/school/validate')
 TCE_API_TOKEN = os.getenv('TCE_API_TOKEN', '')

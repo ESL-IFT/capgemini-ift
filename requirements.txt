@@ -22,3 +22,6 @@ psycopg2-binary>=2.9.9
 # Payment gateway
 razorpay>=2.0.0
 
+# Web push notifications
+pywebpush>=2.0.0
+
