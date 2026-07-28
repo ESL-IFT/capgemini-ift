@@ -189,9 +189,10 @@ def school_sign_up(request):
                 else:
                     tce_resp = None
                     print("[TCE] Skipped - no proxy or token configured")
-                if tce_resp and tce_resp.status_code == 200:
-                    is_tce = tce_resp.json().get('is_tce_school', False)
-                    print(f"[TCE] Response: {tce_resp.text}")
+                if tce_resp:
+                    print(f"[TCE] Response: status={tce_resp.status_code}, body={tce_resp.text}")
+                    resp_data = tce_resp.json()
+                    is_tce = resp_data.get('is_tce_school', False)
                 print(f"[TCE] {form.cleaned_data['school_name']}: is_tce={is_tce}")
             except Exception as e:
                 print(f"[TCE] API error: {e}")
