@@ -2953,24 +2953,30 @@ def _send_certificate(cert_type, name, email, student=None, school=None,
                       sent_by=None, is_test=False):
     """Generate + email one certificate. Records a CertificateIssue. Returns
     (ok, error_message)."""
-    from django.core.mail import EmailMessage
     from admins.certificates import (
         generate_certificate_pdf, certificate_filename, EMAIL_COPY,
     )
     from admins.models import CertificateIssue
+    from accounts.emails import send_branded_email
 
     error = ''
     ok = False
     try:
         pdf = generate_certificate_pdf(name, cert_type)
         copy = EMAIL_COPY[cert_type]
-        msg = EmailMessage(
-            subject=copy['subject'],
-            body=copy['body'].format(name=name),
-            to=[email],
+        result = send_branded_email(
+            copy['subject'],
+            email,
+            'admins/email_certificate.html',
+            {
+                'name': name,
+                'cert_heading': copy['heading'],
+                'body_text': copy['body'].format(name=name),
+            },
+            attachments=[(certificate_filename(name, cert_type), pdf, 'application/pdf')],
         )
-        msg.attach(certificate_filename(name, cert_type), pdf, 'application/pdf')
-        msg.send(fail_silently=False)
+        if not result:
+            raise Exception('Email send returned no result')
         ok = True
     except Exception as exc:
         error = str(exc)

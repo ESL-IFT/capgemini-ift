@@ -56,59 +56,51 @@ CERTIFICATE_TYPES = {
     },
 }
 
-# Email subject/body per certificate type. {name} is the recipient's name.
+# Email subject/heading/body per certificate type. {name} is the recipient's
+# name. `heading` is shown as a highlighted title, `body` is the core
+# certifying statement. The email's attachment note and sign-off are added by
+# the shared branded template (templates/admins/email_certificate.html), so
+# they must NOT be repeated here.
 EMAIL_COPY = {
     'participation': {
         'subject': 'India\'s Future Tycoons — Certificate of Participation',
+        'heading': 'Certificate of Participation',
         'body': (
-            'Certificate of Participation\n\n'
             'This is to certify that {name} has successfully participated in '
             'the India\'s Future Tycoons challenge by submitting an innovative '
             'venture idea and demonstrating entrepreneurial thinking and '
-            'creativity.\n\n'
-            'Please find your certificate attached.\n\n'
-            'Warm regards,\n'
-            'Team IFT — Tata ClassEdge | ENpower'
+            'creativity.'
         ),
     },
     'top100': {
         'subject': 'India\'s Future Tycoons — Certificate of Achievement (Top 100)',
+        'heading': 'Certificate of Achievement — India\'s TOP 100',
         'body': (
-            'Certificate of Achievement — India\'s TOP 100\n\n'
             'This is to certify that {name} has successfully qualified as one '
             'of India\'s TOP 100 Teams in the India\'s Future Tycoons challenge '
             'for demonstrating exceptional innovation, creativity, and '
-            'entrepreneurial excellence through an outstanding venture idea.\n\n'
-            'Please find your certificate attached.\n\n'
-            'Warm regards,\n'
-            'Team IFT — Tata ClassEdge | ENpower'
+            'entrepreneurial excellence through an outstanding venture idea.'
         ),
     },
     'top400': {
         'subject': 'India\'s Future Tycoons — Certificate of Achievement (Top 400)',
+        'heading': 'Certificate of Achievement — India\'s TOP 400',
         'body': (
-            'Certificate of Achievement — India\'s TOP 400\n\n'
             'This is to certify that {name} has successfully qualified as one '
             'of India\'s TOP 400 Teams in the India\'s Future Tycoons challenge '
-            'for building an innovative and impactful venture idea.\n\n'
-            'Please find your certificate attached.\n\n'
-            'Warm regards,\n'
-            'Team IFT — Tata ClassEdge | ENpower'
+            'for building an innovative and impactful venture idea.'
         ),
     },
     'school_champion': {
         'subject': 'India\'s Future Tycoons — Certificate of Excellence',
+        'heading': 'Certificate of Excellence',
         'body': (
-            'Certificate of Excellence\n\n'
             'This certificate is proudly presented to {name} in recognition of '
             'its outstanding contribution to nurturing innovation and '
             'entrepreneurship, with students successfully qualifying among '
-            'India\'s TOP 100 Teams in the India\'s Future Tycoons challenge.\n\n'
+            'India\'s TOP 100 Teams in the India\'s Future Tycoons challenge. '
             'Your commitment to inspiring young innovators and fostering '
-            'entrepreneurial excellence is sincerely appreciated.\n\n'
-            'Please find your certificate attached.\n\n'
-            'Warm regards,\n'
-            'Team IFT — Tata ClassEdge | ENpower'
+            'entrepreneurial excellence is sincerely appreciated.'
         ),
     },
 }

@@ -5,6 +5,52 @@ from django.template.loader import render_to_string, TemplateDoesNotExist
 from django.utils.html import strip_tags
 
 
+def _base_context():
+    """Shared context every branded email needs (logo + login URL)."""
+    site_url = getattr(settings, 'SITE_URL', '') or ''
+    return {
+        'site_url': site_url,
+        'login_url': f"{site_url}/accounts/sign-in/",
+        'logo_url': f"{site_url}{staticfiles_storage.url('images/email_logo.png')}",
+    }
+
+
+def send_branded_email(subject, to, template, context=None, attachments=None):
+    """Send an email rendered from a template that extends email_onboard_base.html.
+
+    All outgoing IFT emails should go through here so they share the one
+    standard branded template. Only the dynamic `context` changes.
+
+    - subject: email subject line
+    - to: single address (str) or list of addresses
+    - template: path to an html template extending the base
+    - context: dynamic vars for that template
+    - attachments: optional list of (filename, content_bytes, mimetype)
+    """
+    ctx = _base_context()
+    ctx['subject'] = subject
+    ctx.update(context or {})
+
+    recipients = [to] if isinstance(to, str) else list(to)
+
+    html_message = render_to_string(template, ctx)
+    text_message = strip_tags(html_message)
+
+    try:
+        email = EmailMultiAlternatives(subject, text_message, settings.DEFAULT_FROM_EMAIL, recipients)
+        email.attach_alternative(html_message, 'text/html')
+        for att in (attachments or []):
+            email.attach(*att)
+        result = email.send(fail_silently=False)
+        print(f"[EMAIL] Sent '{subject}' to {recipients}, result={result}")
+        return result
+    except Exception as e:
+        print(f"[EMAIL] Failed to send '{subject}' to {recipients}: {e}")
+        import traceback
+        traceback.print_exc()
+        return 0
+
+
 def send_onboard_credentials(user, temp_password, role, extra_context=None):
     site_url = getattr(settings, 'SITE_URL', '') or ''
     context = {

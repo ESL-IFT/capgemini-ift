@@ -1,0 +1,6 @@
+{% extends "accounts/email_onboard_base.html" %}
+{% block greeting %}Payment Failed{% endblock %}
+{% block intro %}Hi {{ user.first_name }}, unfortunately your payment could not be verified. If any amount was deducted, it will be refunded within 5-7 business days. Please try again from your dashboard to complete your registration.{% endblock %}
+{% block credentials %}{% endblock %}
+{% block button_label %}Retry Payment{% endblock %}
+{% block security_note %}{% endblock %}

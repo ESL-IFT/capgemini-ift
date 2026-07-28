@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{{ subject|default:"Welcome to IFT" }}</title>
+<title>{% block title %}{{ subject|default:"India's Future Tycoons" }}{% endblock %}</title>
 </head>
 <body style="margin:0; padding:0; background-color:#f4f2f8; font-family:'Segoe UI', Arial, Helvetica, sans-serif;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f2f8; padding:32px 16px;">
@@ -18,10 +18,11 @@
         </tr>
         <tr>
           <td style="padding:36px 32px 8px 32px;">
-            <h1 style="margin:0 0 4px 0; font-size:20px; color:#1e1b2e;">Welcome, {{ user.first_name }}!</h1>
+            <h1 style="margin:0 0 4px 0; font-size:20px; color:#1e1b2e;">{% block greeting %}Welcome, {{ user.first_name }}!{% endblock %}</h1>
             <p style="margin:0 0 20px 0; color:#6b6577; font-size:14px;">{% block intro %}Your account on the IFT platform has been created.{% endblock %}</p>
           </td>
         </tr>
+        {% block credentials %}
         <tr>
           <td style="padding:0 32px;">
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f7f4fb; border-radius:8px; border:1px solid #ece6f5;">
@@ -35,19 +36,25 @@
             </table>
           </td>
         </tr>
+        {% endblock %}
+        {% block content %}{% endblock %}
+        {% block button %}
         <tr>
           <td style="padding:24px 32px 8px 32px;" align="center">
-            <a href="{{ login_url }}" style="display:inline-block; background-color:#F5C542; color:#2A1245; text-decoration:none; font-weight:700; font-size:14px; padding:12px 32px; border-radius:24px;">Log In to IFT</a>
+            <a href="{% block button_href %}{{ login_url }}{% endblock %}" style="display:inline-block; background-color:#F5C542; color:#2A1245; text-decoration:none; font-weight:700; font-size:14px; padding:12px 32px; border-radius:24px;">{% block button_label %}Log In to IFT{% endblock %}</a>
           </td>
         </tr>
+        {% endblock %}
+        {% block security_note %}
         <tr>
           <td style="padding:20px 32px 0 32px;">
             <p style="margin:0; font-size:12px; color:#9b95a6;">For your security, please change your password after your first login.</p>
           </td>
         </tr>
+        {% endblock %}
         <tr>
           <td style="padding:28px 32px 32px 32px; border-top:1px solid #f0edf5; margin-top:20px;">
-            <p style="margin:20px 0 0 0; font-size:12px; color:#9b95a6;">Best regards,<br>Team IFT<br><a href="https://indiafuturetycoons.com/" style="color:#5E2A97; text-decoration:none;">indiafuturetycoons.com</a></p>
+            <p style="margin:20px 0 0 0; font-size:12px; color:#9b95a6;">{% block footer %}Best regards,<br>Team IFT<br><a href="https://indiafuturetycoons.com/" style="color:#5E2A97; text-decoration:none;">indiafuturetycoons.com</a>{% endblock %}</p>
           </td>
         </tr>
       </table>

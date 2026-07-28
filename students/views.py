@@ -1431,14 +1431,12 @@ def publish_idea(request, submission_id):
 
     # Send publish confirmation email
     try:
-        from django.core.mail import send_mail
-        from django.conf import settings
-        send_mail(
-            subject='Your Idea Has Been Published - IFT Season 6',
-            message=f'Dear {request.user.first_name},\n\nYour idea was published successfully on IFT and is now under review. Announcing shortlisted ideas soon!\n\nTeam IFT\nhttps://indiafuturetycoons.com/',
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[request.user.email],
-            fail_silently=True,
+        from accounts.emails import send_branded_email
+        send_branded_email(
+            'Your Idea Has Been Published - IFT Season 6',
+            request.user.email,
+            'students/email_idea_published.html',
+            {'user': request.user, 'login_url': f"{getattr(settings, 'SITE_URL', '')}/my-idea/"},
         )
     except:
         pass
@@ -2966,13 +2964,12 @@ def verify_payment(request):
         })
     except razorpay.errors.SignatureVerificationError:
         try:
-            from django.core.mail import send_mail
-            send_mail(
-                subject='Payment Failed - India\'s Future Tycoons',
-                message=f'Dear {request.user.first_name},\n\nYour payment could not be verified. If money was deducted, it will be refunded within 5-7 business days.\n\nPlease try again from your dashboard.\n\nTeam IFT\nhttps://www.indiafuturetycoons.com/',
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[request.user.email],
-                fail_silently=True,
+            from accounts.emails import send_branded_email
+            send_branded_email(
+                'Payment Failed - India\'s Future Tycoons',
+                request.user.email,
+                'students/email_payment_failed.html',
+                {'user': request.user, 'login_url': f"{getattr(settings, 'SITE_URL', '')}/dashboard/"},
             )
         except Exception:
             pass
@@ -2989,14 +2986,19 @@ def verify_payment(request):
     create_notification(request.user, 'system', 'Payment Successful', f'Your registration fee of Rs {int(student.payment_amount)} has been received.', 'check_circle', '/dashboard/', 'Go to Dashboard')
 
     try:
-        from django.core.mail import send_mail
+        from accounts.emails import send_branded_email
         school_name = student.school.name if student.school else student.school_name or 'N/A'
-        send_mail(
-            subject='Payment Successful - India\'s Future Tycoons',
-            message=f'Dear {request.user.first_name},\n\nYour payment of Rs {int(student.payment_amount)} has been received successfully.\n\nTransaction ID: {razorpay_payment_id}\nSchool: {school_name}\n\nYou can now create or join a team and submit your idea.\n\nLogin here: {settings.SITE_URL}/accounts/sign-in/\n\nBest regards,\nTeam IFT\nhttps://www.indiafuturetycoons.com/',
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[request.user.email],
-            fail_silently=True,
+        send_branded_email(
+            'Payment Successful - India\'s Future Tycoons',
+            request.user.email,
+            'students/email_payment_success.html',
+            {
+                'user': request.user,
+                'payment_amount': int(student.payment_amount),
+                'transaction_id': razorpay_payment_id,
+                'school_name': school_name,
+                'login_url': f"{getattr(settings, 'SITE_URL', '')}/dashboard/",
+            },
         )
     except Exception:
         pass
