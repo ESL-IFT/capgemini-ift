@@ -95,7 +95,7 @@
         <div class="icon">
             <iconify-icon icon="mdi:phone-outline"></iconify-icon>
         </div>
-        <input type="text" class="form-control" id="phone" name="phone" placeholder="Phone Number (optional)" value="{{ form.phone.value|default:'' }}">
+        <input type="tel" class="form-control" id="phone" name="phone" placeholder="10-digit mobile (optional)" inputmode="numeric" maxlength="10" pattern="[6-9][0-9]{9}" title="10-digit mobile number" value="{{ form.phone.value|default:'' }}">
     </div>
 
     <!-- Terms & Conditions -->
@@ -133,6 +133,14 @@
 
 {% block extra_js %}
 <script>
+// Real-time input restrictions
+(function(){
+    function digitsOnly(el){ if(el) el.addEventListener('input', function(){ this.value = this.value.replace(/\D/g,''); }); }
+    function lettersOnly(el){ if(el) el.addEventListener('input', function(){ this.value = this.value.replace(/[^A-Za-z .'\-]/g,''); }); }
+    digitsOnly(document.querySelector('input[name="phone"]'));
+    lettersOnly(document.querySelector('input[name="first_name"]'));
+    lettersOnly(document.querySelector('input[name="last_name"]'));
+})();
 let searchTimeout;
 const schoolSearch = document.getElementById('schoolSearch');
 const schoolDropdown = document.getElementById('schoolDropdown');

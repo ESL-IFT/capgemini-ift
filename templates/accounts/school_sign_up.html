@@ -33,7 +33,7 @@
     <!-- Phone -->
     <div class="form-group">
         <div class="icon"><iconify-icon icon="mdi:phone-outline"></iconify-icon></div>
-        <input type="text" class="form-control" name="contact_phone" placeholder="School Coordinator Phone Number" required value="{{ form.contact_phone.value|default:'' }}">
+        <input type="tel" class="form-control" name="contact_phone" placeholder="10-digit mobile number" inputmode="numeric" maxlength="10" pattern="[6-9][0-9]{9}" title="10-digit mobile number" required value="{{ form.contact_phone.value|default:'' }}">
         {% if form.contact_phone.errors %}<p class="field-error">{{ form.contact_phone.errors.0 }}</p>{% endif %}
     </div>
 
@@ -61,7 +61,7 @@
     <!-- PIN Code -->
     <div class="form-group">
         <div class="icon"><iconify-icon icon="mdi:numeric"></iconify-icon></div>
-        <input type="text" class="form-control" name="pin_code" placeholder="PIN Code" required value="{{ form.pin_code.value|default:'' }}">
+        <input type="text" class="form-control" name="pin_code" placeholder="6-digit PIN code" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" title="6-digit PIN code" required value="{{ form.pin_code.value|default:'' }}">
         {% if form.pin_code.errors %}<p class="field-error">{{ form.pin_code.errors.0 }}</p>{% endif %}
     </div>
 
@@ -88,6 +88,14 @@
 </div>
 
 <script>
+// Real-time input restrictions
+(function(){
+    function digitsOnly(el){ if(el) el.addEventListener('input', function(){ this.value = this.value.replace(/\D/g,''); }); }
+    function lettersOnly(el){ if(el) el.addEventListener('input', function(){ this.value = this.value.replace(/[^A-Za-z .'\-]/g,''); }); }
+    digitsOnly(document.querySelector('input[name="contact_phone"]'));
+    digitsOnly(document.querySelector('input[name="pin_code"]'));
+    lettersOnly(document.querySelector('input[name="coordinator_name"]'));
+})();
 function initAutocomplete() {
     var input = document.getElementById('schoolNameInput');
     var addressInput = document.querySelector('input[name="address"]');

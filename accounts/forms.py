@@ -1,6 +1,28 @@
+import re
 from django import forms
 from django.contrib.auth.models import User
 from students.models import School
+
+_NAME_RE = re.compile(r"^[A-Za-z][A-Za-z .'\-]{1,99}$")
+
+
+def _clean_person_name(value, label='Name'):
+    value = (value or '').strip()
+    if not _NAME_RE.fullmatch(value):
+        raise forms.ValidationError(f'{label} should contain only letters, spaces, . - characters.')
+    return value
+
+
+def _clean_mobile(value):
+    """Validate + normalise an Indian 10-digit mobile (strips +91 / 0 / spaces)."""
+    m = re.sub(r'\D', '', value or '')
+    if len(m) == 12 and m.startswith('91'):
+        m = m[2:]
+    elif len(m) == 11 and m.startswith('0'):
+        m = m[1:]
+    if not re.fullmatch(r'[6-9]\d{9}', m):
+        raise forms.ValidationError('Enter a valid 10-digit Indian mobile number.')
+    return m
 
 
 class StudentSignUpForm(forms.Form):
@@ -38,6 +60,18 @@ class StudentSignUpForm(forms.Form):
             raise forms.ValidationError('An account with this email already exists.')
         return email
 
+    def clean_first_name(self):
+        return _clean_person_name(self.cleaned_data.get('first_name'), 'First name')
+
+    def clean_last_name(self):
+        return _clean_person_name(self.cleaned_data.get('last_name'), 'Last name')
+
+    def clean_phone(self):
+        phone = (self.cleaned_data.get('phone') or '').strip()
+        if not phone:
+            return phone  # optional
+        return _clean_mobile(phone)
+
 
 class SchoolSignUpForm(forms.Form):
     school_name = forms.CharField(max_length=300, widget=forms.TextInput(attrs={'placeholder': 'School Name'}))
@@ -56,3 +90,15 @@ class SchoolSignUpForm(forms.Form):
         if User.objects.filter(email=email).exists():
             raise forms.ValidationError('An account with this email already exists.')
         return email
+
+    def clean_coordinator_name(self):
+        return _clean_person_name(self.cleaned_data.get('coordinator_name'), 'Coordinator name')
+
+    def clean_contact_phone(self):
+        return _clean_mobile(self.cleaned_data.get('contact_phone'))
+
+    def clean_pin_code(self):
+        pin = re.sub(r'\s', '', self.cleaned_data.get('pin_code') or '')
+        if not re.fullmatch(r'\d{6}', pin):
+            raise forms.ValidationError('PIN code must be exactly 6 digits.')
+        return pin
