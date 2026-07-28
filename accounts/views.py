@@ -154,29 +154,37 @@ def school_sign_up(request):
             try:
                 import requests as http_requests
                 from django.conf import settings as django_settings
+                print(f"[TCE] Token present: {bool(django_settings.TCE_API_TOKEN)}, URL: {django_settings.TCE_API_URL}")
                 if django_settings.TCE_API_TOKEN:
+                    tce_payload = {
+                        'school_name': form.cleaned_data['school_name'],
+                        'address': form.cleaned_data['address'],
+                        'city': form.cleaned_data['city'],
+                        'state': form.cleaned_data['state'],
+                        'pin_code': form.cleaned_data['pin_code'],
+                        'contact_email': email,
+                        'contact_phone': form.cleaned_data['contact_phone'],
+                    }
+                    print(f"[TCE] Payload: {tce_payload}")
                     tce_resp = http_requests.post(
                         django_settings.TCE_API_URL,
-                        json={
-                            'school_name': form.cleaned_data['school_name'],
-                            'address': form.cleaned_data['address'],
-                            'city': form.cleaned_data['city'],
-                            'state': form.cleaned_data['state'],
-                            'pin_code': form.cleaned_data['pin_code'],
-                            'contact_email': email,
-                            'contact_phone': form.cleaned_data['contact_phone'],
-                        },
+                        json=tce_payload,
                         headers={
                             'Content-Type': 'application/json',
                             'Authorization': f'Bearer {django_settings.TCE_API_TOKEN}',
                         },
-                        timeout=5,
+                        timeout=10,
                     )
+                    print(f"[TCE] Response: status={tce_resp.status_code}, body={tce_resp.text}")
                     if tce_resp.status_code == 200:
                         is_tce = tce_resp.json().get('is_tce_school', False)
-                    print(f"[TCE] {form.cleaned_data['school_name']}: is_tce={is_tce}")
+                else:
+                    print("[TCE] Skipped - no API token configured")
+                print(f"[TCE] {form.cleaned_data['school_name']}: is_tce={is_tce}")
             except Exception as e:
+                import traceback
                 print(f"[TCE] API error: {e}")
+                traceback.print_exc()
 
             school = School.objects.create(
                 user=user,
