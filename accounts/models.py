@@ -12,6 +12,9 @@ class UserProfile(models.Model):
 
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='student')
+    # When the user last cleared their notifications ("Mark all as read"). Used to
+    # stop already-seen announcements from keeping the bell badge lit.
+    announcements_read_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

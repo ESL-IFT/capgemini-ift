@@ -140,6 +140,37 @@
                 </p>
             </div>
             {% endif %}
+
+            {% if video_list %}
+            <div class="status-card" style="text-align:left; margin-top:1.5rem;">
+                <h3 style="font-size:1rem; font-weight:700; color:#1f2937; margin:0 0 4px 0;">IFT Learning Modules</h3>
+                <p style="font-size:0.8rem; color:#6b7280; margin:0 0 16px 0;">Complete all modules — your progress counts towards your team.</p>
+                <div style="display:flex; flex-direction:column; gap:8px;">
+                    {% for video in video_list %}
+                    <div style="display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:8px; background:{% if video.watched %}#f0fdf4{% else %}#f9fafb{% endif %}; border:1px solid {% if video.watched %}#bbf7d0{% else %}#e5e7eb{% endif %};">
+                        <span class="material-symbols-outlined" style="font-size:20px; color:{% if video.watched %}#16a34a{% else %}#9ca3af{% endif %};">{% if video.watched %}check_circle{% else %}play_circle{% endif %}</span>
+                        <span style="flex:1; font-size:0.8rem; font-weight:600; color:#1f2937;">{{ video.title }}</span>
+                        {% if not video.watched %}
+                        <a href="{{ video.youtube_url }}" target="_blank" onclick="markVideoWatched({{ video.id }})" style="background:var(--primary,#5E2A97); color:#fff; padding:4px 12px; border-radius:6px; font-size:0.7rem; font-weight:600; text-decoration:none;">Watch</a>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+
+                {% if team_video_status %}
+                <h3 style="font-size:0.85rem; font-weight:700; color:#374151; margin:1.5rem 0 12px 0;">Team Members Progress</h3>
+                <div style="display:flex; flex-direction:column; gap:8px;">
+                    {% for member in team_video_status %}
+                    <div style="display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:8px; background:{% if member.complete %}#f0fdf4{% else %}#f3f4f6{% endif %}; border:1px solid {% if member.complete %}#bbf7d0{% else %}#e5e7eb{% endif %};">
+                        <span class="material-symbols-outlined" style="font-size:20px; color:{% if member.complete %}#16a34a{% else %}#9ca3af{% endif %};">{% if member.complete %}check_circle{% else %}schedule{% endif %}</span>
+                        <span style="flex:1; font-size:0.8rem; font-weight:600; color:#1f2937;">{{ member.name }} {% if member.role == 'leader' %}<span style="font-size:0.65rem; background:var(--primary,#5E2A97); color:#fff; padding:2px 6px; border-radius:4px;">Leader</span>{% endif %}</span>
+                        <span style="font-size:0.75rem; font-weight:600; color:{% if member.complete %}#16a34a{% else %}#d97706{% endif %};">{{ member.watched }}/{{ member.total }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
         </div>
     </main>
 </div>
@@ -163,6 +194,19 @@
         sidebar.classList.remove('mobile-open');
         overlay.classList.remove('active');
     });
+
+    function getCookie(name) {
+        const m = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+        return m ? m.pop() : '';
+    }
+    function markVideoWatched(videoId) {
+        fetch('/video/' + videoId + '/watched/', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': getCookie('csrftoken') },
+        }).then(function () {
+            setTimeout(function () { location.reload(); }, 500);
+        });
+    }
 </script>
 </body>
 </html>

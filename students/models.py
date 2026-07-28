@@ -11,6 +11,7 @@ class Student(models.Model):
 
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='student_profile')
     student_id = models.CharField(max_length=50, unique=True, blank=True)
+    photo = models.ImageField(upload_to='student_photos/', blank=True, null=True)
     school = models.ForeignKey('School', on_delete=models.SET_NULL, null=True, blank=True, related_name='students')
     school_name = models.CharField(max_length=200)  # kept for backward compat
     school_branch = models.CharField(max_length=200, blank=True)
@@ -481,18 +482,56 @@ class IdeaSuggestion(models.Model):
         }
         return [labels.get(f, f) for f in self.changes.keys()]
 
-    def apply_changes(self):
-        """Merge approved changes into the submission."""
-        for field, value in self.changes.items():
+    def apply_changes(self, only_fields=None):
+        """Merge approved changes into the submission.
+
+        If ``only_fields`` is given, only those fields are applied and returned;
+        the rest stay in ``self.changes`` (caller decides what to do with them).
+        Returns the list of field names actually applied.
+        """
+        applied = []
+        for field, value in list(self.changes.items()):
+            if only_fields is not None and field not in only_fields:
+                continue
             if hasattr(self.submission, field):
                 setattr(self.submission, field, value)
+                applied.append(field)
         self.submission.save()
+        return applied
 
     def __str__(self):
         return f"Suggestion by {self.suggested_by.get_full_name()} on {self.submission} ({self.status})"
 
     class Meta:
         ordering = ['-created_at']
+
+
+class IdeaLike(models.Model):
+    """A single 'like' by a user on a published idea. One per user per idea."""
+    submission = models.ForeignKey(IdeaSubmission, on_delete=models.CASCADE, related_name='likes')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='idea_likes')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ['submission', 'user']
+        indexes = [models.Index(fields=['submission'])]
+
+    def __str__(self):
+        return f"{self.user.username} likes {self.submission_id}"
+
+
+class IdeaBookmark(models.Model):
+    """A user's saved/bookmarked idea. One per user per idea."""
+    submission = models.ForeignKey(IdeaSubmission, on_delete=models.CASCADE, related_name='bookmarks')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='idea_bookmarks')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ['submission', 'user']
+        indexes = [models.Index(fields=['user'])]
+
+    def __str__(self):
+        return f"{self.user.username} bookmarked {self.submission_id}"
 
 
 class Notification(models.Model):

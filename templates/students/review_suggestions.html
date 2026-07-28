@@ -330,6 +330,8 @@
                         <div class="diff-section">
                             {% for field, new_val in s.changes.items %}
                             <div class="diff-field-label">
+                                <label style="display:inline-flex; align-items:center; gap:6px; cursor:pointer;">
+                                <input type="checkbox" class="field-check" data-field="{{ field }}" checked style="width:15px; height:15px; accent-color:#16A34A; cursor:pointer;">
                                 {% if field == 'title' %}Project Title
                                 {% elif field == 'q1_target_group' %}Q1 - Target Group
                                 {% elif field == 'q2_exact_problem' %}Q2 - Exact Problem
@@ -345,6 +347,7 @@
                                 {% elif field == 'q12_pitch' %}Q12 - Pitch
                                 {% else %}{{ field }}
                                 {% endif %}
+                                </label>
                             </div>
                             <div class="diff-row">
                                 <div class="diff-old">{% with attr=field %}{% if attr == 'title' %}{{ submission.title }}{% elif attr == 'q1_target_group' %}{{ submission.q1_target_group }}{% elif attr == 'q2_exact_problem' %}{{ submission.q2_exact_problem }}{% elif attr == 'q3_solution_simple' %}{{ submission.q3_solution_simple }}{% elif attr == 'q4_differentiation' %}{{ submission.q4_differentiation }}{% elif attr == 'q5_build_steps' %}{{ submission.q5_build_steps }}{% elif attr == 'q6_resources' %}{{ submission.q6_resources }}{% elif attr == 'q7_positive_change' %}{{ submission.q7_positive_change }}{% elif attr == 'q8_challenges' %}{{ submission.q8_challenges }}{% elif attr == 'q9_team_fit' %}{{ submission.q9_team_fit }}{% elif attr == 'q10_feedback' %}{{ submission.q10_feedback }}{% elif attr == 'q11_creative_element' %}{{ submission.q11_creative_element }}{% elif attr == 'q12_pitch' %}{{ submission.q12_pitch }}{% endif %}{% endwith %}</div>
@@ -354,9 +357,13 @@
                         </div>
 
                         <div class="suggestion-actions">
-                            <button class="btn-approve" onclick="handleSuggestion({{ s.id }}, 'approve')">
+                            <button class="btn-approve" onclick="approveSelected({{ s.id }})">
                                 <span class="material-symbols-outlined">check_circle</span>
-                                Approve & Merge
+                                Approve Selected
+                            </button>
+                            <button class="btn-approve" style="background:#7B3FB5;" onclick="handleSuggestion({{ s.id }}, 'approve')">
+                                <span class="material-symbols-outlined">done_all</span>
+                                Approve All
                             </button>
                             <button class="btn-reject" onclick="showRejectInput({{ s.id }})">
                                 <span class="material-symbols-outlined">cancel</span>
@@ -444,11 +451,25 @@
         list.classList.toggle('show');
     }
 
-    function handleSuggestion(id, action) {
+    function approveSelected(id) {
+        const card = document.getElementById('suggestion-' + id);
+        const checked = card ? card.querySelectorAll('.field-check:checked') : [];
+        if (!checked.length) {
+            showToast('Select at least one question to approve.', 'error');
+            return;
+        }
+        const fields = Array.from(checked).map(c => c.getAttribute('data-field'));
+        handleSuggestion(id, 'approve', fields);
+    }
+
+    function handleSuggestion(id, action, fields) {
         const data = { action: action };
         if (action === 'reject') {
             const reasonEl = document.getElementById('reject-reason-' + id);
             if (reasonEl) data.reason = reasonEl.value;
+        }
+        if (action === 'approve' && Array.isArray(fields) && fields.length) {
+            data.fields = fields;
         }
 
         fetch('/suggestion/' + id + '/handle/', {

@@ -915,8 +915,11 @@
                 <div class="ideas-grid" id="ideasGrid">
                     {% for idea in ideas %}
                     <div class="idea-card"
+                         data-id="{{ idea.id }}"
                          data-category="{{ idea.category_slug }}"
-                         data-likes="0"
+                         data-likes="{{ idea.like_count }}"
+                         data-liked="{{ idea.liked|yesno:'true,false' }}"
+                         data-bookmarked="{{ idea.bookmarked|yesno:'true,false' }}"
                          data-date="{{ idea.submitted_at|date:'Y-m-d' }}"
                          data-title="{{ idea.title }}"
                          data-school="{{ idea.school_name }}"
@@ -932,8 +935,8 @@
                                 </span>
                                 {{ idea.category }}
                             </span>
-                            <button class="bookmark-btn" title="Bookmark">
-                                <span class="material-symbols-outlined">bookmark_border</span>
+                            <button class="bookmark-btn {% if idea.bookmarked %}bookmarked{% endif %}" title="Bookmark" data-id="{{ idea.id }}">
+                                <span class="material-symbols-outlined">{% if idea.bookmarked %}bookmark{% else %}bookmark_border{% endif %}</span>
                             </button>
                         </div>
                         <div class="idea-card-body">
@@ -958,9 +961,9 @@
                                 </div>
                             </div>
                             <div class="idea-actions">
-                                <button class="action-btn-small" data-action="like">
-                                    <span class="material-symbols-outlined">favorite_border</span>
-                                    <span>0</span>
+                                <button class="action-btn-small {% if idea.liked %}liked{% endif %}" data-action="like" data-id="{{ idea.id }}">
+                                    <span class="material-symbols-outlined">{% if idea.liked %}favorite{% else %}favorite_border{% endif %}</span>
+                                    <span class="like-count">{{ idea.like_count }}</span>
                                 </button>
                             </div>
                         </div>
@@ -1021,7 +1024,7 @@
                     </button>
                     <button class="modal-action-btn secondary" id="modalShareBtn">
                         <span class="material-symbols-outlined">share</span>
-                        Share
+                        <span class="share-label">Share</span>
                     </button>
                 </div>
             </div>
@@ -1102,43 +1105,83 @@
             });
 
             // Like functionality
+            function getCookie(name) {
+                const m = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+                return m ? m.pop() : '';
+            }
+
             document.querySelectorAll('[data-action="like"]').forEach(btn => {
                 btn.addEventListener('click', function (e) {
                     e.stopPropagation();
-                    const countEl = this.querySelector('span:last-child');
-                    const iconEl = this.querySelector('.material-symbols-outlined');
-                    const isLiked = this.classList.toggle('liked');
-                    const card = this.closest('.idea-card');
+                    const button = this;
+                    if (button.dataset.busy === '1') return;
+                    button.dataset.busy = '1';
 
-                    let count = parseInt(countEl.textContent);
-                    count = isLiked ? count + 1 : count - 1;
-                    countEl.textContent = count;
-                    iconEl.textContent = isLiked ? 'favorite' : 'favorite_border';
-                    if (isLiked) {
-                        iconEl.style.fontVariationSettings = "'FILL' 1";
-                    } else {
-                        iconEl.style.fontVariationSettings = "'FILL' 0";
-                    }
-                    card.setAttribute('data-likes', count);
+                    const ideaId = button.getAttribute('data-id');
+                    const countEl = button.querySelector('.like-count');
+                    const iconEl = button.querySelector('.material-symbols-outlined');
+                    const card = button.closest('.idea-card');
+
+                    fetch('/idea/' + ideaId + '/like/', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': getCookie('csrftoken'),
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (!data.success) return;
+                        button.classList.toggle('liked', data.liked);
+                        countEl.textContent = data.like_count;
+                        iconEl.textContent = data.liked ? 'favorite' : 'favorite_border';
+                        iconEl.style.fontVariationSettings = data.liked ? "'FILL' 1" : "'FILL' 0";
+                        if (card) card.setAttribute('data-likes', data.like_count);
+                    })
+                    .catch(() => {})
+                    .finally(() => { button.dataset.busy = '0'; });
                 });
             });
 
             // Bookmark functionality
+            function applyBookmarkUI(btn, bookmarked) {
+                if (!btn) return;
+                btn.classList.toggle('bookmarked', bookmarked);
+                const iconEl = btn.querySelector('.material-symbols-outlined');
+                iconEl.textContent = bookmarked ? 'bookmark' : 'bookmark_border';
+                iconEl.style.fontVariationSettings = bookmarked ? "'FILL' 1" : "'FILL' 0";
+            }
+
+            function refreshBookmarkCount() {
+                const el = document.getElementById('bookmarkCount');
+                if (el) el.textContent = document.querySelectorAll('.bookmark-btn.bookmarked').length;
+            }
+            refreshBookmarkCount();
+
+            function sendBookmark(ideaId) {
+                return fetch('/idea/' + ideaId + '/bookmark/', {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': getCookie('csrftoken'), 'X-Requested-With': 'XMLHttpRequest' }
+                }).then(r => r.json());
+            }
+
             document.querySelectorAll('.bookmark-btn').forEach(btn => {
                 btn.addEventListener('click', function (e) {
                     e.stopPropagation();
-                    const iconEl = this.querySelector('.material-symbols-outlined');
-                    const isBookmarked = this.classList.toggle('bookmarked');
-                    iconEl.textContent = isBookmarked ? 'bookmark' : 'bookmark_border';
-                    if (isBookmarked) {
-                        iconEl.style.fontVariationSettings = "'FILL' 1";
-                    } else {
-                        iconEl.style.fontVariationSettings = "'FILL' 0";
-                    }
-
-                    // Update bookmarked count
-                    const bookmarkedCount = document.querySelectorAll('.bookmark-btn.bookmarked').length;
-                    document.getElementById('bookmarkCount').textContent = bookmarkedCount;
+                    const button = this;
+                    if (button.dataset.busy === '1') return;
+                    button.dataset.busy = '1';
+                    const ideaId = button.getAttribute('data-id');
+                    sendBookmark(ideaId)
+                        .then(data => {
+                            if (!data.success) return;
+                            applyBookmarkUI(button, data.bookmarked);
+                            const card = button.closest('.idea-card');
+                            if (card) card.setAttribute('data-bookmarked', data.bookmarked ? 'true' : 'false');
+                            refreshBookmarkCount();
+                        })
+                        .catch(() => {})
+                        .finally(() => { button.dataset.busy = '0'; });
                 });
             });
 
@@ -1172,10 +1215,102 @@
                         modalTags.appendChild(span);
                     });
 
+                    // Sync modal Like button with this card's current state.
+                    modal.dataset.ideaId = this.getAttribute('data-id') || '';
+                    const cardLikeBtn = this.querySelector('[data-action="like"]');
+                    const liked = cardLikeBtn && cardLikeBtn.classList.contains('liked');
+                    const mLike = document.getElementById('modalLikeBtn');
+                    if (mLike) {
+                        mLike.classList.toggle('liked', !!liked);
+                        mLike.querySelector('.material-symbols-outlined').textContent = liked ? 'favorite' : 'favorite_border';
+                    }
+
+                    // Sync modal Bookmark button with this card's current state.
+                    const cardBmBtn = this.querySelector('.bookmark-btn');
+                    const bookmarked = cardBmBtn && cardBmBtn.classList.contains('bookmarked');
+                    const mBm = document.getElementById('modalBookmarkBtn');
+                    if (mBm) {
+                        mBm.classList.toggle('bookmarked', !!bookmarked);
+                        mBm.querySelector('.material-symbols-outlined').textContent = bookmarked ? 'bookmark' : 'bookmark_border';
+                    }
+                    modal.dataset.ideaTitle = title;
+
                     modal.classList.add('active');
                     document.body.style.overflow = 'hidden';
                 });
             });
+
+            // Modal "Like Idea" button — persists and syncs the matching card.
+            const modalLikeBtn = document.getElementById('modalLikeBtn');
+            if (modalLikeBtn) {
+                modalLikeBtn.addEventListener('click', function () {
+                    const ideaId = modal.dataset.ideaId;
+                    if (!ideaId || this.dataset.busy === '1') return;
+                    this.dataset.busy = '1';
+                    fetch('/idea/' + ideaId + '/like/', {
+                        method: 'POST',
+                        headers: { 'X-CSRFToken': getCookie('csrftoken'), 'X-Requested-With': 'XMLHttpRequest' }
+                    })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (!data.success) return;
+                        this.classList.toggle('liked', data.liked);
+                        this.querySelector('.material-symbols-outlined').textContent = data.liked ? 'favorite' : 'favorite_border';
+                        const cardBtn = document.querySelector('.idea-card[data-id="' + ideaId + '"] [data-action="like"]');
+                        if (cardBtn) {
+                            cardBtn.classList.toggle('liked', data.liked);
+                            cardBtn.querySelector('.material-symbols-outlined').textContent = data.liked ? 'favorite' : 'favorite_border';
+                            cardBtn.querySelector('.like-count').textContent = data.like_count;
+                            const c = cardBtn.closest('.idea-card');
+                            if (c) c.setAttribute('data-likes', data.like_count);
+                        }
+                    })
+                    .catch(() => {})
+                    .finally(() => { this.dataset.busy = '0'; });
+                });
+            }
+
+            // Modal "Bookmark" button — persists and syncs the matching card.
+            const modalBookmarkBtn = document.getElementById('modalBookmarkBtn');
+            if (modalBookmarkBtn) {
+                modalBookmarkBtn.addEventListener('click', function () {
+                    const ideaId = modal.dataset.ideaId;
+                    if (!ideaId || this.dataset.busy === '1') return;
+                    this.dataset.busy = '1';
+                    sendBookmark(ideaId)
+                        .then(data => {
+                            if (!data.success) return;
+                            this.classList.toggle('bookmarked', data.bookmarked);
+                            this.querySelector('.material-symbols-outlined').textContent = data.bookmarked ? 'bookmark' : 'bookmark_border';
+                            const cardBtn = document.querySelector('.idea-card[data-id="' + ideaId + '"] .bookmark-btn');
+                            applyBookmarkUI(cardBtn, data.bookmarked);
+                            const c = document.querySelector('.idea-card[data-id="' + ideaId + '"]');
+                            if (c) c.setAttribute('data-bookmarked', data.bookmarked ? 'true' : 'false');
+                            refreshBookmarkCount();
+                        })
+                        .catch(() => {})
+                        .finally(() => { this.dataset.busy = '0'; });
+                });
+            }
+
+            // Modal "Share" button — copies a link to the idea (native share if available).
+            const modalShareBtn = document.getElementById('modalShareBtn');
+            if (modalShareBtn) {
+                modalShareBtn.addEventListener('click', function () {
+                    const ideaId = modal.dataset.ideaId;
+                    const title = modal.dataset.ideaTitle || 'Idea';
+                    const url = window.location.origin + '/idea-corner/#idea-' + ideaId;
+                    const label = this.querySelector('.share-label');
+                    const original = label ? label.textContent : '';
+                    if (navigator.share) {
+                        navigator.share({ title: title, url: url }).catch(() => {});
+                        return;
+                    }
+                    navigator.clipboard.writeText(url).then(() => {
+                        if (label) { label.textContent = 'Link copied!'; setTimeout(() => { label.textContent = original; }, 1500); }
+                    }).catch(() => {});
+                });
+            }
 
             // Close modal
             modalClose.addEventListener('click', closeModal);

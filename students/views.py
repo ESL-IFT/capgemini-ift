@@ -9,7 +9,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_protect
 from django.core.mail import send_mail
-from .models import Student, IdeaSubmission, UploadedFile, School
+from .models import Student, IdeaSubmission, UploadedFile, School, IdeaLike, IdeaBookmark
 from .forms import StudentRegistrationForm, IdeaSubmissionForm
 from ai_assistant.processors import generate_summary
 import os
@@ -332,6 +332,31 @@ def dashboard(request):
 import threading
 
 @login_required
+def _learning_progress(student, membership):
+    """Own module progress + each team member's progress. Shared by leader and
+    member views so both see the same 'Team Members Progress' list."""
+    from students.models import LearningVideo, VideoProgress
+    mandatory_videos = list(LearningVideo.objects.filter(is_active=True, is_mandatory=True).order_by('order'))
+    watched_ids = set(VideoProgress.objects.filter(student=student, watched=True).values_list('video_id', flat=True))
+    video_list = [{'id': v.id, 'title': v.title, 'youtube_url': v.youtube_url, 'youtube_id': v.youtube_id, 'watched': v.id in watched_ids} for v in mandatory_videos]
+    videos_total = len(video_list)
+    videos_watched = len([v for v in video_list if v['watched']])
+
+    team_video_status = []
+    if membership:
+        for m in membership.team.memberships.filter(status='active').select_related('student__user'):
+            if m.student:
+                m_watched = VideoProgress.objects.filter(student=m.student, watched=True, video__in=mandatory_videos).count()
+                team_video_status.append({
+                    'name': m.student.user.get_full_name() or m.student.user.username,
+                    'role': m.role,
+                    'watched': m_watched,
+                    'total': videos_total,
+                    'complete': m_watched >= videos_total,
+                })
+    return video_list, videos_total, videos_watched, team_video_status
+
+
 def submit_idea(request):
     """Idea submission form — only team leader or solo student can submit"""
     try:
@@ -344,18 +369,23 @@ def submit_idea(request):
     from students.models import TeamMembership
     membership = TeamMembership.objects.filter(student=student).first()
     if membership and membership.role != 'leader':
-        # Member — cannot submit, show appropriate page
+        # Member — cannot submit, but should still see modules + team progress.
         team = membership.team
         leader_membership = team.memberships.filter(role='leader').select_related('student').first()
         leader_submission = None
         if leader_membership and leader_membership.student:
             leader_submission = IdeaSubmission.objects.filter(student=leader_membership.student).first()
 
+        video_list, videos_total, videos_watched, team_video_status = _learning_progress(student, membership)
         return render(request, 'students/member_idea_view.html', {
             'student': student,
             'team': team,
             'leader_submission': leader_submission,
             'membership': membership,
+            'video_list': video_list,
+            'videos_total': videos_total,
+            'videos_watched': videos_watched,
+            'team_video_status': team_video_status,
         })
 
     # Check for existing submission (for edit flow)
@@ -462,29 +492,10 @@ def submit_idea(request):
     else:
         form = IdeaSubmissionForm(instance=existing) if existing else IdeaSubmissionForm()
 
-    # Video completion data for popup
-    from students.models import LearningVideo, VideoProgress, TeamMembership
-    mandatory_videos = list(LearningVideo.objects.filter(is_active=True, is_mandatory=True).order_by('order'))
-    watched_ids = set(VideoProgress.objects.filter(student=student, watched=True).values_list('video_id', flat=True))
-    video_list = [{'id': v.id, 'title': v.title, 'youtube_url': v.youtube_url, 'youtube_id': v.youtube_id, 'watched': v.id in watched_ids} for v in mandatory_videos]
-    videos_total = len(video_list)
-    videos_watched = len([v for v in video_list if v['watched']])
+    # Video completion data for popup (+ team progress) — shared helper.
+    video_list, videos_total, videos_watched, team_video_status = _learning_progress(student, membership)
     all_videos_done = videos_watched >= videos_total
-
-    # Team members video status
-    team_video_status = []
-    membership = TeamMembership.objects.filter(student=student).first()
-    if membership:
-        for m in membership.team.memberships.filter(status='active').select_related('student__user'):
-            if m.student:
-                m_watched = VideoProgress.objects.filter(student=m.student, watched=True, video__in=mandatory_videos).count()
-                team_video_status.append({
-                    'name': m.student.user.get_full_name() or m.student.user.username,
-                    'role': m.role,
-                    'watched': m_watched,
-                    'total': videos_total,
-                    'complete': m_watched >= videos_total,
-                })
+    if team_video_status:
         all_videos_done = all_videos_done and all(t['complete'] for t in team_video_status)
 
     return render(request, 'students/submit_idea_v2.html', {
@@ -895,13 +906,39 @@ def student_profile(request):
     except Student.DoesNotExist:
         return redirect('accounts:sign_in')
 
-    submissions_count = IdeaSubmission.objects.filter(student=student).count()
-    team_count = 0
-    latest = IdeaSubmission.objects.filter(student=student).first()
-    if latest:
-        team_count = latest.team_members.count()
+    # Counts based on the current Team/TeamMembership system (not legacy).
+    from students.models import TeamMembership
+    SUBMITTED_STATUSES = ['submitted', 'under_review', 'evaluated', 'reviewed']
+
+    membership = TeamMembership.objects.filter(student=student).select_related('team').first()
+    if membership:
+        team = membership.team
+        # Count everyone in the team, including invited members not yet joined.
+        all_members = team.memberships.filter(status__in=['active', 'pending'])
+        team_count = all_members.count()
+        member_students = [m.student_id for m in all_members if m.student_id]
+        # "Ideas Submitted" = submitted (non-draft) ideas across the whole team.
+        submissions_count = IdeaSubmission.objects.filter(
+            student_id__in=member_students, status__in=SUBMITTED_STATUSES
+        ).count()
+    else:
+        team_count = 0
+        submissions_count = IdeaSubmission.objects.filter(
+            student=student, status__in=SUBMITTED_STATUSES
+        ).count()
 
     if request.method == 'POST':
+        # Profile photo upload (multipart, separate from the JSON edit sections).
+        if request.FILES.get('photo'):
+            photo = request.FILES['photo']
+            if photo.content_type not in ('image/jpeg', 'image/png', 'image/webp'):
+                return JsonResponse({'success': False, 'message': 'Please upload a JPG, PNG or WEBP image.'}, status=400)
+            if photo.size > 5 * 1024 * 1024:
+                return JsonResponse({'success': False, 'message': 'Image must be under 5 MB.'}, status=400)
+            student.photo = photo
+            student.save(update_fields=['photo'])
+            return JsonResponse({'success': True, 'message': 'Profile photo updated!', 'photo_url': student.photo.url})
+
         import json as json_mod
         if request.content_type == 'application/json':
             data = json_mod.loads(request.body)
@@ -1377,6 +1414,31 @@ def handle_suggestion(request, suggestion_id):
     action = data.get('action', '')
 
     if action == 'approve':
+        # Optional per-question selection: `fields` = list of field names to merge.
+        # If omitted/empty -> approve all (original behaviour, backward compatible).
+        selected = data.get('fields') or []
+        if not isinstance(selected, list):
+            selected = []
+
+        if selected:
+            applied = suggestion.apply_changes(only_fields=selected)
+            # Keep only the still-unreviewed changes on the suggestion.
+            remaining = {f: v for f, v in suggestion.changes.items() if f not in applied}
+            if remaining:
+                # Some questions still pending review — keep it open for later.
+                suggestion.changes = remaining
+                suggestion.save(update_fields=['changes'])
+                create_notification(suggestion.suggested_by, 'submission', 'Some Suggestions Approved', f'{len(applied)} of your suggested change(s) were merged; the rest are still under review.', 'check_circle', '/my-idea/', 'View Idea')
+                return JsonResponse({'success': True, 'message': f'{len(applied)} change(s) merged. {len(remaining)} still pending.', 'partial': True})
+            # Everything got applied — close it out as approved.
+            suggestion.status = 'approved'
+            suggestion.reviewed_by = request.user
+            suggestion.reviewed_at = timezone.now()
+            suggestion.save()
+            create_notification(suggestion.suggested_by, 'submission', 'Suggestion Approved', 'Your suggested changes have been approved and merged.', 'check_circle', '/my-idea/', 'View Idea')
+            return JsonResponse({'success': True, 'message': f'{len(applied)} change(s) approved and merged!'})
+
+        # No selection -> approve and merge everything.
         suggestion.status = 'approved'
         suggestion.reviewed_by = request.user
         suggestion.reviewed_at = timezone.now()
@@ -1472,9 +1534,23 @@ def publish_idea(request, submission_id):
 @login_required
 def idea_corner(request):
     """Public idea gallery — browse all published ideas."""
+    from django.db.models import Count
     ideas = IdeaSubmission.objects.filter(
         status__in=['submitted', 'evaluated', 'reviewed']
-    ).select_related('student__user', 'student__school').order_by('-submitted_at')
+    ).select_related('student__user', 'student__school').annotate(
+        like_count=Count('likes', distinct=True)
+    ).order_by('-submitted_at')
+
+    # Ideas the current user has already liked / bookmarked (to show filled icons).
+    liked_ids = set()
+    bookmarked_ids = set()
+    if request.user.is_authenticated:
+        liked_ids = set(
+            IdeaLike.objects.filter(user=request.user).values_list('submission_id', flat=True)
+        )
+        bookmarked_ids = set(
+            IdeaBookmark.objects.filter(user=request.user).values_list('submission_id', flat=True)
+        )
 
     # Stats
     total_ideas = ideas.count()
@@ -1545,6 +1621,9 @@ def idea_corner(request):
             'ai_summary': ai_summary_text,
             'tags': [category],
             'submitted_at': idea.submitted_at,
+            'like_count': idea.like_count,
+            'liked': idea.id in liked_ids,
+            'bookmarked': idea.id in bookmarked_ids,
         })
 
     context = {
@@ -1554,6 +1633,41 @@ def idea_corner(request):
         'student': request.user.student_profile if hasattr(request.user, 'student_profile') else None,
     }
     return render(request, 'students/idea_corner.html', context)
+
+
+@login_required
+@require_POST
+def toggle_idea_like(request, idea_id):
+    """Like / unlike a published idea. Returns the new like count + state."""
+    idea = get_object_or_404(
+        IdeaSubmission, id=idea_id,
+        status__in=['submitted', 'evaluated', 'reviewed']
+    )
+    like, created = IdeaLike.objects.get_or_create(submission=idea, user=request.user)
+    if not created:
+        like.delete()
+        liked = False
+    else:
+        liked = True
+    count = IdeaLike.objects.filter(submission=idea).count()
+    return JsonResponse({'success': True, 'liked': liked, 'like_count': count})
+
+
+@login_required
+@require_POST
+def toggle_idea_bookmark(request, idea_id):
+    """Bookmark / un-bookmark a published idea. Returns the new state."""
+    idea = get_object_or_404(
+        IdeaSubmission, id=idea_id,
+        status__in=['submitted', 'evaluated', 'reviewed']
+    )
+    bm, created = IdeaBookmark.objects.get_or_create(submission=idea, user=request.user)
+    if not created:
+        bm.delete()
+        bookmarked = False
+    else:
+        bookmarked = True
+    return JsonResponse({'success': True, 'bookmarked': bookmarked})
 
 
 @login_required
@@ -1706,10 +1820,15 @@ def mark_notification_read(request, notification_id):
 
 @login_required
 def mark_all_notifications_read(request):
-    """Mark all notifications as read."""
+    """Mark all notifications as read, and clear announcement badges too."""
     from students.models import Notification
     if request.method == 'POST':
         Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
+        # Also clear the announcement/content part of the bell badge.
+        profile = getattr(request.user, 'profile', None)
+        if profile is not None:
+            profile.announcements_read_at = timezone.now()
+            profile.save(update_fields=['announcements_read_at'])
         return JsonResponse({'success': True})
     return JsonResponse({'error': 'POST required'}, status=405)
 
