@@ -173,7 +173,7 @@ def school_sign_up(request):
                         tce_proxy_url,
                         json=tce_payload,
                         headers={'X-Proxy-Secret': tce_proxy_secret},
-                        timeout=20,
+                        timeout=25,
                     )
                 elif django_settings.TCE_API_TOKEN:
                     print(f"[TCE] Using direct API: {django_settings.TCE_API_URL}")
