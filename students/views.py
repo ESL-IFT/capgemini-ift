@@ -621,51 +621,139 @@ def school_dashboard(request):
         return redirect('accounts:sign_in')
 
     if request.method == 'POST':
-        # Section A - School Information
-        school.branch = request.POST.get('branch', school.branch)
-        school.board = request.POST.get('board', school.board)
-        school.affiliation_number = request.POST.get('affiliation_number', school.affiliation_number)
-        school.school_type = request.POST.get('school_type', school.school_type)
-        school.medium = request.POST.get('medium', school.medium)
-        established_year = request.POST.get('established_year', '')
-        school.established_year = int(established_year) if established_year else None
-        total_students = request.POST.get('total_students', '')
-        school.total_students = int(total_students) if total_students else None
+        import re
+        from django.core.validators import validate_email, URLValidator
+        from django.core.exceptions import ValidationError as DjangoValidationError
 
-        # Section B - Location
-        school.address = request.POST.get('address', school.address)
-        school.pin_code = request.POST.get('pin_code', school.pin_code)
-        school.country = request.POST.get('country', school.country) or 'India'
+        P = request.POST
+        def g(k):
+            return (P.get(k) or '').strip()
 
-        # Section C - Contact & Principal
-        school.principal_name = request.POST.get('principal_name', school.principal_name)
-        school.principal_email = request.POST.get('principal_email', school.principal_email)
-        school.website = request.POST.get('website', school.website)
+        branch = g('branch')
+        board = g('board')
+        affiliation_number = g('affiliation_number')
+        school_type = g('school_type')
+        medium = g('medium')
+        established_year = g('established_year')
+        total_students = g('total_students')
+        address = g('address')
+        pin_code = re.sub(r'\s', '', g('pin_code'))
+        country = g('country') or 'India'
+        principal_name = g('principal_name')
+        principal_email = g('principal_email')
+        website = g('website')
+        dt_name = g('designated_teacher_name')
+        dt_mobile = g('designated_teacher_mobile')
 
-        # Section D - Designated Teacher
-        school.designated_teacher_name = request.POST.get('designated_teacher_name', school.designated_teacher_name)
-        school.designated_teacher_mobile = request.POST.get('designated_teacher_mobile', school.designated_teacher_mobile)
+        # Normalise mobile: strip non-digits, drop +91 / leading 0
+        m = re.sub(r'\D', '', dt_mobile)
+        if len(m) == 12 and m.startswith('91'):
+            m = m[2:]
+        elif len(m) == 11 and m.startswith('0'):
+            m = m[1:]
 
-        # Check required fields to activate
-        required_filled = all([
-            school.board,
-            school.address,
-            school.pin_code,
-            school.principal_name,
-            school.principal_email,
-            school.designated_teacher_name,
-            school.designated_teacher_mobile,
-        ])
+        cur_year = timezone.now().year
+        NAME_RE = re.compile(r"^[A-Za-z][A-Za-z .'\-]{1,99}$")
+        BOARDS = ['CBSE', 'ICSE', 'SSC', 'IB', 'IGCSE', 'Other']
+        TYPES = ['private', 'government', 'aided', 'other']
 
-        if required_filled:
-            school.status = 'active'
-            school.is_active = True
+        errors = {}
+        # --- Required + format ---
+        if not board:
+            errors['board'] = 'Please select a board.'
+        elif board not in BOARDS:
+            errors['board'] = 'Invalid board selected.'
+        if not address:
+            errors['address'] = 'Address is required.'
+        elif len(address) < 5:
+            errors['address'] = 'Enter a complete address (at least 5 characters).'
+        elif len(address) > 500:
+            errors['address'] = 'Address is too long (max 500 characters).'
+        if not pin_code:
+            errors['pin_code'] = 'PIN code is required.'
+        elif not re.fullmatch(r'\d{6}', pin_code):
+            errors['pin_code'] = 'PIN code must be exactly 6 digits.'
+        if not principal_name:
+            errors['principal_name'] = 'Principal name is required.'
+        elif not NAME_RE.fullmatch(principal_name):
+            errors['principal_name'] = 'Enter a valid name (letters, spaces, . - only).'
+        if not principal_email:
+            errors['principal_email'] = 'Principal email is required.'
+        else:
+            try:
+                validate_email(principal_email)
+            except DjangoValidationError:
+                errors['principal_email'] = 'Enter a valid email address.'
+        if not dt_name:
+            errors['designated_teacher_name'] = 'Designated teacher name is required.'
+        elif not NAME_RE.fullmatch(dt_name):
+            errors['designated_teacher_name'] = 'Enter a valid name (letters, spaces, . - only).'
+        if not dt_mobile:
+            errors['designated_teacher_mobile'] = 'Mobile number is required.'
+        elif not re.fullmatch(r'[6-9]\d{9}', m):
+            errors['designated_teacher_mobile'] = 'Enter a valid 10-digit Indian mobile number.'
+        # --- Optional but validated if provided ---
+        if school_type and school_type not in TYPES:
+            errors['school_type'] = 'Invalid school type.'
+        if website:
+            try:
+                URLValidator(schemes=['http', 'https'])(website)
+            except DjangoValidationError:
+                errors['website'] = 'Enter a valid URL (starting with http:// or https://).'
+        year_val = None
+        if established_year:
+            if not re.fullmatch(r'\d{4}', established_year) or not (1800 <= int(established_year) <= cur_year):
+                errors['established_year'] = f'Enter a valid year (1800–{cur_year}).'
+            else:
+                year_val = int(established_year)
+        students_val = None
+        if total_students:
+            if not re.fullmatch(r'\d{1,6}', total_students) or int(total_students) < 1:
+                errors['total_students'] = 'Enter a valid number of students.'
+            else:
+                students_val = int(total_students)
+        if len(branch) > 200:
+            errors['branch'] = 'Too long (max 200 characters).'
+        if affiliation_number:
+            if not affiliation_number.isdigit():
+                errors['affiliation_number'] = 'Affiliation number must contain only numbers.'
+            elif len(affiliation_number) > 100:
+                errors['affiliation_number'] = 'Affiliation number is too long (max 100 digits).'
+        if len(medium) > 100:
+            errors['medium'] = 'Too long (max 100 characters).'
+        if len(country) > 100:
+            errors['country'] = 'Too long (max 100 characters).'
+
+        if errors:
+            return JsonResponse({
+                'success': False,
+                'message': 'Please fix the highlighted fields.',
+                'errors': errors,
+            }, status=400)
+
+        # --- Valid: save ---
+        school.branch = branch
+        school.board = board
+        school.affiliation_number = affiliation_number
+        school.school_type = school_type
+        school.medium = medium
+        school.established_year = year_val
+        school.total_students = students_val
+        school.address = address
+        school.pin_code = pin_code
+        school.country = country
+        school.principal_name = principal_name
+        school.principal_email = principal_email
+        school.website = website
+        school.designated_teacher_name = dt_name
+        school.designated_teacher_mobile = m
+        school.status = 'active'
+        school.is_active = True
         school.save()
 
-        msg = 'School profile completed successfully!' if required_filled else 'Profile saved. Fill all required fields to activate.'
         return JsonResponse({
             'success': True,
-            'message': msg,
+            'message': 'School profile completed successfully!',
         })
 
     # If pending, show complete profile form

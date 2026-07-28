@@ -396,6 +396,8 @@
             outline: none; transition: all 0.3s ease;
         }
         .form-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(94, 42, 151, 0.1); }
+        .form-input.input-error { border-color: #EF4444; box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12); }
+        .field-error-msg { color: #EF4444; font-size: 0.78rem; margin-top: 4px; display: flex; align-items: center; gap: 4px; }
         .form-input::placeholder { color: #9CA3AF; }
 
         .form-actions {
@@ -490,7 +492,7 @@
                 <p>Please fill in the remaining details to activate your school account.</p>
             </div>
 
-            <form method="POST" id="schoolProfileForm" novalidate>
+            <form method="POST" id="schoolProfileForm">
                 {% csrf_token %}
 
                 <!-- Section A - School Information -->
@@ -522,7 +524,7 @@
                         </div>
                         <div class="form-group">
                             <label class="form-label">Affiliation Number</label>
-                            <input type="text" name="affiliation_number" class="form-input" placeholder="Board affiliation number" value="{{ school.affiliation_number }}" />
+                            <input type="text" name="affiliation_number" class="form-input" placeholder="Board affiliation number (numbers only)" inputmode="numeric" pattern="[0-9]+" title="Numbers only" value="{{ school.affiliation_number }}" />
                         </div>
                         <div class="form-group">
                             <label class="form-label">School Type</label>
@@ -544,7 +546,7 @@
                         </div>
                         <div class="form-group">
                             <label class="form-label">Total Students (approx.)</label>
-                            <input type="number" name="total_students" class="form-input" placeholder="e.g. 1200" min="1" value="{{ school.total_students|default_if_none:'' }}" />
+                            <input type="number" name="total_students" class="form-input" placeholder="e.g. 1200" min="1" max="100000" value="{{ school.total_students|default_if_none:'' }}" />
                         </div>
                     </div>
                 </div>
@@ -570,7 +572,7 @@
                         </div>
                         <div class="form-group">
                             <label class="form-label">Pin Code <span class="required">*</span></label>
-                            <input type="text" name="pin_code" class="form-input" placeholder="6-digit pin code" maxlength="6" value="{{ school.pin_code }}" required />
+                            <input type="text" name="pin_code" class="form-input" placeholder="6-digit pin code" maxlength="6" pattern="\d{6}" inputmode="numeric" title="Enter a 6-digit PIN code" value="{{ school.pin_code }}" required />
                         </div>
                         <div class="form-group">
                             <label class="form-label">Country</label>
@@ -588,7 +590,7 @@
                     <div class="form-grid">
                         <div class="form-group">
                             <label class="form-label">Principal Name <span class="required">*</span></label>
-                            <input type="text" name="principal_name" class="form-input" placeholder="Full name" value="{{ school.principal_name }}" required />
+                            <input type="text" name="principal_name" class="form-input" placeholder="Full name" pattern="[A-Za-z][A-Za-z .'\-]{1,99}" title="Letters, spaces, . - only" value="{{ school.principal_name }}" required />
                         </div>
                         <div class="form-group">
                             <label class="form-label">Principal Email <span class="required">*</span></label>
@@ -618,11 +620,11 @@
                     <div class="form-grid">
                         <div class="form-group">
                             <label class="form-label">Designated Teacher Name <span class="required">*</span></label>
-                            <input type="text" name="designated_teacher_name" class="form-input" placeholder="Full name of coordinating teacher" value="{{ school.designated_teacher_name }}" required />
+                            <input type="text" name="designated_teacher_name" class="form-input" placeholder="Full name of coordinating teacher" pattern="[A-Za-z][A-Za-z .'\-]{1,99}" title="Letters, spaces, . - only" value="{{ school.designated_teacher_name }}" required />
                         </div>
                         <div class="form-group">
                             <label class="form-label">Designated Teacher Mobile <span class="required">*</span></label>
-                            <input type="tel" name="designated_teacher_mobile" class="form-input" placeholder="10-digit mobile number" maxlength="15" value="{{ school.designated_teacher_mobile }}" required />
+                            <input type="tel" name="designated_teacher_mobile" class="form-input" placeholder="10-digit mobile number" maxlength="10" pattern="[6-9][0-9]{9}" inputmode="numeric" title="Enter a valid 10-digit mobile number" value="{{ school.designated_teacher_mobile }}" required />
                         </div>
                     </div>
                 </div>
@@ -810,7 +812,7 @@
             <div class="page-header">
                 <div class="row align-items-center">
                     <div class="col-12 col-md-6">
-                        <h1>Welcome, {{ school.name }}</h1>
+                        <h1>Welcome, {{ school.designated_teacher_name|default:school.name }}</h1>
                         <p>IFT Program Overview for <span style="font-weight:600; color:var(--primary);">{{ school.name }}</span></p>
                     </div>
                 </div>
@@ -1247,8 +1249,39 @@
     // ===== Profile Completion Form (pending state) =====
     const form = document.getElementById('schoolProfileForm');
     if (form) {
+        // Affiliation Number: allow ONLY digits while typing (strip anything else)
+        const affInput = form.querySelector('input[name="affiliation_number"]');
+        if (affInput) {
+            affInput.addEventListener('input', function() {
+                const cleaned = this.value.replace(/[^0-9]/g, '');
+                if (this.value !== cleaned) this.value = cleaned;
+            });
+        }
+        function clearFieldErrors() {
+            form.querySelectorAll('.input-error').forEach(function(el){ el.classList.remove('input-error'); });
+            form.querySelectorAll('.field-error-msg').forEach(function(el){ el.remove(); });
+        }
+        function showFieldErrors(errors) {
+            let first = null;
+            Object.keys(errors).forEach(function(name) {
+                const inp = form.querySelector('[name="' + name + '"]');
+                if (!inp) return;
+                inp.classList.add('input-error');
+                const msg = document.createElement('div');
+                msg.className = 'field-error-msg';
+                msg.innerHTML = '<span class="material-symbols-outlined" style="font-size:15px;">error</span>' + errors[name];
+                inp.parentNode.appendChild(msg);
+                if (!first) first = inp;
+            });
+            if (first) { first.scrollIntoView({ behavior: 'smooth', block: 'center' }); first.focus(); }
+        }
+        function resetBtn(btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:20px;">check_circle</span> Complete Profile';
+        }
         form.addEventListener('submit', function(e) {
             e.preventDefault();
+            clearFieldErrors();
             const btn = form.querySelector('.btn-submit');
             btn.disabled = true;
             btn.innerHTML = '<span class="material-symbols-outlined">hourglass_empty</span> Saving...';
@@ -1266,15 +1299,14 @@
                     showToast(data.message, 'success');
                     setTimeout(() => { window.location.reload(); }, 1500);
                 } else {
+                    if (data.errors) showFieldErrors(data.errors);
                     showToast(data.message || 'Something went wrong', 'error');
-                    btn.disabled = false;
-                    btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:20px;">check_circle</span> Complete Profile';
+                    resetBtn(btn);
                 }
             })
             .catch(err => {
                 showToast('Network error. Please try again.', 'error');
-                btn.disabled = false;
-                btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:20px;">check_circle</span> Complete Profile';
+                resetBtn(btn);
             });
         });
     }

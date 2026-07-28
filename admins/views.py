@@ -2918,9 +2918,21 @@ def _certificate_recipients(cert_type):
                 .filter(is_disqualified=False, rank__isnull=False, rank__lte=100))
 
     if cert_type == 'participation':
-        for s in (IdeaSubmission.objects.exclude(status='draft')
-                  .select_related('student__user')):
-            add_student(s.student)
+        # Everyone who participated: submitters of a non-draft idea AND their
+        # teammates (a team submits one idea, but every member participated).
+        from students.models import TeamMembership
+        submitter_ids = set(IdeaSubmission.objects.exclude(status='draft')
+                            .values_list('student_id', flat=True))
+        student_ids = set(submitter_ids)
+        team_ids = set(TeamMembership.objects.filter(student_id__in=submitter_ids)
+                       .values_list('team_id', flat=True))
+        if team_ids:
+            student_ids.update(
+                TeamMembership.objects.filter(team_id__in=team_ids,
+                                              student__isnull=False)
+                .values_list('student_id', flat=True))
+        for s in Student.objects.filter(id__in=student_ids).select_related('user'):
+            add_student(s)
     elif cert_type == 'top100':
         for e in top100_evals().select_related('submission__student__user'):
             add_student(e.submission.student)
@@ -2991,27 +3003,41 @@ def _send_certificate(cert_type, name, email, student=None, school=None,
 
 
 def send_participation_certificate(student, sent_by=None):
-    """Auto-email the Participation certificate to a student, ONCE, in the
-    background. Safe to call from a request handler — it never blocks or raises
-    (any error is swallowed). Skips if the student was already sent one, or has
-    no email. Called when a student publishes/submits their idea.
+    """Auto-email the Participation certificate to `student` AND all their
+    teammates — a team submits one idea, but every member participated. Runs
+    in the background, sends ONCE per student (dedupe), skips students with no
+    email, and never blocks or raises. Called when a student publishes/submits.
     """
     import threading
 
-    def _run():
+    def _send_one(s):
         try:
             from admins.models import CertificateIssue
             from admins.certificates import student_display_name
             if CertificateIssue.objects.filter(
                     cert_type='participation', status='sent',
-                    is_test=False, student=student).exists():
+                    is_test=False, student=s).exists():
                 return  # already sent — no duplicate
-            email = (student.user.email or '').strip()
+            email = (s.user.email or '').strip()
             if not email:
                 return
-            _send_certificate('participation', student_display_name(student),
-                              email, student=student, sent_by=sent_by,
-                              is_test=False)
+            _send_certificate('participation', student_display_name(s),
+                              email, student=s, sent_by=sent_by, is_test=False)
+        except Exception:
+            pass
+
+    def _run():
+        try:
+            from students.models import Student, TeamMembership
+            ids = {student.id}
+            team_ids = set(TeamMembership.objects.filter(student=student)
+                           .values_list('team_id', flat=True))
+            if team_ids:
+                ids.update(TeamMembership.objects.filter(
+                    team_id__in=team_ids, student__isnull=False)
+                    .values_list('student_id', flat=True))
+            for s in Student.objects.filter(id__in=ids).select_related('user'):
+                _send_one(s)
         except Exception:
             pass  # must never affect the caller (idea submission)
 
