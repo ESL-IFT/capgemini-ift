@@ -1,5 +1,5 @@
 {% extends "accounts/email_onboard_base.html" %}
-{% block greeting %}Payment Successful, {{ user.first_name }}!{% endblock %}
+{% block greeting %}Payment Successful {{ user.first_name }}!{% endblock %}
 {% block intro %}Your registration fee of <strong>&#8377;{{ payment_amount }}</strong> has been received successfully. You can now create or join a team and submit your idea.{% endblock %}
 {% block credentials %}{% endblock %}
 {% block content %}
