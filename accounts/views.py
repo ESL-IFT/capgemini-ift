@@ -152,7 +152,9 @@ def school_sign_up(request):
             )
             UserProfile.objects.create(user=user, role='school')
 
-            # TCE API call — try direct first, fallback to proxy
+            # TCE validation via India-region (Mumbai) proxy — TCE API is only
+            # reachable from Indian IPs, and Railway/Cloudflare-edge egress is
+            # outside India, so we route through a Cloud Run Mumbai proxy.
             is_tce = False
             try:
                 import requests as http_requests
@@ -164,33 +166,21 @@ def school_sign_up(request):
                     'state': form.cleaned_data['state'],
                     'pin_code': form.cleaned_data['pin_code'],
                 }
+                tce_proxy_url = getattr(django_settings, 'TCE_PROXY_URL', '')
+                tce_proxy_secret = getattr(django_settings, 'TCE_PROXY_SECRET', '')
                 print(f"[TCE] Payload: {tce_payload}", flush=True)
-                tce_resp = None
-                try:
+                if tce_proxy_url:
                     tce_resp = http_requests.post(
-                        django_settings.TCE_API_URL,
+                        tce_proxy_url,
                         json=tce_payload,
-                        headers={
-                            'Content-Type': 'application/json',
-                            'Authorization': f'Bearer {django_settings.TCE_API_TOKEN}',
-                        },
-                        timeout=5,
+                        headers={'X-Proxy-Secret': tce_proxy_secret},
+                        timeout=20,
                     )
-                    print(f"[TCE] Direct: status={tce_resp.status_code}", flush=True)
-                except Exception as direct_err:
-                    print(f"[TCE] Direct failed: {direct_err}, trying proxy...", flush=True)
-                    tce_proxy_url = getattr(django_settings, 'TCE_PROXY_URL', '')
-                    tce_proxy_secret = getattr(django_settings, 'TCE_PROXY_SECRET', '')
-                    if tce_proxy_url:
-                        tce_resp = http_requests.post(
-                            tce_proxy_url,
-                            json=tce_payload,
-                            headers={'X-Proxy-Secret': tce_proxy_secret},
-                            timeout=20,
-                        )
-                        print(f"[TCE] Proxy: status={tce_resp.status_code}, body={tce_resp.text}", flush=True)
-                if tce_resp and tce_resp.status_code == 200:
-                    is_tce = tce_resp.json().get('is_tce_school', False)
+                    print(f"[TCE] Proxy: status={tce_resp.status_code}, body={tce_resp.text}", flush=True)
+                    if tce_resp.status_code == 200:
+                        is_tce = tce_resp.json().get('is_tce_school', False)
+                else:
+                    print("[TCE] Skipped — TCE_PROXY_URL not configured", flush=True)
                 print(f"[TCE] {form.cleaned_data['school_name']}: is_tce={is_tce}", flush=True)
             except Exception as e:
                 print(f"[TCE] API error: {e}", flush=True)
