@@ -78,6 +78,13 @@
             display: block; text-align: center; margin-top: 1.25rem;
             color: #5E2A97; text-decoration: none; font-size: 0.85rem; font-weight: 500;
         }
+        .blink-note {
+            text-align: center; background: #fff7ed; color: #9a3412;
+            border: 1px solid #fed7aa; border-radius: 10px;
+            padding: 10px 14px; font-size: 0.82rem; font-weight: 600;
+            margin-bottom: 1rem; animation: blink 1.2s ease-in-out infinite;
+        }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
     </style>
 </head>
 <body>
@@ -86,6 +93,8 @@
             <div class="logo-text">India's Future Tycoons</div>
             <p style="font-size:0.75rem; color:#94a3b8; margin-top:2px;">Season 6 Registration Fee</p>
         </div>
+
+        <div class="blink-note">To access your dashboard, first complete your payment.</div>
 
         <div class="divider"></div>
 
@@ -127,12 +136,6 @@
             Secured by Razorpay. 100% safe payment.
         </div>
 
-        <div class="divider"></div>
-        <form method="post" style="display:flex;gap:8px;">
-            {% csrf_token %}
-            <input type="text" name="coupon_code" placeholder="Coupon Code" style="flex:1;padding:10px 14px;border:1px solid #e0e0e0;border-radius:8px;font-family:'Poppins',sans-serif;font-size:0.85rem;">
-            <button type="submit" style="padding:10px 18px;background:#222;color:#fff;border:none;border-radius:8px;font-family:'Poppins',sans-serif;font-size:0.85rem;font-weight:600;cursor:pointer;">Apply</button>
-        </form>
         {% if messages %}
         {% for message in messages %}
         <div class="result {% if message.tags == 'success' %}success{% else %}error{% endif %}">{{ message }}</div>
@@ -140,8 +143,6 @@
         {% endif %}
 
         <div class="result" id="result"></div>
-
-        <a href="/dashboard/" class="back-link">&larr; Back to Dashboard</a>
     </div>
 
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>

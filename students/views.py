@@ -3120,19 +3120,6 @@ def initiate_payment(request):
         messages.info(request, 'Payment already completed.')
         return redirect('students:dashboard')
 
-    if request.method == 'POST' and request.POST.get('coupon_code'):
-        code = request.POST.get('coupon_code', '').strip().upper()
-        if code == 'IFTFREE2026':
-            student.is_paid = True
-            student.payment_amount = 0
-            student.payment_transaction_id = f'COUPON-{code}'
-            student.paid_at = timezone.now()
-            student.save(update_fields=['is_paid', 'payment_amount', 'payment_transaction_id', 'paid_at'])
-            messages.success(request, 'Coupon applied! Payment bypassed.')
-            return redirect('students:dashboard')
-        else:
-            messages.error(request, 'Invalid coupon code.')
-
     import razorpay
     from django.conf import settings
     client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
