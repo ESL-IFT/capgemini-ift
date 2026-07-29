@@ -188,7 +188,7 @@ def school_sign_up(request):
                             headers={'X-Proxy-Secret': tce_proxy_secret},
                             timeout=20,
                         )
-                        print(f"[TCE] Proxy: status={tce_resp.status_code}", flush=True)
+                        print(f"[TCE] Proxy: status={tce_resp.status_code}, body={tce_resp.text}", flush=True)
                 if tce_resp and tce_resp.status_code == 200:
                     is_tce = tce_resp.json().get('is_tce_school', False)
                 print(f"[TCE] {form.cleaned_data['school_name']}: is_tce={is_tce}", flush=True)
