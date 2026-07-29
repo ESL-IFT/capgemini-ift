@@ -68,6 +68,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'ift_platform.middleware.GoogleAnalyticsMiddleware',
 ]
 
 ROOT_URLCONF = 'ift_platform.urls'
