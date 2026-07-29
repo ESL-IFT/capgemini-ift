@@ -328,7 +328,9 @@ def _learning_progress(student, membership):
     """Own module progress + each team member's progress. Shared by leader and
     member views so both see the same 'Team Members Progress' list."""
     from students.models import LearningVideo, VideoProgress
-    mandatory_videos = list(LearningVideo.objects.filter(is_active=True, is_mandatory=True).order_by('order'))
+    # Videos are OPTIONAL — this progress is informational only and never blocks
+    # idea submission. All active videos are counted.
+    mandatory_videos = list(LearningVideo.objects.filter(is_active=True).order_by('order'))
     watched_ids = set(VideoProgress.objects.filter(student=student, watched=True).values_list('video_id', flat=True))
     video_list = [{'id': v.id, 'title': v.title, 'youtube_url': v.youtube_url, 'youtube_id': v.youtube_id, 'watched': v.id in watched_ids} for v in mandatory_videos]
     videos_total = len(video_list)
@@ -3043,7 +3045,8 @@ def mark_video_watched(request, video_id):
 def video_completion_status(request):
     from students.models import LearningVideo, VideoProgress, TeamMembership
     student = request.user.student_profile
-    videos = LearningVideo.objects.filter(is_active=True, is_mandatory=True)
+    # Videos are optional — progress is informational only.
+    videos = LearningVideo.objects.filter(is_active=True)
 
     # Current student progress
     watched_ids = set(VideoProgress.objects.filter(student=student, watched=True).values_list('video_id', flat=True))
@@ -3056,7 +3059,7 @@ def video_completion_status(request):
         team_members = membership.team.memberships.filter(status='active').select_related('student__user')
         for m in team_members:
             if m.student:
-                m_watched = VideoProgress.objects.filter(student=m.student, watched=True, video__is_mandatory=True).count()
+                m_watched = VideoProgress.objects.filter(student=m.student, watched=True, video__is_active=True).count()
                 team_progress.append({
                     'name': m.student.user.get_full_name() or m.student.user.username,
                     'role': m.role,

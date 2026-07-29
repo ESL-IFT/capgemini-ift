@@ -13,6 +13,14 @@
 - **Cleanup:** deleted 5 debug test schools + their users/notifications from prod DB; deleted the obsolete Cloudflare Worker `tce-proxy` (its every-minute cron was needlessly pinging TCE).
 - Commits pushed to `techinfinity/main`: `5be3494` (Mumbai proxy), plus timeout/diagnostic commits `81772fb`, `5ad1c6c`, `abbc105`.
 
+## 2026-07-29 — Learning videos made OPTIONAL + notification badge fix
+- **Videos no longer mandatory** for students (leader or members). Removed the blocking "Complete Mandatory Videos" popup from `templates/students/submit_idea_v2.html` (the whole `{% if not all_videos_done %}` overlay block). Idea submission was never blocked server-side, so only the UI gate existed.
+- `students/views.py`: `_learning_progress()` and `video_completion_status()` no longer filter on `is_mandatory` — they count all active videos and are now purely informational.
+- `templates/students/dashboard_v2.html`: removed the "Complete all mandatory videos before submitting your idea" warning banner, renamed the section to "Learning Videos", and the per-video badge now reads "Optional".
+- `LearningVideo.is_mandatory` field left in place (default True) but is no longer used for any gating — legacy/cosmetic only. No migration needed.
+- Verified (seeded 8 videos, student with 0 watched): submit page 200 with no popup and a usable form; dashboard shows videos with "Optional" label and no nag banner.
+- **Notification bell badge**: "Mark all as read" cleared the DB but the server-rendered header badge (`.notif-badge-dot`, pulsing) stayed until a page reload. Added `clearHeaderBadge()` / `decrementHeaderBadge()` in `templates/students/notifications.html` and wired them into the mark-all and per-notification handlers. Backend was already correct (marks notifications read + sets `announcements_read_at`). Verified in-browser: badge 3 → removed instantly without reload, and stays gone after refresh.
+
 ## 2026-07-28 — Branded HTML password reset email
 - Split `templates/accounts/password_reset_email.html` into a plain-text fallback (`password_reset_email.txt`) and a new branded HTML version (`password_reset_email_html.html`, same purple/gold header + logo + CTA button style as the onboarding emails).
 - `accounts/views.py:ForgotPasswordView` now sets `html_email_template_name` (Django's `PasswordResetForm` sends both parts as multipart automatically) and injects `logo_url` via `extra_email_context`/`get_extra_email_context` + `form_valid` override.

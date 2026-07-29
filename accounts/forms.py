@@ -47,8 +47,10 @@ class StudentSignUpForm(forms.Form):
         choices=[('male', 'Male'), ('female', 'Female')],
         error_messages={'required': 'Please select your gender.'},
     )
-    phone = forms.CharField(max_length=15, required=False, widget=forms.TextInput(attrs={
-        'placeholder': 'Phone Number (optional)',
+    phone = forms.CharField(max_length=15, error_messages={
+        'required': 'Phone number is required.',
+    }, widget=forms.TextInput(attrs={
+        'placeholder': '10-digit mobile number',
     }))
     terms = forms.BooleanField(error_messages={
         'required': 'You must agree to the Terms & Conditions.',
@@ -67,10 +69,7 @@ class StudentSignUpForm(forms.Form):
         return _clean_person_name(self.cleaned_data.get('last_name'), 'Last name')
 
     def clean_phone(self):
-        phone = (self.cleaned_data.get('phone') or '').strip()
-        if not phone:
-            return phone  # optional
-        return _clean_mobile(phone)
+        return _clean_mobile(self.cleaned_data.get('phone'))
 
 
 class SchoolSignUpForm(forms.Form):

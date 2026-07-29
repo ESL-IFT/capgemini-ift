@@ -361,6 +361,7 @@
                         const badge = this.querySelector('.notification-badge-unread');
                         if (badge) badge.remove();
                         updateUnreadCount();
+                        decrementHeaderBadge();
                         showToast('Notification marked as read', 'success');
                     }
                 });
@@ -382,10 +383,32 @@
                             if (badge) badge.remove();
                         });
                         updateUnreadCount();
+                        clearHeaderBadge();
                         showToast('All notifications marked as read', 'success');
                     }
                 });
             });
+        }
+
+        // ── Header bell badge sync (server-rendered, so update it in the DOM
+        //    too — otherwise the pulsing count stays until a page reload) ──
+        function clearHeaderBadge() {
+            const dot = document.querySelector('.notif-badge-dot');
+            if (dot) dot.remove();
+            const ddCount = document.querySelector('#notifDropdown h4 span');
+            if (ddCount) ddCount.remove();
+            document.querySelectorAll('#notifDropdown .notif-item').forEach(function (it) {
+                it.style.background = '';
+            });
+        }
+        function decrementHeaderBadge() {
+            const dot = document.querySelector('.notif-badge-dot');
+            if (!dot) return;
+            const n = parseInt(dot.textContent.trim(), 10) - 1;
+            if (isNaN(n) || n <= 0) { clearHeaderBadge(); return; }
+            dot.textContent = n;
+            const ddCount = document.querySelector('#notifDropdown h4 span');
+            if (ddCount) ddCount.textContent = n;
         }
 
         function updateUnreadCount() {
