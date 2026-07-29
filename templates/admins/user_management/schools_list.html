@@ -658,6 +658,7 @@
                                 <th>Principal</th>
                                 <th>Students</th>
                                 <th>Status</th>
+                                <th>Date Added</th>
                                 <th style="text-align:center;">Actions</th>
                             </tr>
                         </thead>
@@ -717,6 +718,7 @@
                                     </span>
                                     {% endif %}
                                 </td>
+                                <td style="white-space:nowrap;">{{ school.created_at|date:"M d, Y"|default:"-" }}</td>
                                 <td style="text-align:center; display:flex; gap:4px; justify-content:center;">
                                     <button class="btn-icon-action" onclick="event.stopPropagation(); openDetailsSidebar(this.closest('tr'));" title="View Details">
                                         <span class="material-symbols-outlined">visibility</span>
