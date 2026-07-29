@@ -1,5 +1,18 @@
 # Build Log
 
+## 2026-07-29 — TCE school validation working in production (Cloud Run Mumbai proxy)
+- **Goal:** Real-time TCE (Tata ClassEdge) partner detection during school registration → ₹1600 (TCE) vs ₹2500. Must be fully API-driven, no manual DB edits.
+- **Root cause (diagnosed):** TCE API (`ce-ift.tataclassedge.com/schoolcheck/api/v1/school/validate`) is reachable only from **Indian IPs**. Railway runs in Singapore (egress `34.21.177.21`, GCP) → ConnectTimeout. Cloudflare Worker proxy also failed: for Railway-originated requests the Worker runs at the SIN colo (proven via `request.cf.colo="SIN"` diagnostic), and Smart Placement won't relocate to India (the failing subrequest gives it no latency signal; no way to pin a colo). Note: `railway run curl` misleadingly "worked" because it executes on the local India PC, not the Railway cloud.
+- **Fix:** Flask proxy on **Google Cloud Run, asia-south1 (Mumbai)** — India egress reaches TCE in ~1s. Confirmed India *datacenter* IPs are allowed (not residential-only).
+  - Proxy source: `C:\Users\kunal\Desktop\tce-proxy-gcp\` (`main.py` Flask + `Dockerfile` + `requirements.txt`).
+  - Deployed to GCP project `ift-platform-499910` (account `enpowerlab.ai@gmail.com`, billing linked `0110FF-5060A4-87B695`). Enabled run/cloudbuild/artifactregistry APIs. URL: `https://tce-proxy-222521293721.asia-south1.run.app`. Auth header `X-Proxy-Secret`.
+  - `accounts/views.py:school_sign_up` — rewrote TCE block to POST to the proxy (`TCE_PROXY_URL`) with `X-Proxy-Secret`, 20s timeout; dropped the always-failing direct attempt. Sets `School.is_tata_classedge` from `is_tce_school`.
+  - `Procfile` — gunicorn `--timeout 60`.
+  - Railway env var `TCE_PROXY_URL` set to the Cloud Run URL (`TCE_PROXY_SECRET`/`TCE_API_*` already present).
+- **Verified end-to-end:** production registration of a TCE partner school → log `Proxy: status=200 is_tce_school:true`, DB `is_tata_classedge=t`, ~3.7s response.
+- **Cleanup:** deleted 5 debug test schools + their users/notifications from prod DB; deleted the obsolete Cloudflare Worker `tce-proxy` (its every-minute cron was needlessly pinging TCE).
+- Commits pushed to `techinfinity/main`: `5be3494` (Mumbai proxy), plus timeout/diagnostic commits `81772fb`, `5ad1c6c`, `abbc105`.
+
 ## 2026-07-28 — Branded HTML password reset email
 - Split `templates/accounts/password_reset_email.html` into a plain-text fallback (`password_reset_email.txt`) and a new branded HTML version (`password_reset_email_html.html`, same purple/gold header + logo + CTA button style as the onboarding emails).
 - `accounts/views.py:ForgotPasswordView` now sets `html_email_template_name` (Django's `PasswordResetForm` sends both parts as multipart automatically) and injects `logo_url` via `extra_email_context`/`get_extra_email_context` + `form_valid` override.
