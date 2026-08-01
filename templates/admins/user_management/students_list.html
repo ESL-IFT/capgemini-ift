@@ -726,7 +726,12 @@
                                 data-address="{{ student.address }}"
                                 data-city="{{ student.city }}"
                                 data-state="{{ student.state }}"
-                                data-pin="{{ student.pin_code }}">
+                                data-pin="{{ student.pin_code }}"
+                                data-is-paid="{{ student.is_paid|yesno:'true,false' }}"
+                                data-payment-amount="{{ student.payment_amount|default:'' }}"
+                                data-payment-txn="{{ student.payment_transaction_id }}"
+                                data-razorpay-order="{{ student.razorpay_order_id }}"
+                                data-paid-at="{{ student.paid_at|date:'M d, Y h:i A'|default:'' }}">
                                 <td>
                                     <div class="d-flex align-items-center gap-3">
                                         <div class="avatar-circle {% cycle 'primary' 'default' %}">
@@ -952,6 +957,11 @@ function openDetailsSidebar(row) {
     const city = d.city || '';
     const state = d.state || '';
     const pin = d.pin || '';
+    const isPaid = d.isPaid === 'true';
+    const paymentAmount = d.paymentAmount || '';
+    const paymentTxn = d.paymentTxn || '';
+    const razorpayOrder = d.razorpayOrder || '';
+    const paidAt = d.paidAt || '';
 
     const initials = name.split(' ').map(function(w) { return w[0]; }).join('').substring(0, 2).toUpperCase();
     const avatarBg = status === 'active' ? 'var(--primary)' : '#64748b';
@@ -1004,6 +1014,17 @@ function openDetailsSidebar(row) {
     contactRows += infoRow('map', 'State', state);
     contactRows += infoRow('pin_drop', 'PIN Code', pin);
 
+    // Build payment section
+    const paidBadge = isPaid
+        ? '<span class="badge-status active">Paid</span>'
+        : '<span class="badge-status inactive">Unpaid</span>';
+    let paymentGrid = '';
+    paymentGrid += item('Status', paidBadge);
+    paymentGrid += item('Amount', paymentAmount ? '₹' + paymentAmount : '');
+    paymentGrid += item('Transaction ID', paymentTxn, 'font-family:monospace;font-size:0.8rem;');
+    paymentGrid += item('Razorpay Order ID', razorpayOrder, 'font-family:monospace;font-size:0.8rem;');
+    paymentGrid += item('Paid At', paidAt);
+
     sidebarContent.innerHTML = `
         <!-- Profile Header -->
         <div class="detail-section">
@@ -1034,6 +1055,17 @@ function openDetailsSidebar(row) {
 
         <!-- Contact Information -->
         ${contactRows ? '<div class="detail-section"><div class="detail-section-title"><span class="material-symbols-outlined">contact_mail</span> Contact Information</div>' + contactRows + '</div>' : ''}
+
+        <!-- Payment / Transaction Information -->
+        <div class="detail-section">
+            <div class="detail-section-title">
+                <span class="material-symbols-outlined">payments</span>
+                Payment
+            </div>
+            <div class="detail-grid">
+                ${paymentGrid}
+            </div>
+        </div>
 
         <!-- Activity Section -->
         <div class="detail-section">
