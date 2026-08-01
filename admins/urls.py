@@ -29,6 +29,9 @@ urlpatterns = [
     # User Management
     path('user-management/students/', views.students_list, name='students_list'),
     path('user-management/onboard-student/', views.onboard_student, name='onboard_student'),
+    path('user-management/student/<int:student_id>/edit/', views.edit_student, name='edit_student'),
+    path('user-management/student/<int:student_id>/delete/', views.delete_student, name='delete_student'),
+    path('user-management/student/<int:student_id>/reset-password/', views.reset_student_password, name='reset_student_password'),
     path('user-management/schools/', views.schools_list, name='schools_list'),
     path('user-management/schools/export/', views.export_schools_csv, name='export_schools_csv'),
     path('user-management/schools/import/', views.import_schools_csv, name='import_schools_csv'),
@@ -38,6 +41,8 @@ urlpatterns = [
     path('user-management/evaluators/', views.evaluators_list, name='evaluators_list'),
     path('user-management/evaluator/<int:evaluator_id>/edit/', views.edit_evaluator, name='edit_evaluator'),
     path('user-management/school/<int:school_id>/edit/', views.edit_school, name='edit_school'),
+    path('user-management/school/<int:school_id>/delete/', views.delete_school, name='delete_school'),
+    path('user-management/school/<int:school_id>/reset-password/', views.reset_school_password, name='reset_school_password'),
     path('user-management/school/<int:school_id>/toggle-status/', views.toggle_school_status, name='toggle_school_status'),
     path('user-management/schools/bulk-toggle-status/', views.bulk_toggle_school_status, name='bulk_toggle_school_status'),
 

@@ -797,6 +797,12 @@
                                     <button class="btn-icon-action" title="{% if school.is_active %}Deactivate{% else %}Activate{% endif %} School" onclick="event.stopPropagation(); toggleSchoolStatus({{ school.id }}, {{ school.is_active|yesno:'true,false' }});">
                                         <span class="material-symbols-outlined">{% if school.is_active %}toggle_on{% else %}toggle_off{% endif %}</span>
                                     </button>
+                                    <button class="btn-icon-action" title="Reset Password" onclick="event.stopPropagation(); resetSchoolPassword({{ school.id }});">
+                                        <span class="material-symbols-outlined">lock_reset</span>
+                                    </button>
+                                    <button class="btn-icon-action" title="Delete School" onclick="event.stopPropagation(); deleteSchool({{ school.id }}, '{{ school.name|escapejs }}');">
+                                        <span class="material-symbols-outlined">delete</span>
+                                    </button>
                                 </td>
                             </tr>
                             {% endfor %}
@@ -1326,6 +1332,41 @@ function toggleSchoolStatus(schoolId, isActive) {
             setTimeout(function() { location.reload(); }, 900);
         } else {
             showToast('Failed to update school status.', 'danger');
+        }
+    })
+    .catch(function() {
+        showToast('Network error. Please try again.', 'danger');
+    });
+}
+
+function resetSchoolPassword(schoolId) {
+    if (!confirm('Generate a new password and email it to this school?')) return;
+    fetch('/super-admin/user-management/school/' + schoolId + '/reset-password/', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+    })
+    .then(function(response) { return response.json(); })
+    .then(function(data) {
+        showToast(data.message || (data.success ? 'Password reset' : 'Failed to reset password'), data.success ? 'success' : 'danger');
+    })
+    .catch(function() {
+        showToast('Network error. Please try again.', 'danger');
+    });
+}
+
+function deleteSchool(schoolId, schoolName) {
+    if (!confirm('Delete "' + schoolName + '"? This also removes its login account. Linked students are kept but unassigned from this school. This cannot be undone.')) return;
+    fetch('/super-admin/user-management/school/' + schoolId + '/delete/', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+    })
+    .then(function(response) { return response.json(); })
+    .then(function(data) {
+        if (data.success) {
+            showToast(data.message, 'success');
+            setTimeout(function() { location.reload(); }, 900);
+        } else {
+            showToast('Failed to delete school.', 'danger');
         }
     })
     .catch(function() {

@@ -1,5 +1,11 @@
 # Build Log
 
+## 2026-08-01 — Full CRUD for Schools and Students (edit/delete/reset password)
+- **Student**: added `edit_student` (new `templates/admins/user_management/edit_student.html`, scaffolded from `edit_school.html` — Personal/Academic/Contact sections, school reassignment dropdown, AJAX submit + toast), `delete_student` (deletes the linked `User`, which cascades to the `Student` profile via the OneToOne `CASCADE` FK), and `reset_student_password` (generates a token, emails via the existing `send_onboard_credentials` helper).
+- **School**: added `delete_school` (deletes the School and its linked login `User` if any; students keep their `school_name` text but lose the FK per `SET_NULL`, matching existing behavior) and `reset_school_password`.
+- Wired 6 new URLs under `user-management/` in `admins/urls.py`; added Edit/Reset-Password/Delete icon buttons to both `schools_list.html` and `students_list.html` row actions (students_list.html didn't have a toast system yet — added the same CSS/JS pattern used in schools_list.html).
+- Verified full cycle via Django test client for both School and Student: create → edit (confirmed field changes persist, including the `edit_school` contact_email/phone fix from earlier today) → reset password (email sent) → delete (row and login both gone). Also confirmed in-browser: edit form pre-fills correctly, all action icons present and correctly linked on both list pages.
+
 ## 2026-08-01 — School-side Learning Resources also had the stale hardcoded videos
 - Same bug as the student-facing page (fixed earlier today), but on the School Admin portal: `students/views.py:school_learning_resources` rendered `school_learning_resources.html`'s hardcoded 8-module grid instead of real `LearningVideo` rows — so videos added via the admin panel never appeared here. Now passes real `learning_videos` queryset; template loops over it instead of the fixed module list. Verified via test client: old "Module 1" text gone, real seeded session title present.
 

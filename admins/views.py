@@ -1277,6 +1277,97 @@ def onboard_student(request):
 
 @login_required
 @user_passes_test(is_staff_or_superuser)
+def edit_student(request, student_id):
+    """Edit an existing student."""
+    student = get_object_or_404(Student, id=student_id)
+
+    if request.method == 'POST':
+        user = student.user
+        user.first_name = request.POST.get('first_name', user.first_name).strip()
+        user.last_name = request.POST.get('last_name', user.last_name).strip()
+        new_email = request.POST.get('student_email', user.email).strip()
+        if not new_email:
+            return JsonResponse({'success': False, 'message': 'Student email is required.'}, status=400)
+        user.email = new_email
+        user.save(update_fields=['first_name', 'last_name', 'email'])
+
+        school_id = request.POST.get('school_id', '')
+        if school_id:
+            school_obj = get_object_or_404(School, id=school_id)
+            student.school = school_obj
+            student.school_name = school_obj.name
+        else:
+            student.school = None
+
+        student.middle_name = request.POST.get('middle_name', student.middle_name).strip()
+        student.gender = request.POST.get('gender', student.gender)
+        dob = request.POST.get('date_of_birth', '')
+        student.date_of_birth = dob or None
+        student.nationality = request.POST.get('nationality', student.nationality).strip()
+        grade = request.POST.get('student_class', student.grade)
+        if not grade:
+            return JsonResponse({'success': False, 'message': 'Grade is required.'}, status=400)
+        student.grade = grade
+        student.division = request.POST.get('division', student.division).strip()
+        student.roll_number = request.POST.get('roll_number', student.roll_number).strip()
+        student.academic_year = request.POST.get('academic_year', student.academic_year).strip()
+        student.school_board = request.POST.get('school_board', student.school_board)
+        student.stream = request.POST.get('stream', student.stream)
+        student.phone = request.POST.get('student_mobile', student.phone).strip()
+        student.parent_mobile = request.POST.get('parent_mobile', student.parent_mobile).strip()
+        student.parent_email = request.POST.get('parent_email', student.parent_email).strip()
+        student.address = request.POST.get('address', student.address).strip()
+        student.city = request.POST.get('city', student.city).strip()
+        student.state = request.POST.get('state', student.state).strip()
+        student.pin_code = request.POST.get('pin_code', student.pin_code).strip()
+        student.save()
+
+        return JsonResponse({
+            'success': True,
+            'message': f'Student {user.first_name} {user.last_name} updated successfully!',
+            'redirect': '/super-admin/user-management/students/'
+        })
+
+    context = {
+        'student': student,
+        'edit_mode': True,
+        'schools': School.objects.filter(is_active=True).order_by('name'),
+    }
+    return render(request, 'admins/user_management/edit_student.html', context)
+
+
+@login_required
+@user_passes_test(is_staff_or_superuser)
+def delete_student(request, student_id):
+    """Delete a student and their login account."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+
+    student = get_object_or_404(Student, id=student_id)
+    name = f'{student.user.first_name} {student.user.last_name}'.strip() or student.user.email
+    student.user.delete()  # cascades to delete the Student profile (OneToOne, CASCADE)
+
+    return JsonResponse({'success': True, 'message': f'Student {name} deleted.'})
+
+
+@login_required
+@user_passes_test(is_staff_or_superuser)
+def reset_student_password(request, student_id):
+    """Generate a new password for a student and email it to them."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+
+    student = get_object_or_404(Student, id=student_id)
+    temp_password = secrets.token_urlsafe(8)
+    student.user.set_password(temp_password)
+    student.user.save(update_fields=['password'])
+    send_onboard_credentials(student.user, temp_password, 'Student')
+
+    return JsonResponse({'success': True, 'message': f'New password sent to {student.user.email}.'})
+
+
+@login_required
+@user_passes_test(is_staff_or_superuser)
 def schools_list(request):
     """List all schools with search."""
     search_query = request.GET.get('q', '').strip()
@@ -1649,6 +1740,42 @@ def edit_school(request, school_id):
 
     context = {'school': school, 'edit_mode': True}
     return render(request, 'admins/user_management/edit_school.html', context)
+
+
+@login_required
+@user_passes_test(is_staff_or_superuser)
+def delete_school(request, school_id):
+    """Delete a school and its login account. Linked students are kept
+    (Student.school is SET_NULL; their school_name text field is untouched)."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+
+    school = get_object_or_404(School, id=school_id)
+    name = school.name
+    if school.user_id:
+        school.user.delete()
+    school.delete()
+
+    return JsonResponse({'success': True, 'message': f'School "{name}" deleted.'})
+
+
+@login_required
+@user_passes_test(is_staff_or_superuser)
+def reset_school_password(request, school_id):
+    """Generate a new password for a school's login account and email it."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+
+    school = get_object_or_404(School, id=school_id)
+    if not school.user:
+        return JsonResponse({'success': False, 'message': 'This school has no linked login account.'}, status=400)
+
+    temp_password = secrets.token_urlsafe(8)
+    school.user.set_password(temp_password)
+    school.user.save(update_fields=['password'])
+    send_onboard_credentials(school.user, temp_password, 'School')
+
+    return JsonResponse({'success': True, 'message': f'New password sent to {school.user.email}.'})
 
 
 @login_required
