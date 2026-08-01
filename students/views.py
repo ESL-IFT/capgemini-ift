@@ -2759,13 +2759,14 @@ def school_submission_detail(request, submission_id):
 
 @login_required
 def school_learning_resources(request):
-    """School Learning Resources page — same module videos as the student page."""
-    from students.models import School
+    """School Learning Resources page — same video library as the student page."""
+    from students.models import School, LearningVideo
     try:
         school = request.user.school_profile
     except School.DoesNotExist:
         return redirect('accounts:sign_in')
-    return render(request, 'students/school_learning_resources.html', {'school': school})
+    videos = LearningVideo.objects.filter(is_active=True).order_by('order')
+    return render(request, 'students/school_learning_resources.html', {'school': school, 'learning_videos': videos})
 
 
 @login_required

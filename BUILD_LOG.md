@@ -1,5 +1,8 @@
 # Build Log
 
+## 2026-08-01 — School-side Learning Resources also had the stale hardcoded videos
+- Same bug as the student-facing page (fixed earlier today), but on the School Admin portal: `students/views.py:school_learning_resources` rendered `school_learning_resources.html`'s hardcoded 8-module grid instead of real `LearningVideo` rows — so videos added via the admin panel never appeared here. Now passes real `learning_videos` queryset; template loops over it instead of the fixed module list. Verified via test client: old "Module 1" text gone, real seeded session title present.
+
 ## 2026-08-01 — Fix Announcements badge/list mismatch; grade dropdown starts at 7
 - **Notifications page**: the "Announcements" tab badge counted *all* published `Content` (FAQs, trainings, announcements alike) via `content_count`, but the actual filtered list only shows items where `content_type == 'announcement'` — so the badge could say "10" while the list showed nothing (all 10 were FAQs/trainings). `students/views.py:notifications_page` now computes `announcement_content_count` from only announcement-type content for that badge. Verified via test client: seeded 1 training + 1 FAQ + 1 announcement, badge now correctly shows 1 instead of 3.
 - **Student profile grade dropdown** (`templates/students/profile.html`) started at Grade 1; changed to start at Grade 7 per request (loop `"123456789"` → `"789"`, keeping 10/11/12 as before).
