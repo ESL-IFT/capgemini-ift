@@ -502,7 +502,7 @@
                                     <span class="info-value">{% if student.grade %}Grade {{ student.grade }}{% else %}Not set{% endif %}</span>
                                     <select class="form-control" data-field="grade" style="display:none;">
                                         <option value="">Select Grade</option>
-                                        {% for i in "123456789" %}
+                                        {% for i in "789" %}
                                         <option value="{{ i }}" {% if student.grade == i %}selected{% endif %}>Grade {{ i }}</option>
                                         {% endfor %}
                                         <option value="10" {% if student.grade == "10" %}selected{% endif %}>Grade 10</option>

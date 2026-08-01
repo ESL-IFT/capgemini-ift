@@ -1,5 +1,9 @@
 # Build Log
 
+## 2026-08-01 — Fix Announcements badge/list mismatch; grade dropdown starts at 7
+- **Notifications page**: the "Announcements" tab badge counted *all* published `Content` (FAQs, trainings, announcements alike) via `content_count`, but the actual filtered list only shows items where `content_type == 'announcement'` — so the badge could say "10" while the list showed nothing (all 10 were FAQs/trainings). `students/views.py:notifications_page` now computes `announcement_content_count` from only announcement-type content for that badge. Verified via test client: seeded 1 training + 1 FAQ + 1 announcement, badge now correctly shows 1 instead of 3.
+- **Student profile grade dropdown** (`templates/students/profile.html`) started at Grade 1; changed to start at Grade 7 per request (loop `"123456789"` → `"789"`, keeping 10/11/12 as before).
+
 ## 2026-08-01 — Student Details sidebar: added Payment/Transaction section
 - Admin panel's Student Details sidebar (`templates/admins/user_management/students_list.html`) had no visibility into payment status — only Personal/Academic/Contact/Activity. Added `data-is-paid`, `data-payment-amount`, `data-payment-txn`, `data-razorpay-order`, `data-paid-at` attributes to each row and a new "Payment" section in the sidebar (status badge Paid/Unpaid, amount, transaction ID, Razorpay order ID, paid-at timestamp).
 - Verified via test client (payment data renders correctly in row attributes) and in-browser (sidebar shows STATUS: PAID, AMOUNT: ₹25.00, TRANSACTION ID: COUPON-IFT99OFF, PAID AT timestamp for a test student).

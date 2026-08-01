@@ -1907,6 +1907,7 @@ def notifications_page(request):
     combined.sort(key=lambda x: x['created_at'], reverse=True)
 
     content_count = content_qs.count()
+    announcement_content_count = len([c for c in content_qs if c.content_type == 'announcement'])
     context = {
         'student': student,
         'combined_notifications': combined,
@@ -1914,7 +1915,7 @@ def notifications_page(request):
         'unread': notifications.filter(is_read=False).count() + content_count,
         'team_count': notifications.filter(notification_type='team').count(),
         'submission_count': notifications.filter(notification_type='submission').count(),
-        'announcement_count': notifications.filter(notification_type='announcement').count() + content_count,
+        'announcement_count': notifications.filter(notification_type='announcement').count() + announcement_content_count,
     }
     return render(request, 'students/notifications.html', context)
 
