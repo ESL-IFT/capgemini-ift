@@ -443,6 +443,16 @@
         .toast-msg.success { background: #166534; }
         .toast-msg.danger  { background: #991b1b; }
 
+        /* Bulk actions bar */
+        .bulk-actions-bar { display: none; align-items: center; gap: 12px; padding: 10px 16px; background: #f7f4fb; border: 1px solid #ece6f5; border-radius: 8px; margin: 0 0 12px 0; }
+        .bulk-actions-bar.visible { display: flex; }
+        .bulk-actions-bar .count { font-size: 0.85rem; font-weight: 600; color: var(--text-dark); }
+        .bulk-actions-bar button { padding: 8px 16px; border: none; border-radius: 8px; font-family: 'Poppins', sans-serif; font-weight: 600; font-size: 0.8rem; cursor: pointer; }
+        .bulk-actions-bar .btn-activate { background: #166534; color: #fff; }
+        .bulk-actions-bar .btn-deactivate { background: #92400e; color: #fff; }
+        .bulk-actions-bar .btn-delete { background: #991b1b; color: #fff; }
+        .bulk-actions-bar .btn-clear { background: transparent; color: var(--text-muted); }
+
         /* ══ Responsive ══ */
         @media (max-width: 768px) {
             .content-wrapper { padding: 16px; }
@@ -690,12 +700,22 @@
                     </div>
                 </div>
 
+                <!-- Bulk Actions Bar -->
+                <div class="bulk-actions-bar" id="bulkActionsBar">
+                    <span class="count" id="bulkSelectedCount">0 selected</span>
+                    <button class="btn-activate" onclick="bulkToggleStudents(true)">Activate Selected</button>
+                    <button class="btn-deactivate" onclick="bulkToggleStudents(false)">Deactivate Selected</button>
+                    <button class="btn-delete" onclick="bulkDeleteStudents()">Delete Selected</button>
+                    <button class="btn-clear" onclick="clearBulkSelection()">Clear</button>
+                </div>
+
                 <!-- Table -->
                 <div class="table-responsive">
                     {% if students %}
                     <table class="custom-table">
                         <thead>
                             <tr>
+                                <th style="width:36px;"><input type="checkbox" id="selectAllStudents" onchange="toggleSelectAllStudents(this)"></th>
                                 <th>Student Name</th>
                                 <th>School</th>
                                 <th>Grade</th>
@@ -738,6 +758,7 @@
                                 data-payment-txn="{{ student.payment_transaction_id }}"
                                 data-razorpay-order="{{ student.razorpay_order_id }}"
                                 data-paid-at="{{ student.paid_at|date:'M d, Y h:i A'|default:'' }}">
+                                <td onclick="event.stopPropagation();"><input type="checkbox" class="student-row-checkbox" value="{{ student.id }}" onchange="updateStudentBulkSelection()"></td>
                                 <td>
                                     <div class="d-flex align-items-center gap-3">
                                         <div class="avatar-circle {% cycle 'primary' 'default' %}">
@@ -1160,6 +1181,85 @@ function deleteStudent(studentId, studentName) {
             setTimeout(function() { location.reload(); }, 900);
         } else {
             showToast('Failed to delete student.', 'danger');
+        }
+    })
+    .catch(function() {
+        showToast('Network error. Please try again.', 'danger');
+    });
+}
+
+// ══ Bulk selection & bulk activate/deactivate/delete ══
+function getSelectedStudentIds() {
+    return Array.from(document.querySelectorAll('.student-row-checkbox:checked')).map(function(cb) { return cb.value; });
+}
+
+function updateStudentBulkSelection() {
+    var ids = getSelectedStudentIds();
+    var bar = document.getElementById('bulkActionsBar');
+    var countEl = document.getElementById('bulkSelectedCount');
+    if (ids.length > 0) {
+        bar.classList.add('visible');
+        countEl.textContent = ids.length + ' selected';
+    } else {
+        bar.classList.remove('visible');
+    }
+    var allCheckboxes = document.querySelectorAll('.student-row-checkbox');
+    var selectAll = document.getElementById('selectAllStudents');
+    selectAll.checked = allCheckboxes.length > 0 && ids.length === allCheckboxes.length;
+}
+
+function toggleSelectAllStudents(checkbox) {
+    document.querySelectorAll('.student-row-checkbox').forEach(function(cb) { cb.checked = checkbox.checked; });
+    updateStudentBulkSelection();
+}
+
+function clearBulkSelection() {
+    document.querySelectorAll('.student-row-checkbox').forEach(function(cb) { cb.checked = false; });
+    document.getElementById('selectAllStudents').checked = false;
+    updateStudentBulkSelection();
+}
+
+function bulkToggleStudents(activate) {
+    var ids = getSelectedStudentIds();
+    if (ids.length === 0) return;
+    if (!confirm((activate ? 'Activate ' : 'Deactivate ') + ids.length + ' selected student(s)?')) return;
+
+    fetch('/super-admin/user-management/students/bulk-toggle-status/', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ student_ids: ids, activate: activate }),
+    })
+    .then(function(response) { return response.json(); })
+    .then(function(data) {
+        if (data.success) {
+            showToast(data.message, 'success');
+            setTimeout(function() { location.reload(); }, 900);
+        } else {
+            showToast('Failed to update students.', 'danger');
+        }
+    })
+    .catch(function() {
+        showToast('Network error. Please try again.', 'danger');
+    });
+}
+
+function bulkDeleteStudents() {
+    var ids = getSelectedStudentIds();
+    if (ids.length === 0) return;
+    if (!confirm('Delete ' + ids.length + ' selected student(s)? This removes their logins and all their data. This cannot be undone.')) return;
+
+    fetch('/super-admin/user-management/students/bulk-delete/', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ student_ids: ids }),
+    })
+    .then(function(response) { return response.json(); })
+    .then(function(data) {
+        if (data.success) {
+            showToast(data.message, 'success');
+            setTimeout(function() { location.reload(); }, 900);
+        } else {
+            showToast('Failed to delete students.', 'danger');
         }
     })
     .catch(function() {

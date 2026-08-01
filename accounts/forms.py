@@ -42,7 +42,7 @@ class StudentSignUpForm(forms.Form):
         queryset=School.objects.filter(status='active').order_by('name'),
         empty_label='Select School',
     )
-    grade = forms.ChoiceField(choices=[(str(i), f'Class {i}') for i in range(6, 13)])
+    grade = forms.ChoiceField(choices=[(str(i), f'Class {i}') for i in range(7, 13)])
     gender = forms.ChoiceField(
         choices=[('male', 'Male'), ('female', 'Female')],
         error_messages={'required': 'Please select your gender.'},

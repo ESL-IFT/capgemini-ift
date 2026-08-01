@@ -15,7 +15,7 @@ from django.contrib.auth.models import User
 from students.models import IdeaSubmission, Student, School
 from ai_assistant.models import AIEvaluation
 from accounts.models import UserProfile, JuryProfile
-from accounts.emails import send_onboard_credentials
+from accounts.emails import send_onboard_credentials, send_password_reset_by_admin
 from admins.models import EvaluatorAssignment
 
 # In-memory progress tracker (works for single-server/SQLite setup)
@@ -1361,9 +1361,59 @@ def reset_student_password(request, student_id):
     temp_password = secrets.token_urlsafe(8)
     student.user.set_password(temp_password)
     student.user.save(update_fields=['password'])
-    send_onboard_credentials(student.user, temp_password, 'Student')
+    send_password_reset_by_admin(student.user, temp_password, 'Student')
 
     return JsonResponse({'success': True, 'message': f'New password sent to {student.user.email}.'})
+
+
+@login_required
+@user_passes_test(is_staff_or_superuser)
+def bulk_toggle_student_status(request):
+    """Activate or deactivate multiple students' logins at once."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+
+    import json
+    try:
+        data = json.loads(request.body)
+    except (ValueError, TypeError):
+        return JsonResponse({'success': False, 'message': 'Invalid request body.'}, status=400)
+
+    student_ids = data.get('student_ids') or []
+    activate = bool(data.get('activate'))
+
+    if not student_ids:
+        return JsonResponse({'success': False, 'message': 'No students selected.'}, status=400)
+
+    user_ids = Student.objects.filter(id__in=student_ids).values_list('user_id', flat=True)
+    updated = User.objects.filter(id__in=user_ids).update(is_active=activate)
+
+    action_label = 'activated' if activate else 'deactivated'
+    return JsonResponse({'success': True, 'updated': updated, 'message': f'{updated} student(s) {action_label}!'})
+
+
+@login_required
+@user_passes_test(is_staff_or_superuser)
+def bulk_delete_students(request):
+    """Delete multiple students (and their logins) at once."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+
+    import json
+    try:
+        data = json.loads(request.body)
+    except (ValueError, TypeError):
+        return JsonResponse({'success': False, 'message': 'Invalid request body.'}, status=400)
+
+    student_ids = data.get('student_ids') or []
+    if not student_ids:
+        return JsonResponse({'success': False, 'message': 'No students selected.'}, status=400)
+
+    user_ids = list(Student.objects.filter(id__in=student_ids).values_list('user_id', flat=True))
+    deleted_count = len(user_ids)
+    User.objects.filter(id__in=user_ids).delete()  # cascades to delete each Student profile
+
+    return JsonResponse({'success': True, 'deleted': deleted_count, 'message': f'{deleted_count} student(s) deleted.'})
 
 
 @login_required
@@ -1773,7 +1823,7 @@ def reset_school_password(request, school_id):
     temp_password = secrets.token_urlsafe(8)
     school.user.set_password(temp_password)
     school.user.save(update_fields=['password'])
-    send_onboard_credentials(school.user, temp_password, 'School')
+    send_password_reset_by_admin(school.user, temp_password, 'School')
 
     return JsonResponse({'success': True, 'message': f'New password sent to {school.user.email}.'})
 

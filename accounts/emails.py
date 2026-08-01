@@ -51,6 +51,17 @@ def send_branded_email(subject, to, template, context=None, attachments=None):
         return 0
 
 
+def send_password_reset_by_admin(user, temp_password, role):
+    """Notify a user their password was reset by an admin (distinct wording
+    from the onboarding email, which says 'account has been created')."""
+    return send_branded_email(
+        f'Your IFT Password Has Been Reset',
+        user.email,
+        'accounts/email_password_reset_by_admin.html',
+        {'user': user, 'temp_password': temp_password, 'role': role},
+    )
+
+
 def send_onboard_credentials(user, temp_password, role, extra_context=None):
     site_url = getattr(settings, 'SITE_URL', '') or ''
     context = {
