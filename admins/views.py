@@ -1312,6 +1312,63 @@ def schools_list(request):
 
 @login_required
 @user_passes_test(is_staff_or_superuser)
+def toggle_school_status(request, school_id):
+    """Activate/deactivate a school from the admin panel (e.g. approve a
+    self-registered school stuck in 'pending')."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+
+    school = get_object_or_404(School, id=school_id)
+    if school.is_active:
+        school.is_active = False
+        school.status = 'inactive'
+    else:
+        school.is_active = True
+        school.status = 'active'
+    school.save(update_fields=['is_active', 'status'])
+
+    return JsonResponse({
+        'success': True,
+        'is_active': school.is_active,
+        'status': school.status,
+        'message': f'School {"activated" if school.is_active else "deactivated"}!',
+    })
+
+
+@login_required
+@user_passes_test(is_staff_or_superuser)
+def bulk_toggle_school_status(request):
+    """Activate or deactivate multiple schools at once from the admin panel."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+
+    import json
+    try:
+        data = json.loads(request.body)
+    except (ValueError, TypeError):
+        return JsonResponse({'success': False, 'message': 'Invalid request body.'}, status=400)
+
+    school_ids = data.get('school_ids') or []
+    activate = bool(data.get('activate'))
+
+    if not school_ids:
+        return JsonResponse({'success': False, 'message': 'No schools selected.'}, status=400)
+
+    updated = School.objects.filter(id__in=school_ids).update(
+        is_active=activate,
+        status='active' if activate else 'inactive',
+    )
+
+    action_label = 'activated' if activate else 'deactivated'
+    return JsonResponse({
+        'success': True,
+        'updated': updated,
+        'message': f'{updated} school(s) {action_label}!',
+    })
+
+
+@login_required
+@user_passes_test(is_staff_or_superuser)
 def export_schools_csv(request):
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="schools_export.csv"'

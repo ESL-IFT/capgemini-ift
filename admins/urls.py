@@ -38,6 +38,8 @@ urlpatterns = [
     path('user-management/evaluators/', views.evaluators_list, name='evaluators_list'),
     path('user-management/evaluator/<int:evaluator_id>/edit/', views.edit_evaluator, name='edit_evaluator'),
     path('user-management/school/<int:school_id>/edit/', views.edit_school, name='edit_school'),
+    path('user-management/school/<int:school_id>/toggle-status/', views.toggle_school_status, name='toggle_school_status'),
+    path('user-management/schools/bulk-toggle-status/', views.bulk_toggle_school_status, name='bulk_toggle_school_status'),
 
     # Evaluator Management
     path('evaluator-management/', views.evaluator_management, name='evaluator_management'),

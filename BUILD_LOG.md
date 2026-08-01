@@ -1,5 +1,12 @@
 # Build Log
 
+## 2026-08-01 — Admin panel: school activate/deactivate (single + bulk)
+- School model already had `is_active`/`status` (pending/inactive/active) fields, set on self-registration (`accounts/views.py:school_sign_up` creates schools as `status='pending', is_active=False`), but admins had no way to flip it — only the school itself could activate by completing its profile.
+- Added `admins/views.py:toggle_school_status` (POST, per-school) and `bulk_toggle_school_status` (POST, list of IDs + `activate` flag), wired at `admins/urls.py` (`school/<id>/toggle-status/`, `schools/bulk-toggle-status/`).
+- `templates/admins/user_management/schools_list.html` — added a toggle icon per row, row checkboxes + "select all", and a bulk action bar (Activate/Deactivate Selected) that appears once rows are checked. Added toast notifications (reused the `content_list.html` toast pattern) for success/failure instead of `alert()`/silent reload.
+- Fix: removed the native `confirm()` on the single-row toggle — it was silently swallowing clicks with no visual feedback, which looked like the toggle "wasn't working."
+- Verified: backend endpoints tested directly via Django test client (single toggle flips is_active/status correctly; bulk toggle activated then deactivated 2 schools, correct JSON + DB state each time).
+
 ## 2026-07-29 — TCE school validation working in production (Cloud Run Mumbai proxy)
 - **Goal:** Real-time TCE (Tata ClassEdge) partner detection during school registration → ₹1600 (TCE) vs ₹2500. Must be fully API-driven, no manual DB edits.
 - **Root cause (diagnosed):** TCE API (`ce-ift.tataclassedge.com/schoolcheck/api/v1/school/validate`) is reachable only from **Indian IPs**. Railway runs in Singapore (egress `34.21.177.21`, GCP) → ConnectTimeout. Cloudflare Worker proxy also failed: for Railway-originated requests the Worker runs at the SIN colo (proven via `request.cf.colo="SIN"` diagnostic), and Smart Placement won't relocate to India (the failing subrequest gives it no latency signal; no way to pin a colo). Note: `railway run curl` misleadingly "worked" because it executes on the local India PC, not the Railway cloud.

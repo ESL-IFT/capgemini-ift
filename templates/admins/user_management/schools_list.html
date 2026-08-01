@@ -392,6 +392,64 @@
 
         @keyframes spin { to { transform: rotate(360deg); } }
 
+        /* Toast */
+        .toast-container {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .toast-msg {
+            background: #1e293b;
+            color: #fff;
+            padding: 12px 18px;
+            border-radius: 10px;
+            font-size: 0.8125rem;
+            font-weight: 500;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: toastIn 0.3s ease;
+            max-width: 320px;
+        }
+        .toast-msg.success { background: #166534; }
+        .toast-msg.warning { background: #92400e; }
+        .toast-msg.danger  { background: #991b1b; }
+        @keyframes toastIn {
+            from { transform: translateX(80px); opacity: 0; }
+            to   { transform: translateX(0); opacity: 1; }
+        }
+
+        /* Bulk actions bar */
+        .bulk-actions-bar {
+            display: none;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 16px;
+            background: #f7f4fb;
+            border: 1px solid #ece6f5;
+            border-radius: 8px;
+            margin: 0 24px 12px 24px;
+        }
+        .bulk-actions-bar.visible { display: flex; }
+        .bulk-actions-bar .count { font-size: 0.85rem; font-weight: 600; color: var(--text-dark); }
+        .bulk-actions-bar button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+        .bulk-actions-bar .btn-activate { background: #166534; color: #fff; }
+        .bulk-actions-bar .btn-deactivate { background: #991b1b; color: #fff; }
+        .bulk-actions-bar .btn-clear { background: transparent; color: var(--text-muted); }
+
         /* ══ Responsive ══ */
         @media (max-width: 768px) {
             .content-wrapper { padding: 16px; }
@@ -644,12 +702,21 @@
                     </div>
                 </div>
 
+                <!-- Bulk Actions Bar -->
+                <div class="bulk-actions-bar" id="bulkActionsBar">
+                    <span class="count" id="bulkSelectedCount">0 selected</span>
+                    <button class="btn-activate" onclick="bulkToggleSchools(true)">Activate Selected</button>
+                    <button class="btn-deactivate" onclick="bulkToggleSchools(false)">Deactivate Selected</button>
+                    <button class="btn-clear" onclick="clearBulkSelection()">Clear</button>
+                </div>
+
                 <!-- Table -->
                 <div class="table-responsive">
                     {% if schools %}
                     <table class="custom-table">
                         <thead>
                             <tr>
+                                <th style="width:36px;"><input type="checkbox" id="selectAllSchools" onchange="toggleSelectAllSchools(this)"></th>
                                 <th>#</th>
                                 <th>School Name</th>
                                 <th>Board</th>
@@ -686,6 +753,7 @@
                                 data-school-type="{{ school.school_type }}"
                                 data-medium="{{ school.medium }}"
                                 onclick="openDetailsSidebar(this)">
+                                <td onclick="event.stopPropagation();"><input type="checkbox" class="school-row-checkbox" value="{{ school.id }}" onchange="updateBulkSelection()"></td>
                                 <td>{{ forloop.counter }}</td>
                                 <td>
                                     <div class="school-name-cell">
@@ -726,6 +794,9 @@
                                     <a class="btn-icon-action" title="Edit School" href="{% url 'admins:edit_school' school.id %}" onclick="event.stopPropagation();">
                                         <span class="material-symbols-outlined">edit</span>
                                     </a>
+                                    <button class="btn-icon-action" title="{% if school.is_active %}Deactivate{% else %}Activate{% endif %} School" onclick="event.stopPropagation(); toggleSchoolStatus({{ school.id }}, {{ school.is_active|yesno:'true,false' }});">
+                                        <span class="material-symbols-outlined">{% if school.is_active %}toggle_on{% else %}toggle_off{% endif %}</span>
+                                    </button>
                                 </td>
                             </tr>
                             {% endfor %}
@@ -959,6 +1030,8 @@
         </div>
     </div>
 </div>
+
+<div class="toast-container" id="toastContainer"></div>
 
 <!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -1222,6 +1295,99 @@ function uploadCSV() {
         btn.disabled = false;
         btn.style.opacity = '1';
         btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;margin-right:4px;">upload</span> Import Schools';
+    });
+}
+
+// ── Toast ──
+function showToast(message, type) {
+    var container = document.getElementById('toastContainer');
+    var toast = document.createElement('div');
+    toast.className = 'toast-msg ' + (type || 'success');
+    var icon = type === 'danger' ? 'error' : type === 'warning' ? 'warning' : 'check_circle';
+    toast.innerHTML = '<span class="material-symbols-outlined" style="font-size:18px;">' + icon + '</span>' + message;
+    container.appendChild(toast);
+    setTimeout(function() {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(80px)';
+        toast.style.transition = 'all 0.3s ease';
+        setTimeout(function() { toast.remove(); }, 300);
+    }, 3000);
+}
+
+function toggleSchoolStatus(schoolId, isActive) {
+    fetch('/super-admin/user-management/school/' + schoolId + '/toggle-status/', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+    })
+    .then(function(response) { return response.json(); })
+    .then(function(data) {
+        if (data.success) {
+            showToast(data.message, 'success');
+            setTimeout(function() { location.reload(); }, 900);
+        } else {
+            showToast('Failed to update school status.', 'danger');
+        }
+    })
+    .catch(function() {
+        showToast('Network error. Please try again.', 'danger');
+    });
+}
+
+// ── Bulk selection & bulk activate/deactivate ──
+function getSelectedSchoolIds() {
+    return Array.from(document.querySelectorAll('.school-row-checkbox:checked')).map(function(cb) { return cb.value; });
+}
+
+function updateBulkSelection() {
+    var ids = getSelectedSchoolIds();
+    var bar = document.getElementById('bulkActionsBar');
+    var countEl = document.getElementById('bulkSelectedCount');
+    if (ids.length > 0) {
+        bar.classList.add('visible');
+        countEl.textContent = ids.length + ' selected';
+    } else {
+        bar.classList.remove('visible');
+    }
+    var allCheckboxes = document.querySelectorAll('.school-row-checkbox');
+    var selectAll = document.getElementById('selectAllSchools');
+    selectAll.checked = allCheckboxes.length > 0 && ids.length === allCheckboxes.length;
+}
+
+function toggleSelectAllSchools(checkbox) {
+    document.querySelectorAll('.school-row-checkbox').forEach(function(cb) { cb.checked = checkbox.checked; });
+    updateBulkSelection();
+}
+
+function clearBulkSelection() {
+    document.querySelectorAll('.school-row-checkbox').forEach(function(cb) { cb.checked = false; });
+    document.getElementById('selectAllSchools').checked = false;
+    updateBulkSelection();
+}
+
+function bulkToggleSchools(activate) {
+    var ids = getSelectedSchoolIds();
+    if (ids.length === 0) return;
+    if (!confirm((activate ? 'Activate ' : 'Deactivate ') + ids.length + ' selected school(s)?')) return;
+
+    fetch('/super-admin/user-management/schools/bulk-toggle-status/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ school_ids: ids, activate: activate }),
+    })
+    .then(function(response) { return response.json(); })
+    .then(function(data) {
+        if (data.success) {
+            showToast(data.message, 'success');
+            setTimeout(function() { location.reload(); }, 900);
+        } else {
+            showToast('Failed to update schools.', 'danger');
+        }
+    })
+    .catch(function() {
+        showToast('Network error. Please try again.', 'danger');
     });
 }
 </script>
