@@ -2666,12 +2666,32 @@ def school_profile(request):
 
 @login_required
 def learning_resources(request):
-    """Student Learning Resources page — 8 module videos."""
+    """Student Learning Resources page — same video library as the dashboard."""
+    from students.models import LearningVideo, VideoProgress
     try:
         student = request.user.student_profile
     except:
         student = None
-    return render(request, 'students/learning_resources.html', {'student': student})
+
+    videos = LearningVideo.objects.filter(is_active=True).order_by('order')
+    watched_video_ids = set()
+    if student:
+        watched_video_ids = set(VideoProgress.objects.filter(student=student, watched=True).values_list('video_id', flat=True))
+    video_list = [{
+        'id': v.id,
+        'title': v.title,
+        'youtube_id': v.youtube_id,
+        'youtube_url': v.youtube_url,
+        'watched': v.id in watched_video_ids,
+    } for v in videos]
+
+    context = {
+        'student': student,
+        'learning_videos': video_list,
+        'videos_total': len(video_list),
+        'videos_watched': len([v for v in video_list if v['watched']]),
+    }
+    return render(request, 'students/learning_resources.html', context)
 
 
 def student_faq(request):
@@ -3122,6 +3142,21 @@ def initiate_payment(request):
     if student.is_paid:
         messages.info(request, 'Payment already completed.')
         return redirect('students:dashboard')
+
+    if request.method == 'POST' and request.POST.get('coupon_code'):
+        code = request.POST.get('coupon_code', '').strip().upper()
+        if code == 'IFT99OFF':
+            full_amount = _get_payment_amount(student)
+            discounted_amount = round(full_amount * 0.01, 2)
+            student.is_paid = True
+            student.payment_amount = discounted_amount
+            student.payment_transaction_id = f'COUPON-{code}'
+            student.paid_at = timezone.now()
+            student.save(update_fields=['is_paid', 'payment_amount', 'payment_transaction_id', 'paid_at'])
+            messages.success(request, f'Coupon applied! 99% off — ₹{discounted_amount} instead of ₹{full_amount}.')
+            return redirect('students:dashboard')
+        else:
+            messages.error(request, 'Invalid coupon code.')
 
     import razorpay
     from django.conf import settings

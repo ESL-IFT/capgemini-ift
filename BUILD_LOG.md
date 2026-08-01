@@ -1,5 +1,9 @@
 # Build Log
 
+## 2026-08-01 — Learning Resources page wired to real video data; 99%-off coupon re-added
+- **Learning Resources page was stale**: `students/views.py:learning_resources` rendered a hardcoded 8-module grid with fixed YouTube IDs, completely disconnected from the `LearningVideo`/`VideoProgress` models the Dashboard already uses (which now has 11 real sessions with per-student watched tracking). Rewired the view to build the same `learning_videos`/`videos_total`/`videos_watched` context as `dashboard()`, and replaced the template's hardcoded grid with a `{% for %}` loop mirroring the dashboard's card markup (thumbnail, watched checkmark, `markVideoWatched()` JS call to `/video/<id>/watched/`). Verified in-browser: page now shows the same session list/count as the dashboard.
+- **Re-added a coupon code to the payment page** (`students/views.py:initiate_payment`, `templates/students/payment.html`) — a similar `IFTFREE2026` bypass coupon existed before but was deliberately removed on 2026-07-29 to close a gap around the real payment gate. Re-added per explicit request, with a new code `IFT99OFF` giving 99% off (records `payment_amount` as 1% of the fee, e.g. ₹25 of ₹2500) rather than a full bypass. Confirmed via test client: valid code marks the student paid at the discounted amount; invalid codes show an error and fall through to the normal Razorpay flow.
+
 ## 2026-08-01 — Prevent duplicate school self-registration via Google Place ID
 - **Problem:** the same physical school could register multiple times (e.g. "Adani DAV Public School" registered 3× with different coordinator emails) — `SchoolSignUpForm` only checked email uniqueness, never the school itself.
 - Added `School.google_place_id` (`students/models.py`, migration `0025_school_google_place_id`, unique + nullable — existing rows have no value and multiple NULLs are allowed).

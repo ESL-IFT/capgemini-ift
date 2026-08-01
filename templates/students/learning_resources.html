@@ -244,14 +244,24 @@
                     <p class="page-subtitle">Watch these videos to prepare for your IFT journey</p>
                 </div>
 
+                <div class="text-center mb-3">
+                    <span style="font-size:0.8rem;font-weight:600;padding:4px 14px;border-radius:999px;{% if videos_watched == videos_total and videos_total > 0 %}background:#dcfce7;color:#16a34a;{% else %}background:#fef3c7;color:#d97706;{% endif %}">
+                        {{ videos_watched }}/{{ videos_total }} Completed
+                    </span>
+                </div>
                 <div class="row g-4">
-                    <!-- Module 1 -->
+                    {% for video in learning_videos %}
                     <div class="col-12 col-sm-6 col-lg-3">
-                        <a class="video-link" href="https://www.youtube.com/watch?v=ZK07eFitOy4" target="_blank" rel="noopener">
+                        <a class="video-link" href="{{ video.youtube_url }}" target="_blank" rel="noopener" onclick="markVideoWatched({{ video.id }})">
                             <div class="video-card">
                                 <div class="video-thumbnail">
-                                    <span class="module-badge">Module 1</span>
-                                    <img src="https://img.youtube.com/vi/ZK07eFitOy4/mqdefault.jpg" alt="IFT Introduction">
+                                    <span class="module-badge">Session {{ forloop.counter }}</span>
+                                    {% if video.watched %}
+                                    <div style="position:absolute;top:8px;right:8px;z-index:2;background:#16a34a;color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;">
+                                        <span class="material-symbols-outlined" style="font-size:16px;">check</span>
+                                    </div>
+                                    {% endif %}
+                                    <img src="https://img.youtube.com/vi/{{ video.youtube_id }}/mqdefault.jpg" alt="{{ video.title }}">
                                     <div class="play-overlay">
                                         <div class="play-btn">
                                             <span class="material-symbols-outlined">play_arrow</span>
@@ -259,151 +269,16 @@
                                     </div>
                                 </div>
                                 <div class="video-info">
-                                    <p class="video-title">IFT Introduction</p>
+                                    <p class="video-title">{{ video.title }}</p>
                                 </div>
                             </div>
                         </a>
                     </div>
-
-                    <!-- Module 2 -->
-                    <div class="col-12 col-sm-6 col-lg-3">
-                        <a class="video-link" href="https://www.youtube.com/watch?v=pFJbtqsoU2g" target="_blank" rel="noopener">
-                            <div class="video-card">
-                                <div class="video-thumbnail">
-                                    <span class="module-badge">Module 2</span>
-                                    <img src="https://img.youtube.com/vi/pFJbtqsoU2g/mqdefault.jpg" alt="Problem Identification">
-                                    <div class="play-overlay">
-                                        <div class="play-btn">
-                                            <span class="material-symbols-outlined">play_arrow</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="video-info">
-                                    <p class="video-title">Problem Identification</p>
-                                </div>
-                            </div>
-                        </a>
+                    {% empty %}
+                    <div class="col-12">
+                        <p style="color:#94a3b8;text-align:center;padding:2rem;">No videos available yet.</p>
                     </div>
-
-                    <!-- Module 3 -->
-                    <div class="col-12 col-sm-6 col-lg-3">
-                        <a class="video-link" href="https://www.youtube.com/watch?v=vJQcBfaCirs" target="_blank" rel="noopener">
-                            <div class="video-card">
-                                <div class="video-thumbnail">
-                                    <span class="module-badge">Module 3</span>
-                                    <img src="https://img.youtube.com/vi/vJQcBfaCirs/mqdefault.jpg" alt="Solution Design">
-                                    <div class="play-overlay">
-                                        <div class="play-btn">
-                                            <span class="material-symbols-outlined">play_arrow</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="video-info">
-                                    <p class="video-title">Solution Design</p>
-                                </div>
-                            </div>
-                        </a>
-                    </div>
-
-                    <!-- Module 4 -->
-                    <div class="col-12 col-sm-6 col-lg-3">
-                        <a class="video-link" href="https://www.youtube.com/watch?v=uT7eAdZcTpY" target="_blank" rel="noopener">
-                            <div class="video-card">
-                                <div class="video-thumbnail">
-                                    <span class="module-badge">Module 4</span>
-                                    <img src="https://img.youtube.com/vi/uT7eAdZcTpY/mqdefault.jpg" alt="Business Model">
-                                    <div class="play-overlay">
-                                        <div class="play-btn">
-                                            <span class="material-symbols-outlined">play_arrow</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="video-info">
-                                    <p class="video-title">Business Model</p>
-                                </div>
-                            </div>
-                        </a>
-                    </div>
-
-                    <!-- Module 5 -->
-                    <div class="col-12 col-sm-6 col-lg-3">
-                        <a class="video-link" href="https://www.youtube.com/watch?v=dt9lm0UW5qE" target="_blank" rel="noopener">
-                            <div class="video-card">
-                                <div class="video-thumbnail">
-                                    <span class="module-badge">Module 5</span>
-                                    <img src="https://img.youtube.com/vi/dt9lm0UW5qE/mqdefault.jpg" alt="Impact Assessment">
-                                    <div class="play-overlay">
-                                        <div class="play-btn">
-                                            <span class="material-symbols-outlined">play_arrow</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="video-info">
-                                    <p class="video-title">Impact Assessment</p>
-                                </div>
-                            </div>
-                        </a>
-                    </div>
-
-                    <!-- Module 6 -->
-                    <div class="col-12 col-sm-6 col-lg-3">
-                        <a class="video-link" href="https://www.youtube.com/watch?v=LlRsO_D-zM4" target="_blank" rel="noopener">
-                            <div class="video-card">
-                                <div class="video-thumbnail">
-                                    <span class="module-badge">Module 6</span>
-                                    <img src="https://img.youtube.com/vi/LlRsO_D-zM4/mqdefault.jpg" alt="Team Building">
-                                    <div class="play-overlay">
-                                        <div class="play-btn">
-                                            <span class="material-symbols-outlined">play_arrow</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="video-info">
-                                    <p class="video-title">Team Building</p>
-                                </div>
-                            </div>
-                        </a>
-                    </div>
-
-                    <!-- Module 7 -->
-                    <div class="col-12 col-sm-6 col-lg-3">
-                        <a class="video-link" href="https://www.youtube.com/watch?v=ayC_GRXYlgc" target="_blank" rel="noopener">
-                            <div class="video-card">
-                                <div class="video-thumbnail">
-                                    <span class="module-badge">Module 7</span>
-                                    <img src="https://img.youtube.com/vi/ayC_GRXYlgc/mqdefault.jpg" alt="Pitch Preparation">
-                                    <div class="play-overlay">
-                                        <div class="play-btn">
-                                            <span class="material-symbols-outlined">play_arrow</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="video-info">
-                                    <p class="video-title">Pitch Preparation</p>
-                                </div>
-                            </div>
-                        </a>
-                    </div>
-
-                    <!-- Module 8 -->
-                    <div class="col-12 col-sm-6 col-lg-3">
-                        <a class="video-link" href="https://www.youtube.com/watch?v=8U2K_kUDV3k" target="_blank" rel="noopener">
-                            <div class="video-card">
-                                <div class="video-thumbnail">
-                                    <span class="module-badge">Module 8</span>
-                                    <img src="https://img.youtube.com/vi/8U2K_kUDV3k/mqdefault.jpg" alt="Submission Guide">
-                                    <div class="play-overlay">
-                                        <div class="play-btn">
-                                            <span class="material-symbols-outlined">play_arrow</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="video-info">
-                                    <p class="video-title">Submission Guide</p>
-                                </div>
-                            </div>
-                        </a>
-                    </div>
+                    {% endfor %}
                 </div>
             </div>
         </div>
@@ -437,6 +312,18 @@
                 });
             }
         });
+    </script>
+    <script>
+    function getCookie(name) {
+        let v = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
+        return v ? v[2] : '';
+    }
+    function markVideoWatched(videoId) {
+        fetch('/video/' + videoId + '/watched/', {
+            method: 'POST',
+            headers: {'X-CSRFToken': getCookie('csrftoken')},
+        }).catch(function(){});
+    }
     </script>
 </body>
 </html>
