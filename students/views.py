@@ -2695,6 +2695,19 @@ def learning_resources(request):
     return render(request, 'students/learning_resources.html', context)
 
 
+@login_required
+def digital_resources(request):
+    """Student-facing Digital Resources page — downloadable collaterals."""
+    from admins.models import DigitalResource
+    try:
+        student = request.user.student_profile
+    except Student.DoesNotExist:
+        student = None
+
+    resources = DigitalResource.objects.filter(is_active=True, visibility__in=['all', 'students']).order_by('category', '-created_at')
+    return render(request, 'students/digital_resources.html', {'student': student, 'resources': resources})
+
+
 def student_faq(request):
     """Student FAQ page — shows published FAQs for students."""
     from admins.models import Content
@@ -2767,6 +2780,20 @@ def school_learning_resources(request):
         return redirect('accounts:sign_in')
     videos = LearningVideo.objects.filter(is_active=True).order_by('order')
     return render(request, 'students/school_learning_resources.html', {'school': school, 'learning_videos': videos})
+
+
+@login_required
+def school_digital_resources(request):
+    """School-facing Digital Resources page — downloadable collaterals."""
+    from students.models import School
+    from admins.models import DigitalResource
+    try:
+        school = request.user.school_profile
+    except School.DoesNotExist:
+        return redirect('students:dashboard')
+
+    resources = DigitalResource.objects.filter(is_active=True, visibility__in=['all', 'schools']).order_by('category', '-created_at')
+    return render(request, 'students/school_digital_resources.html', {'school': school, 'resources': resources})
 
 
 @login_required

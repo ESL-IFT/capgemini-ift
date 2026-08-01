@@ -25,3 +25,7 @@ razorpay>=2.0.0
 # Web push notifications
 pywebpush>=2.0.0
 
+# Wasabi/S3-compatible object storage for Digital Resources uploads
+boto3>=1.34.0
+django-storages>=1.14.0
+

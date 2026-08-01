@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from students.models import IdeaSubmission, Student, School
+from admins.storage_backends import get_resource_storage
 
 
 class JuryAssignment(models.Model):
@@ -190,3 +191,45 @@ class HallOfFameEntry(models.Model):
 
     def __str__(self):
         return f"#{self.rank} - {self.student_name} ({self.season})"
+
+
+class DigitalResource(models.Model):
+    """Downloadable marketing collateral (WhatsApp templates, flyers,
+    brochures, standees, banners, BMC, pitch templates, etc.) shown to
+    Students and/or Schools, uploaded/managed by admins."""
+
+    CATEGORY_CHOICES = [
+        ('whatsapp_template', 'WhatsApp Template'),
+        ('flyer', 'Flyer'),
+        ('brochure', 'Brochure'),
+        ('standee', 'Standee'),
+        ('banner', 'Banner'),
+        ('bmc', 'Business Model Canvas (BMC)'),
+        ('pitch_template', 'Pitch Template'),
+        ('other', 'Other'),
+    ]
+    VISIBILITY_CHOICES = [
+        ('all', 'Students & Schools'),
+        ('students', 'Students Only'),
+        ('schools', 'Schools Only'),
+    ]
+
+    title = models.CharField(max_length=200)
+    category = models.CharField(max_length=30, choices=CATEGORY_CHOICES, default='other')
+    description = models.CharField(max_length=300, blank=True)
+    file = models.FileField(upload_to='digital_resources/%Y/%m/', storage=get_resource_storage)
+    visibility = models.CharField(max_length=20, choices=VISIBILITY_CHOICES, default='all')
+    is_active = models.BooleanField(default=True)
+    uploaded_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='uploaded_resources')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"[{self.get_category_display()}] {self.title}"
+
+    @property
+    def file_extension(self):
+        name = self.file.name or ''
+        return name.rsplit('.', 1)[-1].upper() if '.' in name else ''

@@ -2594,6 +2594,143 @@ def content_toggle_status(request, content_id):
 
 
 # ═══════════════════════════════════════════════════
+#  Digital Resources (downloadable collaterals)
+# ═══════════════════════════════════════════════════
+
+@login_required
+@user_passes_test(is_staff_or_superuser)
+def digital_resources_list(request):
+    """List/manage downloadable Digital Resources (flyers, brochures, etc.)."""
+    from admins.models import DigitalResource
+
+    category_filter = request.GET.get('category', '')
+    search = request.GET.get('q', '').strip()
+
+    items = DigitalResource.objects.all()
+    if category_filter:
+        items = items.filter(category=category_filter)
+    if search:
+        items = items.filter(Q(title__icontains=search) | Q(description__icontains=search))
+
+    paginator = Paginator(items, 20)
+    page_obj = paginator.get_page(request.GET.get('page', 1))
+
+    context = {
+        'items': page_obj,
+        'total': DigitalResource.objects.count(),
+        'active_count': DigitalResource.objects.filter(is_active=True).count(),
+        'selected_category': category_filter,
+        'search_query': search,
+        'category_choices': DigitalResource.CATEGORY_CHOICES,
+    }
+    return render(request, 'admins/digital_resources/digital_resources_list.html', context)
+
+
+@login_required
+@user_passes_test(is_staff_or_superuser)
+def digital_resource_upload(request):
+    """Upload a new Digital Resource file."""
+    from admins.models import DigitalResource
+
+    if request.method == 'POST':
+        title = request.POST.get('title', '').strip()
+        category = request.POST.get('category', 'other')
+        description = request.POST.get('description', '').strip()
+        visibility = request.POST.get('visibility', 'all')
+        uploaded_file = request.FILES.get('file')
+
+        if not title or not uploaded_file:
+            return JsonResponse({'success': False, 'message': 'Title and a file are required.'}, status=400)
+
+        DigitalResource.objects.create(
+            title=title,
+            category=category,
+            description=description,
+            visibility=visibility,
+            file=uploaded_file,
+            uploaded_by=request.user,
+        )
+
+        return JsonResponse({
+            'success': True,
+            'message': f'"{title}" uploaded successfully!',
+            'redirect': '/super-admin/digital-resources/'
+        })
+
+    context = {'category_choices': DigitalResource.CATEGORY_CHOICES}
+    return render(request, 'admins/digital_resources/digital_resource_upload.html', context)
+
+
+@login_required
+@user_passes_test(is_staff_or_superuser)
+def digital_resource_edit(request, resource_id):
+    """Edit a Digital Resource's metadata, optionally replacing the file."""
+    from admins.models import DigitalResource
+
+    resource = get_object_or_404(DigitalResource, id=resource_id)
+
+    if request.method == 'POST':
+        title = request.POST.get('title', '').strip()
+        if not title:
+            return JsonResponse({'success': False, 'message': 'Title is required.'}, status=400)
+
+        resource.title = title
+        resource.category = request.POST.get('category', resource.category)
+        resource.description = request.POST.get('description', resource.description).strip()
+        resource.visibility = request.POST.get('visibility', resource.visibility)
+        new_file = request.FILES.get('file')
+        if new_file:
+            resource.file = new_file
+        resource.save()
+
+        return JsonResponse({
+            'success': True,
+            'message': f'"{resource.title}" updated successfully!',
+            'redirect': '/super-admin/digital-resources/'
+        })
+
+    context = {'resource': resource, 'category_choices': DigitalResource.CATEGORY_CHOICES, 'edit_mode': True}
+    return render(request, 'admins/digital_resources/digital_resource_upload.html', context)
+
+
+@login_required
+@user_passes_test(is_staff_or_superuser)
+def digital_resource_delete(request, resource_id):
+    """Delete a Digital Resource (removes the underlying file too)."""
+    from admins.models import DigitalResource
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+
+    resource = get_object_or_404(DigitalResource, id=resource_id)
+    title = resource.title
+    resource.file.delete(save=False)
+    resource.delete()
+
+    return JsonResponse({'success': True, 'message': f'"{title}" deleted.'})
+
+
+@login_required
+@user_passes_test(is_staff_or_superuser)
+def digital_resource_toggle_status(request, resource_id):
+    """Toggle a Digital Resource active/inactive (visible to Students/Schools or not)."""
+    from admins.models import DigitalResource
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+
+    resource = get_object_or_404(DigitalResource, id=resource_id)
+    resource.is_active = not resource.is_active
+    resource.save(update_fields=['is_active'])
+
+    return JsonResponse({
+        'success': True,
+        'is_active': resource.is_active,
+        'message': f'"{resource.title}" {"activated" if resource.is_active else "deactivated"}!',
+    })
+
+
+# ═══════════════════════════════════════════════════
 #  Schedule & Timeline Management
 # ═══════════════════════════════════════════════════
 

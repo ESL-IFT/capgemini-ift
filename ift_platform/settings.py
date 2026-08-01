@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'storages',
     # IFT Platform Apps
     'accounts',
     'students',
@@ -161,6 +162,14 @@ WHITENOISE_MIMETYPES = {
 # Media files (User uploads)
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+# Wasabi (S3-compatible) object storage — used for Digital Resources uploads
+# (see admins/storage_backends.py). Falls back to local disk when unset.
+WASABI_ACCESS_KEY = os.getenv('WASABI_ACCESS_KEY', '')
+WASABI_SECRET_KEY = os.getenv('WASABI_SECRET_KEY', '')
+WASABI_BUCKET_NAME = os.getenv('WASABI_BUCKET_NAME', '')
+WASABI_ENDPOINT_URL = os.getenv('WASABI_ENDPOINT_URL', 'https://s3.wasabisys.com')
+WASABI_REGION = os.getenv('WASABI_REGION', 'us-east-1')
 
 # OpenRouter AI Configuration
 OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY', '')

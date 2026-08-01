@@ -1,0 +1,284 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>{% if edit_mode %}Edit{% else %}Upload{% endif %} Digital Resource - IFT Platform</title>
+
+    <link href="https://fonts.googleapis.com" rel="preconnect" />
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;900&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+    <style>
+        :root {
+            --primary: #5E2A97;
+            --background-light: #F3F4F6;
+            --border-light: #E5E7EB;
+            --text-dark: #1F2937;
+            --text-muted: #6B7280;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Poppins', sans-serif; background-color: var(--background-light); color: var(--text-dark); overflow: hidden; }
+        .main-container { display: flex; height: 100vh; width: 100%; }
+
+        .sidebar { width: 280px; background: #FFFFFF; border-right: 1px solid #EEEEEE; height: 100vh; display: flex; flex-direction: column; position: sticky; top: 0; transition: all 0.3s ease; overflow-y: auto; overflow-x: hidden; }
+        .sidebar.collapsed { width: 80px; }
+        .sidebar.collapsed .nav-text, .sidebar.collapsed .user-info { opacity: 0; width: 0; overflow: hidden; white-space: nowrap; }
+        .sidebar.collapsed .logo-img { width: 50px; height: 50px; margin: 0 auto; background-position: center; }
+        .sidebar.collapsed .nav-item { justify-content: center; padding-left: 1.7rem; }
+        .sidebar.collapsed .user-avatar { margin: 0 auto; }
+        .sidebar.collapsed .logout-btn { display: none; }
+        .sidebar-header { border-bottom: 1px solid #F7F7F7; }
+        .logo-img { width: 250px; height: 95px; background-size: contain; background-position: left center; background-repeat: no-repeat; flex-shrink: 0; }
+        .nav-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; border-radius: 0.5rem; text-decoration: none; color: #222222; margin-bottom: 0.25rem; }
+        .nav-item:hover { background: #F7F7F7; }
+        .nav-item .material-symbols-outlined { font-size: 24px; color: #666666; }
+        .nav-item.nav-item-active { background: rgba(94, 42, 151, 0.1); color: #5E2A97; }
+        .nav-item.nav-item-active .material-symbols-outlined { color: #5E2A97; }
+        .nav-text { font-size: 0.875rem; font-weight: 500; }
+        .nav-dropdown-toggle { display: flex; align-items: center; justify-content: space-between; width: 100%; }
+        .nav-dropdown-icon { font-size: 18px !important; transition: transform 0.2s ease; }
+        .nav-dropdown.open .nav-dropdown-icon { transform: rotate(180deg); }
+        .nav-dropdown-menu { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; padding-left: 2.5rem; }
+        .nav-dropdown.open .nav-dropdown-menu { max-height: 400px; margin-top: 0.25rem; }
+        .nav-dropdown-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.625rem 1rem; border-radius: 0.5rem; text-decoration: none; color: #666666; font-size: 0.875rem; font-weight: 500; margin-bottom: 0.25rem; }
+        .nav-dropdown-item:hover { background: #F7F7F7; color: #5E2A97; }
+        .nav-dropdown-item.active { background: rgba(94, 42, 151, 0.1); color: #5E2A97; }
+        .sidebar-footer { border-top: 1px solid #EEEEEE; margin-top: auto; }
+        .user-profile { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; border-radius: 0.5rem; cursor: pointer; }
+        .user-profile:hover { background: #F7F7F7; }
+        .user-avatar { width: 2.5rem; height: 2.5rem; border-radius: 50%; overflow: hidden; flex-shrink: 0; border: 2px solid #EEEEEE; }
+        .user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .user-info { flex: 1; }
+        .user-name { font-size: 0.875rem; font-weight: 700; margin: 0 0 0.125rem 0; }
+        .user-role { font-size: 0.75rem; color: #666666; margin: 0; }
+        .logout-btn { background: none; border: none; color: #666666; cursor: pointer; padding: 0.5rem; border-radius: 0.375rem; display: flex; align-items: center; justify-content: center; }
+        .logout-btn:hover { background: rgba(94, 42, 151, 0.1); color: #5E2A97; }
+        @media (max-width: 768px) { .sidebar { position: fixed; left: -280px; z-index: 999; } .sidebar.mobile-open { left: 0; } }
+
+        .top-header { height: 70px; min-height: 70px; flex-shrink: 0; background: #FFFFFF; border-bottom: 1px solid #EEEEEE; display: flex; align-items: center; padding: 0 1.5rem; position: sticky; top: 0; z-index: 100; }
+        .header-icon-btn { width: 2.5rem; height: 2.5rem; border-radius: 0.5rem; border: none; background: #F7F7F7; color: #666666; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .header-icon-btn:hover { background: #EEEEEE; color: #5E2A97; }
+        .header-avatar { width: 2.5rem; height: 2.5rem; border-radius: 50%; background-size: cover; background-position: center; border: 2px solid #5E2A97; cursor: pointer; }
+
+        .main-content { flex: 1; display: flex; flex-direction: column; height: 100%; overflow-y: auto; position: relative; z-index: 10; }
+        .page-area { padding: 2rem; flex: 1; max-width: 760px; margin: 0 auto; width: 100%; }
+        .page-header { margin-bottom: 2rem; }
+        .page-header h1 { font-size: 1.625rem; font-weight: 700; margin-bottom: 4px; }
+        .breadcrumb { font-size: 0.8125rem; margin: 0; }
+        .breadcrumb-item a { color: var(--primary); text-decoration: none; }
+
+        .section-card { background: #fff; border-radius: 12px; padding: 28px; margin-bottom: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+        .form-group { margin-bottom: 0; }
+        .form-label { font-size: 0.875rem; font-weight: 600; margin-bottom: 6px; display: block; }
+        .form-label .required { color: #ef4444; margin-left: 2px; }
+        .form-input, .form-select-input, .form-textarea { width: 100%; padding: 10px 14px; border: 1.5px solid var(--border-light); border-radius: 8px; font-size: 0.875rem; font-family: inherit; color: var(--text-dark); background: #fff; outline: none; }
+        .form-input:focus, .form-select-input:focus, .form-textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(94,42,151,0.08); }
+        .form-input.error, .form-select-input.error { border-color: #ef4444; }
+        .form-textarea { resize: vertical; min-height: 70px; }
+        .error-msg { font-size: 0.775rem; color: #ef4444; margin-top: 4px; display: none; }
+        .error-msg.show { display: block; }
+        .current-file { font-size: 0.8125rem; color: var(--text-muted); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+
+        .sticky-footer { position: sticky; bottom: 0; background: #fff; border-top: 1px solid var(--border-light); padding: 16px 2rem; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 -4px 12px rgba(0,0,0,0.06); }
+        .footer-left { font-size: 0.8125rem; color: var(--text-muted); }
+        .footer-actions { display: flex; gap: 10px; }
+        .btn-secondary { display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; background: #fff; border: 1.5px solid var(--border-light); border-radius: 8px; font-size: 0.875rem; font-weight: 600; color: var(--text-dark); cursor: pointer; text-decoration: none; }
+        .btn-primary { display: inline-flex; align-items: center; gap: 6px; padding: 10px 24px; background: var(--primary); border: none; border-radius: 8px; font-size: 0.875rem; font-weight: 600; color: #fff; cursor: pointer; }
+        .btn-primary:hover { background: #4a2178; }
+        @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+    </style>
+</head>
+
+<body>
+<div class="main-container">
+
+    <aside class="sidebar d-md-flex flex-column" id="superAdminAppSidebar">
+        <div class="sidebar-header p-3 pb-1">
+            <div class="d-flex align-items-center">
+                <div class="logo-img" style="background-image: url('{% static 'images/New-Final-ift-logo.png' %}');"></div>
+            </div>
+        </div>
+        <nav class="flex-grow-1 px-3 d-flex flex-column gap-2 mt-3">
+            <a class="nav-item" href="{% url 'admins:dashboard' %}"><span class="material-symbols-outlined">dashboard</span><span class="nav-text">Dashboard</span></a>
+            <a class="nav-item nav-item-active" href="{% url 'admins:digital_resources_list' %}"><span class="material-symbols-outlined">folder_zip</span><span class="nav-text">Digital Resources</span></a>
+            <a class="nav-item" href="{% url 'admins:content_list' %}"><span class="material-symbols-outlined">article</span><span class="nav-text">Content</span></a>
+        </nav>
+        <div class="sidebar-footer p-3 mt-auto">
+            <div class="user-profile">
+                <div class="user-avatar"><img alt="Admin" src="https://ui-avatars.com/api/?name={{ request.user.get_full_name|default:request.user.username }}&background=5E2A97&color=fff" /></div>
+                <div class="user-info flex-grow-1">
+                    <p class="user-name">{{ request.user.get_full_name|default:request.user.username }}</p>
+                    <p class="user-role">Super Administrator</p>
+                </div>
+                <a href="{% url 'accounts:sign_out' %}" class="logout-btn" title="Logout"><span class="material-symbols-outlined">logout</span></a>
+            </div>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header class="top-header">
+            <button class="header-icon-btn" id="sidebarToggleBtn" style="margin-right:16px;"><span class="material-symbols-outlined">menu</span></button>
+            <div class="d-flex align-items-center gap-2 ms-auto">
+                <div class="header-avatar" style="background-image: url('https://ui-avatars.com/api/?name={{ request.user.get_full_name|default:request.user.username }}&background=5E2A97&color=fff');"></div>
+            </div>
+        </header>
+
+        <form method="POST" enctype="multipart/form-data" id="resourceForm" action="{% if edit_mode %}{% url 'admins:digital_resource_edit' resource.id %}{% else %}{% url 'admins:digital_resource_upload' %}{% endif %}" novalidate>
+            {% csrf_token %}
+            <div class="page-area">
+                <div class="page-header">
+                    <h1>{% if edit_mode %}Edit{% else %}Upload{% endif %} Digital Resource</h1>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a href="{% url 'admins:dashboard' %}">Admin</a></li>
+                            <li class="breadcrumb-item"><a href="{% url 'admins:digital_resources_list' %}">Digital Resources</a></li>
+                            <li class="breadcrumb-item active">{% if edit_mode %}Edit{% else %}Upload{% endif %}</li>
+                        </ol>
+                    </nav>
+                </div>
+
+                <div class="section-card">
+                    <div class="form-group mb-3">
+                        <label class="form-label">Title <span class="required">*</span></label>
+                        <input type="text" class="form-input" id="titleInput" name="title" placeholder="e.g. IFT Season 6 Brochure" value="{{ resource.title|default:'' }}">
+                        <div class="error-msg" id="titleErr">Title is required</div>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="form-label">Category</label>
+                                <select class="form-select-input" name="category">
+                                    {% for value, label in category_choices %}
+                                    <option value="{{ value }}" {% if resource.category == value %}selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="form-label">Visible To</label>
+                                <select class="form-select-input" name="visibility">
+                                    <option value="all" {% if resource.visibility == 'all' or not resource %}selected{% endif %}>Students &amp; Schools</option>
+                                    <option value="students" {% if resource.visibility == 'students' %}selected{% endif %}>Students Only</option>
+                                    <option value="schools" {% if resource.visibility == 'schools' %}selected{% endif %}>Schools Only</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-textarea" name="description" placeholder="Optional short description shown to Students/Schools">{{ resource.description|default:'' }}</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">File {% if not edit_mode %}<span class="required">*</span>{% endif %}</label>
+                        {% if edit_mode and resource.file %}
+                        <div class="current-file">
+                            <span class="material-symbols-outlined" style="font-size:16px;">description</span>
+                            Current file: <a href="{{ resource.file.url }}" target="_blank">{{ resource.file.name }}</a> (leave blank to keep)
+                        </div>
+                        {% endif %}
+                        <input type="file" class="form-input" id="fileInput" name="file">
+                        <div class="error-msg" id="fileErr">A file is required</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sticky-footer">
+                <span class="footer-left"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:#94a3b8;">info</span> Any file type is accepted (PDF, image, DOCX, etc.)</span>
+                <div class="footer-actions">
+                    <a href="{% url 'admins:digital_resources_list' %}" class="btn-secondary">
+                        <span class="material-symbols-outlined" style="font-size:16px;">arrow_back</span> Cancel
+                    </a>
+                    <button type="submit" class="btn-primary" id="submitBtn">
+                        <span class="material-symbols-outlined" style="font-size:16px;">check</span>
+                        {% if edit_mode %}Update{% else %}Upload{% endif %}
+                    </button>
+                </div>
+            </div>
+        </form>
+    </main>
+</div>
+
+<div id="toastContainer" style="position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px;"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+(function() {
+    const sidebar = document.getElementById('superAdminAppSidebar');
+    const toggleBtn = document.getElementById('sidebarToggleBtn');
+    if (toggleBtn) {
+        toggleBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+            if (window.innerWidth <= 768) sidebar.classList.toggle('mobile-open');
+        });
+    }
+
+    const form = document.getElementById('resourceForm');
+    const isEditMode = {{ edit_mode|yesno:"true,false" }};
+
+    function showToast(msg, type) {
+        const container = document.getElementById('toastContainer');
+        const toast = document.createElement('div');
+        toast.style.cssText = 'padding:12px 18px;border-radius:10px;font-size:0.8125rem;font-weight:500;color:#fff;box-shadow:0 4px 16px rgba(0,0,0,0.2);display:flex;align-items:center;gap:10px;max-width:320px;background:' + (type === 'success' ? '#166534' : '#991b1b') + ';';
+        const icon = type === 'success' ? 'check_circle' : 'error';
+        toast.innerHTML = '<span class="material-symbols-outlined" style="font-size:18px;">' + icon + '</span>' + msg;
+        container.appendChild(toast);
+        setTimeout(() => toast.remove(), 3500);
+    }
+
+    function validate() {
+        let valid = true;
+        const title = document.getElementById('titleInput');
+        const titleErr = document.getElementById('titleErr');
+        if (!title.value.trim()) { title.classList.add('error'); titleErr.classList.add('show'); valid = false; }
+        else { title.classList.remove('error'); titleErr.classList.remove('show'); }
+
+        const file = document.getElementById('fileInput');
+        const fileErr = document.getElementById('fileErr');
+        if (!isEditMode && !file.files.length) { file.classList.add('error'); fileErr.classList.add('show'); valid = false; }
+        else { file.classList.remove('error'); fileErr.classList.remove('show'); }
+        return valid;
+    }
+
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        if (!validate()) {
+            showToast('Please fill in all required fields', 'danger');
+            return;
+        }
+        const btn = document.getElementById('submitBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:16px;animation:spin 1s linear infinite;">progress_activity</span> Saving...';
+
+        const formData = new FormData(form);
+        fetch(form.action, {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-CSRFToken': formData.get('csrfmiddlewaretoken') }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                showToast(data.message, 'success');
+                setTimeout(() => { window.location.href = data.redirect || '{% url "admins:digital_resources_list" %}'; }, 1000);
+            } else {
+                showToast(data.message || 'Something went wrong', 'danger');
+                btn.disabled = false;
+                btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:16px;">check</span> {% if edit_mode %}Update{% else %}Upload{% endif %}';
+            }
+        })
+        .catch(() => {
+            showToast('Network error. Please try again.', 'danger');
+            btn.disabled = false;
+            btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:16px;">check</span> {% if edit_mode %}Update{% else %}Upload{% endif %}';
+        });
+    });
+})();
+</script>
+</body>
+</html>

@@ -62,6 +62,13 @@ urlpatterns = [
     path('content/<int:content_id>/delete/', views.content_delete, name='content_delete'),
     path('content/<int:content_id>/toggle-status/', views.content_toggle_status, name='content_toggle_status'),
 
+    # Digital Resources
+    path('digital-resources/', views.digital_resources_list, name='digital_resources_list'),
+    path('digital-resources/upload/', views.digital_resource_upload, name='digital_resource_upload'),
+    path('digital-resources/<int:resource_id>/edit/', views.digital_resource_edit, name='digital_resource_edit'),
+    path('digital-resources/<int:resource_id>/delete/', views.digital_resource_delete, name='digital_resource_delete'),
+    path('digital-resources/<int:resource_id>/toggle-status/', views.digital_resource_toggle_status, name='digital_resource_toggle_status'),
+
     # Hall of Fame
     path('hall-of-fame/', views.halloffame_list, name='halloffame_list'),
     path('hall-of-fame/create/', views.halloffame_create, name='halloffame_create'),

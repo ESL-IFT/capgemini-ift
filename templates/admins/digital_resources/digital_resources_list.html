@@ -1,0 +1,367 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Digital Resources | Super Admin | ENpower IFT</title>
+
+    <link href="https://fonts.googleapis.com" rel="preconnect" />
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;900&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+    <style>
+        :root {
+            --primary: #5E2A97;
+            --background-light: #F7F7F7;
+            --surface-light: #FFFFFF;
+            --border-light: #EEEEEE;
+            --text-dark: #222222;
+            --text-muted: #666666;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Poppins', sans-serif; background-color: var(--background-light); color: var(--text-dark); overflow: hidden; }
+        .main-container { display: flex; height: 100vh; width: 100%; }
+
+        .sidebar { width: 280px; background: #FFFFFF; border-right: 1px solid #EEEEEE; height: 100vh; display: flex; flex-direction: column; position: sticky; top: 0; transition: all 0.3s ease; overflow-y: auto; overflow-x: hidden; }
+        .sidebar.collapsed { width: 80px; }
+        .sidebar.collapsed .nav-text, .sidebar.collapsed .user-info { opacity: 0; width: 0; overflow: hidden; white-space: nowrap; }
+        .sidebar.collapsed .logo-img { width: 50px; height: 50px; margin: 0 auto; background-position: center; }
+        .sidebar.collapsed .nav-item { justify-content: center; padding-left: 1.7rem; }
+        .sidebar.collapsed .user-avatar { margin: 0 auto; }
+        .sidebar.collapsed .logout-btn { display: none; }
+        .sidebar-header { border-bottom: 1px solid #F7F7F7; }
+        .logo-img { width: 250px; height: 95px; background-size: contain; background-position: left center; background-repeat: no-repeat; flex-shrink: 0; }
+        .nav-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; border-radius: 0.5rem; text-decoration: none; color: #222222; transition: all 0.2s ease; cursor: pointer; margin-bottom: 0.25rem; }
+        .nav-item:hover { background: #F7F7F7; color: #222222; }
+        .nav-item .material-symbols-outlined { font-size: 24px; color: #666666; }
+        .nav-item.nav-item-active { background: rgba(94, 42, 151, 0.1); color: #5E2A97; padding-left: calc(1rem - 4px); }
+        .nav-item.nav-item-active .material-symbols-outlined { color: #5E2A97; font-variation-settings: 'FILL' 1; }
+        .nav-text { font-size: 0.875rem; font-weight: 500; }
+        .nav-dropdown-toggle { display: flex; align-items: center; justify-content: space-between; width: 100%; }
+        .nav-dropdown-icon { font-size: 18px !important; transition: transform 0.2s ease; }
+        .nav-dropdown.open .nav-dropdown-icon { transform: rotate(180deg); }
+        .nav-dropdown-menu { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; padding-left: 2.5rem; }
+        .nav-dropdown.open .nav-dropdown-menu { max-height: 400px; margin-top: 0.25rem; }
+        .nav-dropdown-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.625rem 1rem; border-radius: 0.5rem; text-decoration: none; color: #666666; font-size: 0.875rem; font-weight: 500; margin-bottom: 0.25rem; }
+        .nav-dropdown-item:hover { background: #F7F7F7; color: #5E2A97; }
+        .nav-dropdown-item.active { background: rgba(94, 42, 151, 0.1); color: #5E2A97; }
+        .sidebar-footer { border-top: 1px solid #EEEEEE; margin-top: auto; }
+        .user-profile { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; border-radius: 0.5rem; cursor: pointer; }
+        .user-profile:hover { background: #F7F7F7; }
+        .user-avatar { width: 2.5rem; height: 2.5rem; border-radius: 50%; overflow: hidden; flex-shrink: 0; border: 2px solid #EEEEEE; }
+        .user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .user-info { flex: 1; }
+        .user-name { font-size: 0.875rem; font-weight: 700; margin: 0 0 0.125rem 0; }
+        .user-role { font-size: 0.75rem; color: #666666; margin: 0; }
+        .logout-btn { background: none; border: none; color: #666666; cursor: pointer; padding: 0.5rem; border-radius: 0.375rem; display: flex; align-items: center; justify-content: center; }
+        .logout-btn:hover { background: rgba(94, 42, 151, 0.1); color: #5E2A97; }
+
+        @media (max-width: 768px) {
+            .sidebar { position: fixed; left: -280px; z-index: 999; transition: left 0.3s ease; }
+            .sidebar.mobile-open { left: 0; }
+        }
+
+        .top-header { height: 70px; min-height: 70px; flex-shrink: 0; background: #FFFFFF; border-bottom: 1px solid #EEEEEE; display: flex; align-items: center; padding: 0 1.5rem; position: sticky; top: 0; z-index: 100; }
+        .header-icon-btn { width: 2.5rem; height: 2.5rem; border-radius: 0.5rem; border: none; background: #F7F7F7; color: #666666; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .header-icon-btn:hover { background: #EEEEEE; color: #5E2A97; }
+        .header-avatar { width: 2.5rem; height: 2.5rem; border-radius: 50%; background-size: cover; background-position: center; border: 2px solid #5E2A97; cursor: pointer; }
+
+        .main-content { flex: 1; display: flex; flex-direction: column; height: 100%; overflow-y: auto; position: relative; z-index: 10; }
+        .content-wrapper { flex: 1; padding: 32px; width: 100%; }
+
+        .page-header { margin-bottom: 28px; display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px; }
+        .page-header h1 { font-size: 1.875rem; font-weight: 700; margin-bottom: 6px; }
+        .breadcrumb { font-size: 0.875rem; color: var(--text-muted); background: none; padding: 0; margin: 0; }
+        .breadcrumb-item a { color: var(--text-muted); text-decoration: none; }
+        .breadcrumb-item a:hover { color: var(--primary); }
+        .breadcrumb-item.active { color: var(--text-dark); }
+
+        .btn-primary-custom { background: var(--primary); color: #fff; border: none; padding: 10px 20px; border-radius: 8px; font-size: 0.875rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; }
+        .btn-primary-custom:hover { background: #4a1f7a; color: #fff; }
+
+        .stat-card { background: var(--surface-light); border-radius: 12px; padding: 20px 24px; box-shadow: 0 2px 12px rgba(0,0,0,0.04); border: 1px solid var(--border-light); display: flex; align-items: center; gap: 16px; }
+        .stat-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .stat-icon.purple { background: rgba(94,42,151,0.1); color: var(--primary); }
+        .stat-icon.green { background: rgba(34,197,94,0.1); color: #22c55e; }
+        .stat-label { font-size: 0.75rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin: 0; }
+        .stat-value { font-size: 1.5rem; font-weight: 700; margin: 0; }
+
+        .main-card { background: var(--surface-light); border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.04); border: 1px solid var(--border-light); overflow: hidden; }
+        .main-card-header { padding: 20px 24px; border-bottom: 1px solid var(--border-light); display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+        .search-input { position: relative; }
+        .search-input .material-symbols-outlined { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 20px; }
+        .search-input input { width: 260px; padding: 9px 12px 9px 42px; border: 1px solid var(--border-light); border-radius: 8px; font-size: 0.875rem; background: #f8fafc; }
+        .filter-select { font-size: 0.875rem; padding: 9px 12px; border: 1px solid var(--border-light); border-radius: 8px; background: #f8fafc; cursor: pointer; }
+
+        .custom-table { width: 100%; font-size: 0.875rem; }
+        .custom-table thead { background: #f8fafc; }
+        .custom-table th { padding: 14px 18px; font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; text-align: left; border-bottom: 1px solid var(--border-light); white-space: nowrap; }
+        .custom-table td { padding: 14px 18px; vertical-align: middle; border-bottom: 1px solid #f8f9fa; }
+        .custom-table tbody tr:hover { background: rgba(94,42,151,0.03); }
+
+        .badge-status { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; }
+        .badge-status .dot { width: 6px; height: 6px; border-radius: 50%; }
+        .badge-active { background: #dcfce7; color: #16a34a; }
+        .badge-active .dot { background: #16a34a; }
+        .badge-inactive { background: #fee2e2; color: #dc2626; }
+        .badge-inactive .dot { background: #dc2626; }
+
+        .badge-type { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 9999px; font-size: 0.6875rem; font-weight: 600; background: rgba(94,42,151,0.1); color: var(--primary); }
+
+        .file-icon { width: 36px; height: 36px; border-radius: 8px; background: rgba(94,42,151,0.1); color: var(--primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 0.65rem; font-weight: 700; }
+
+        .action-btn { width: 30px; height: 30px; border-radius: 6px; border: 1px solid var(--border-light); background: #fff; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text-muted); }
+        .action-btn:hover { border-color: var(--primary); color: var(--primary); background: rgba(94,42,151,0.05); }
+        .action-btn.danger:hover { border-color: #ef4444; color: #ef4444; background: rgba(239,68,68,0.05); }
+        .action-btn .material-symbols-outlined { font-size: 16px; }
+
+        .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+        .empty-state .material-symbols-outlined { font-size: 48px; color: #d1d5db; margin-bottom: 12px; display: block; }
+
+        .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 2000; display: flex; flex-direction: column; gap: 8px; }
+        .toast-msg { background: #1e293b; color: #fff; padding: 12px 18px; border-radius: 10px; font-size: 0.8125rem; font-weight: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.2); display: flex; align-items: center; gap: 10px; max-width: 320px; }
+        .toast-msg.success { background: #166534; }
+        .toast-msg.danger { background: #991b1b; }
+
+        @media (max-width: 768px) { .content-wrapper { padding: 16px; } .search-input input { width: 180px; } }
+    </style>
+</head>
+
+<body>
+<div class="main-container">
+
+    <aside class="sidebar d-md-flex flex-column" id="superAdminAppSidebar">
+        <div class="sidebar-header p-3 pb-1">
+            <div class="d-flex align-items-center">
+                <div class="logo-img" style="background-image: url('{% static 'images/New-Final-ift-logo.png' %}');"></div>
+            </div>
+        </div>
+        <nav class="flex-grow-1 px-3 d-flex flex-column gap-2 mt-3">
+            <a class="nav-item" href="{% url 'admins:dashboard' %}">
+                <span class="material-symbols-outlined">dashboard</span>
+                <span class="nav-text">Dashboard</span>
+            </a>
+            <div class="nav-dropdown">
+                <div class="nav-item nav-dropdown-toggle" id="userManagementToggle">
+                    <div style="display:flex;align-items:center;gap:0.75rem;">
+                        <span class="material-symbols-outlined">manage_accounts</span>
+                        <span class="nav-text">User Management</span>
+                    </div>
+                    <span class="material-symbols-outlined nav-dropdown-icon">expand_more</span>
+                </div>
+                <div class="nav-dropdown-menu">
+                    <a class="nav-dropdown-item" href="{% url 'admins:onboard_student' %}"><span class="material-symbols-outlined">person_add</span><span class="nav-text">Onboard Student</span></a>
+                    <a class="nav-dropdown-item" href="{% url 'admins:students_list' %}"><span class="material-symbols-outlined">school</span><span class="nav-text">Students</span></a>
+                    <a class="nav-dropdown-item" href="{% url 'admins:onboard_school' %}"><span class="material-symbols-outlined">add_business</span><span class="nav-text">Onboard School</span></a>
+                    <a class="nav-dropdown-item" href="{% url 'admins:schools_list' %}"><span class="material-symbols-outlined">apartment</span><span class="nav-text">Schools</span></a>
+                    <a class="nav-dropdown-item" href="{% url 'admins:onboard_evaluator' %}"><span class="material-symbols-outlined">person_add</span><span class="nav-text">Onboard Evaluator</span></a>
+                    <a class="nav-dropdown-item" href="{% url 'admins:evaluators_list' %}"><span class="material-symbols-outlined">groups</span><span class="nav-text">Evaluators</span></a>
+                </div>
+            </div>
+            <a class="nav-item" href="{% url 'admins:evaluator_management' %}"><span class="material-symbols-outlined">supervisor_account</span><span class="nav-text">Evaluator Management</span></a>
+            <a class="nav-item" href="{% url 'admins:all_submissions' %}"><span class="material-symbols-outlined">assignment</span><span class="nav-text">Submissions</span></a>
+            <a class="nav-item" href="{% url 'admins:rankings' %}"><span class="material-symbols-outlined">leaderboard</span><span class="nav-text">Rankings</span></a>
+            <a class="nav-item" href="{% url 'admins:schedule' %}"><span class="material-symbols-outlined">event_note</span><span class="nav-text">Schedule</span></a>
+            <a class="nav-item" href="{% url 'admins:content_list' %}"><span class="material-symbols-outlined">article</span><span class="nav-text">Content</span></a>
+            <a class="nav-item nav-item-active" href="{% url 'admins:digital_resources_list' %}"><span class="material-symbols-outlined">folder_zip</span><span class="nav-text">Digital Resources</span></a>
+            <a class="nav-item" href="{% url 'admins:halloffame_list' %}"><span class="material-symbols-outlined">emoji_events</span><span class="nav-text">Hall of Fame</span></a>
+            <a class="nav-item" href="{% url 'admins:reports' %}"><span class="material-symbols-outlined">analytics</span><span class="nav-text">Reports</span></a>
+            <a class="nav-item" href="{% url 'admins:certificates' %}"><span class="material-symbols-outlined">workspace_premium</span><span class="nav-text">Certificates</span></a>
+        </nav>
+        <div class="sidebar-footer p-3 mt-auto">
+            <div class="user-profile">
+                <div class="user-avatar"><img alt="Admin" src="https://ui-avatars.com/api/?name={{ request.user.get_full_name|default:request.user.username }}&background=5E2A97&color=fff" /></div>
+                <div class="user-info flex-grow-1">
+                    <p class="user-name">{{ request.user.get_full_name|default:request.user.username }}</p>
+                    <p class="user-role">Super Administrator</p>
+                </div>
+                <a href="{% url 'accounts:sign_out' %}" class="logout-btn" title="Logout"><span class="material-symbols-outlined">logout</span></a>
+            </div>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header class="top-header">
+            <button class="header-icon-btn" id="sidebarToggleBtn" style="margin-right:16px;"><span class="material-symbols-outlined">menu</span></button>
+            <div class="d-flex align-items-center gap-2 ms-auto">
+                <div class="header-avatar" style="background-image: url('https://ui-avatars.com/api/?name={{ request.user.get_full_name|default:request.user.username }}&background=5E2A97&color=fff');"></div>
+            </div>
+        </header>
+
+        <div class="content-wrapper">
+            <div class="page-header">
+                <div>
+                    <h1>Digital Resources</h1>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a href="{% url 'admins:dashboard' %}">Dashboard</a></li>
+                            <li class="breadcrumb-item active">Digital Resources</li>
+                        </ol>
+                    </nav>
+                </div>
+                <a href="{% url 'admins:digital_resource_upload' %}" class="btn-primary-custom">
+                    <span class="material-symbols-outlined" style="font-size:18px;">upload</span>
+                    Upload Resource
+                </a>
+            </div>
+
+            <div class="row g-3 mb-4">
+                <div class="col-6 col-md-3">
+                    <div class="stat-card">
+                        <div class="stat-icon purple"><span class="material-symbols-outlined">folder_zip</span></div>
+                        <div><p class="stat-label">Total</p><p class="stat-value">{{ total }}</p></div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="stat-card">
+                        <div class="stat-icon green"><span class="material-symbols-outlined">check_circle</span></div>
+                        <div><p class="stat-label">Active</p><p class="stat-value">{{ active_count }}</p></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="main-card">
+                <div class="main-card-header">
+                    <form method="get" id="filterForm" class="d-flex align-items-center gap-2 flex-wrap">
+                        <div class="search-input">
+                            <span class="material-symbols-outlined">search</span>
+                            <input type="text" name="q" placeholder="Search resources..." value="{{ search_query|default:'' }}" />
+                        </div>
+                        <select class="filter-select" name="category" onchange="document.getElementById('filterForm').submit();">
+                            <option value="">All Categories</option>
+                            {% for value, label in category_choices %}
+                            <option value="{{ value }}" {% if selected_category == value %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </form>
+                    <span style="font-size:0.8125rem; color:var(--text-muted);">{{ items.paginator.count }} result{{ items.paginator.count|pluralize }}</span>
+                </div>
+
+                <div style="overflow-x: auto;">
+                    <table class="custom-table">
+                        <thead>
+                            <tr>
+                                <th>Resource</th>
+                                <th>Category</th>
+                                <th>Visible To</th>
+                                <th>Status</th>
+                                <th>Uploaded</th>
+                                <th style="width:140px;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in items %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div class="file-icon">{{ item.file_extension|default:"FILE" }}</div>
+                                        <div>
+                                            <p style="font-weight:600; margin:0;">{{ item.title }}</p>
+                                            {% if item.description %}<p style="font-size:0.75rem; color:var(--text-muted); margin:0;">{{ item.description|truncatechars:60 }}</p>{% endif %}
+                                        </div>
+                                    </div>
+                                </td>
+                                <td><span class="badge-type">{{ item.get_category_display }}</span></td>
+                                <td style="font-size:0.8125rem;">
+                                    {% if item.visibility == 'all' %}Students &amp; Schools
+                                    {% elif item.visibility == 'students' %}Students Only
+                                    {% else %}Schools Only{% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge-status {% if item.is_active %}badge-active{% else %}badge-inactive{% endif %}">
+                                        <span class="dot"></span>{% if item.is_active %}Active{% else %}Inactive{% endif %}
+                                    </span>
+                                </td>
+                                <td style="font-size:0.8125rem; color:var(--text-muted);">{{ item.created_at|date:"M d, Y" }}</td>
+                                <td>
+                                    <div class="d-flex gap-1">
+                                        <a href="{{ item.file.url }}" target="_blank" class="action-btn" title="Download"><span class="material-symbols-outlined">download</span></a>
+                                        <a href="{% url 'admins:digital_resource_edit' item.id %}" class="action-btn" title="Edit"><span class="material-symbols-outlined">edit</span></a>
+                                        <button class="action-btn" title="{% if item.is_active %}Deactivate{% else %}Activate{% endif %}" onclick="toggleResourceStatus({{ item.id }})">
+                                            <span class="material-symbols-outlined">{% if item.is_active %}toggle_on{% else %}toggle_off{% endif %}</span>
+                                        </button>
+                                        <button class="action-btn danger" title="Delete" onclick="deleteResource({{ item.id }}, '{{ item.title|escapejs }}')"><span class="material-symbols-outlined">delete</span></button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6">
+                                    <div class="empty-state">
+                                        <span class="material-symbols-outlined">folder_off</span>
+                                        <p style="font-weight:600; color:var(--text-dark);">No digital resources yet</p>
+                                        <p style="font-size:0.8125rem;">Upload flyers, brochures, banners, and more for schools and students to download.</p>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+const sidebar = document.getElementById('superAdminAppSidebar');
+const toggleBtn = document.getElementById('sidebarToggleBtn');
+if (toggleBtn) {
+    toggleBtn.addEventListener('click', () => {
+        sidebar.classList.toggle('collapsed');
+        if (window.innerWidth <= 768) sidebar.classList.toggle('mobile-open');
+    });
+}
+const umToggle = document.getElementById('userManagementToggle');
+if (umToggle) umToggle.addEventListener('click', () => umToggle.closest('.nav-dropdown').classList.toggle('open'));
+
+function getCookie(name) {
+    let v = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
+    return v ? v[2] : '';
+}
+function showToast(message, type) {
+    const container = document.getElementById('toastContainer');
+    const toast = document.createElement('div');
+    toast.className = 'toast-msg ' + (type || 'success');
+    const icon = type === 'danger' ? 'error' : 'check_circle';
+    toast.innerHTML = '<span class="material-symbols-outlined" style="font-size:18px;">' + icon + '</span>' + message;
+    container.appendChild(toast);
+    setTimeout(() => toast.remove(), 3500);
+}
+
+function toggleResourceStatus(resourceId) {
+    fetch(`/super-admin/digital-resources/${resourceId}/toggle-status/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': getCookie('csrftoken') },
+    })
+    .then(r => r.json())
+    .then(data => {
+        showToast(data.message, data.success ? 'success' : 'danger');
+        if (data.success) setTimeout(() => location.reload(), 800);
+    })
+    .catch(() => showToast('Network error', 'danger'));
+}
+
+function deleteResource(resourceId, title) {
+    if (!confirm(`Delete "${title}"? This cannot be undone.`)) return;
+    fetch(`/super-admin/digital-resources/${resourceId}/delete/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': getCookie('csrftoken') },
+    })
+    .then(r => r.json())
+    .then(data => {
+        showToast(data.message, data.success ? 'success' : 'danger');
+        if (data.success) setTimeout(() => location.reload(), 800);
+    })
+    .catch(() => showToast('Network error', 'danger'));
+}
+</script>
+</body>
+</html>
