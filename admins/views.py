@@ -1630,8 +1630,8 @@ def edit_school(request, school_id):
         school.country = request.POST.get('country', school.country).strip()
         school.principal_name = request.POST.get('principal_name', school.principal_name).strip()
         school.principal_email = request.POST.get('principal_email', school.principal_email).strip()
-        school.contact_email = request.POST.get('school_email', school.contact_email).strip()
-        school.contact_phone = request.POST.get('school_phone', school.contact_phone).strip()
+        school.contact_email = request.POST.get('contact_email', school.contact_email).strip()
+        school.contact_phone = request.POST.get('contact_phone', school.contact_phone).strip()
         school.website = request.POST.get('website', school.website).strip()
         established = request.POST.get('established_year', '') or None
         school.established_year = int(established) if established else school.established_year

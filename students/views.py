@@ -611,8 +611,8 @@ def school_dashboard(request):
     try:
         school = request.user.school_profile
     except School.DoesNotExist:
-        messages.error(request, 'No school profile found for this account.')
-        return redirect('accounts:sign_in')
+        messages.error(request, 'No school profile found for this account. Please contact support.')
+        return redirect('students:dashboard')
 
     if request.method == 'POST':
         import re
@@ -927,8 +927,8 @@ def school_payments(request):
     try:
         school = request.user.school_profile
     except School.DoesNotExist:
-        messages.error(request, 'No school profile found for this account.')
-        return redirect('accounts:sign_in')
+        messages.error(request, 'No school profile found for this account. Please contact support.')
+        return redirect('students:dashboard')
 
     students = Student.objects.filter(school=school).select_related('user').order_by('user__first_name')
     rows = []

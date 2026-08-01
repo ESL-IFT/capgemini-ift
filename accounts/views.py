@@ -130,7 +130,13 @@ def role_redirect(request):
     elif profile.is_jury:
         return redirect('students:evaluator_dashboard')
     elif profile.is_school:
-        return redirect('students:school_dashboard')
+        # A 'school' role with no linked School row (deleted/orphaned) would
+        # otherwise bounce forever: school_dashboard -> sign_in -> role_redirect
+        # -> school_dashboard. Fall through to the student dashboard instead.
+        if hasattr(request.user, 'school_profile'):
+            return redirect('students:school_dashboard')
+        messages.error(request, 'Your school account has no school profile linked. Please contact support.')
+        return redirect('students:dashboard')
     else:
         return redirect('students:dashboard')
 
