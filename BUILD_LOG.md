@@ -1,5 +1,14 @@
 # Build Log
 
+## 2026-08-01 — Prevent duplicate school self-registration via Google Place ID
+- **Problem:** the same physical school could register multiple times (e.g. "Adani DAV Public School" registered 3× with different coordinator emails) — `SchoolSignUpForm` only checked email uniqueness, never the school itself.
+- Added `School.google_place_id` (`students/models.py`, migration `0025_school_google_place_id`, unique + nullable — existing rows have no value and multiple NULLs are allowed).
+- `templates/accounts/school_sign_up.html` — the existing Google Places Autocomplete widget now also requests `place_id` and writes it into a new hidden `google_place_id` input on `place_changed`. If the user edits the school name after picking a suggestion, the hidden value is cleared (an edited name isn't guaranteed to still match that place).
+- `accounts/forms.py:SchoolSignUpForm` — new hidden `google_place_id` field with `clean_google_place_id` rejecting registration if a School with that place_id already exists ("This school is already registered on IFT. Please sign in instead...").
+- `accounts/views.py:school_sign_up` now saves `google_place_id` on the created School.
+- Verified end-to-end via Django test client: first registration with a given place_id succeeds; second registration reusing the same place_id is blocked (200 re-render with the error, no User/School created).
+- Note: this only prevents *new* duplicates going forward — the 3 existing "Adani DAV Public School" rows (and any other pre-existing dupes) are untouched; that needs a manual data-cleanup pass since merging would affect existing logins/student records.
+
 ## 2026-08-01 — Admin panel: school activate/deactivate (single + bulk)
 - School model already had `is_active`/`status` (pending/inactive/active) fields, set on self-registration (`accounts/views.py:school_sign_up` creates schools as `status='pending', is_active=False`), but admins had no way to flip it — only the school itself could activate by completing its profile.
 - Added `admins/views.py:toggle_school_status` (POST, per-school) and `bulk_toggle_school_status` (POST, list of IDs + `activate` flag), wired at `admins/urls.py` (`school/<id>/toggle-status/`, `schools/bulk-toggle-status/`).

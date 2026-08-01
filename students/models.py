@@ -107,6 +107,8 @@ class School(models.Model):
     is_active = models.BooleanField(default=True)
     is_tata_classedge = models.BooleanField(default=False)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
+    google_place_id = models.CharField(max_length=255, unique=True, null=True, blank=True,
+                                        help_text='Google Places place_id — source of truth to prevent duplicate school registrations.')
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

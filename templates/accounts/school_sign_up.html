@@ -13,7 +13,9 @@
     <div class="form-group">
         <div class="icon"><iconify-icon icon="mdi:school-outline"></iconify-icon></div>
         <input type="text" class="form-control" id="schoolNameInput" name="school_name" placeholder="Start typing school name..." required autocomplete="off" value="{{ form.school_name.value|default:'' }}">
+        <input type="hidden" id="googlePlaceId" name="google_place_id" value="{{ form.google_place_id.value|default:'' }}">
         {% if form.school_name.errors %}<p class="field-error">{{ form.school_name.errors.0 }}</p>{% endif %}
+        {% if form.google_place_id.errors %}<p class="field-error">{{ form.google_place_id.errors.0 }}</p>{% endif %}
     </div>
 
     <!-- Coordinator Name -->
@@ -98,6 +100,7 @@
 })();
 function initAutocomplete() {
     var input = document.getElementById('schoolNameInput');
+    var placeIdInput = document.getElementById('googlePlaceId');
     var addressInput = document.querySelector('input[name="address"]');
     var cityInput = document.querySelector('input[name="city"]');
     var stateInput = document.querySelector('input[name="state"]');
@@ -106,11 +109,20 @@ function initAutocomplete() {
     var autocomplete = new google.maps.places.Autocomplete(input, {
         types: ['establishment'],
         componentRestrictions: { country: 'in' },
-        fields: ['name', 'address_components', 'formatted_address']
+        fields: ['name', 'address_components', 'formatted_address', 'place_id']
     });
+
+    // Selecting from the dropdown is what pins the school to a Google
+    // place_id (source of truth for duplicate-registration checks). If the
+    // user edits the name after picking a place, clear the stale id so we
+    // don't lock in the wrong record.
+    input.addEventListener('input', function() { placeIdInput.value = ''; });
 
     autocomplete.addListener('place_changed', function() {
         var place = autocomplete.getPlace();
+        if (place.place_id) {
+            placeIdInput.value = place.place_id;
+        }
         if (place.name) {
             input.value = place.name;
         }

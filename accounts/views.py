@@ -198,6 +198,7 @@ def school_sign_up(request):
                 is_tata_classedge=is_tce,
                 status='pending',
                 is_active=False,
+                google_place_id=form.cleaned_data.get('google_place_id') or None,
             )
 
             # Send email with temp credentials

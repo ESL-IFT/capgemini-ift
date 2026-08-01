@@ -81,6 +81,7 @@ class SchoolSignUpForm(forms.Form):
     city = forms.CharField(max_length=100, widget=forms.TextInput(attrs={'placeholder': 'City'}))
     state = forms.CharField(max_length=100, widget=forms.TextInput(attrs={'placeholder': 'State'}))
     pin_code = forms.CharField(max_length=10, widget=forms.TextInput(attrs={'placeholder': 'PIN Code'}))
+    google_place_id = forms.CharField(max_length=255, required=False, widget=forms.HiddenInput())
     terms = forms.BooleanField(error_messages={'required': 'You must agree to the Terms & Conditions.'})
 
     def clean_contact_email(self):
@@ -89,6 +90,16 @@ class SchoolSignUpForm(forms.Form):
         if User.objects.filter(email=email).exists():
             raise forms.ValidationError('An account with this email already exists.')
         return email
+
+    def clean_google_place_id(self):
+        place_id = (self.cleaned_data.get('google_place_id') or '').strip()
+        if place_id:
+            from students.models import School
+            if School.objects.filter(google_place_id=place_id).exists():
+                raise forms.ValidationError(
+                    'This school is already registered on IFT. Please sign in instead, or contact support if you believe this is an error.'
+                )
+        return place_id
 
     def clean_coordinator_name(self):
         return _clean_person_name(self.cleaned_data.get('coordinator_name'), 'Coordinator name')
