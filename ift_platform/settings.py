@@ -145,9 +145,31 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# Media (file upload) storage — django-storages' generic S3-compatible
+# backend, used as the site-wide default so all uploads (student photos,
+# submission files, Hall of Fame photos, Digital Resources, etc.) persist
+# durably instead of on the container's ephemeral local disk. Falls back to
+# local disk when AWS_ACCESS_KEY_ID is unset (e.g. local dev). Works with any
+# S3-compatible provider (Wasabi, AWS S3, etc.) — just point AWS_S3_ENDPOINT_URL
+# at the provider's endpoint.
+AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID', '')
+AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY', '')
+AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME', '')
+AWS_S3_ENDPOINT_URL = os.getenv('AWS_S3_ENDPOINT_URL', '')
+AWS_S3_REGION_NAME = os.getenv('AWS_S3_REGION_NAME', 'us-east-1')
+AWS_S3_FILE_OVERWRITE = False
+AWS_DEFAULT_ACL = None
+AWS_QUERYSTRING_AUTH = True
+
+if AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY and AWS_STORAGE_BUCKET_NAME:
+    DEFAULT_FILE_STORAGE_BACKEND = 'storages.backends.s3boto3.S3Boto3Storage'
+else:
+    DEFAULT_FILE_STORAGE_BACKEND = 'django.core.files.storage.FileSystemStorage'
+
 STORAGES = {
     'default': {
-        'BACKEND': 'django.core.files.storage.FileSystemStorage',
+        'BACKEND': DEFAULT_FILE_STORAGE_BACKEND,
     },
     'staticfiles': {
         'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
@@ -159,17 +181,10 @@ WHITENOISE_MIMETYPES = {
     '.webm': 'video/webm',
 }
 
-# Media files (User uploads)
+# Media files (User uploads) — only used when the S3-compatible backend above
+# isn't configured (local disk fallback).
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
-
-# Wasabi (S3-compatible) object storage — used for Digital Resources uploads
-# (see admins/storage_backends.py). Falls back to local disk when unset.
-WASABI_ACCESS_KEY = os.getenv('WASABI_ACCESS_KEY', '')
-WASABI_SECRET_KEY = os.getenv('WASABI_SECRET_KEY', '')
-WASABI_BUCKET_NAME = os.getenv('WASABI_BUCKET_NAME', '')
-WASABI_ENDPOINT_URL = os.getenv('WASABI_ENDPOINT_URL', 'https://s3.wasabisys.com')
-WASABI_REGION = os.getenv('WASABI_REGION', 'us-east-1')
 
 # OpenRouter AI Configuration
 OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY', '')

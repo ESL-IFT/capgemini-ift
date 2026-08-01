@@ -1,7 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
 from students.models import IdeaSubmission, Student, School
-from admins.storage_backends import get_resource_storage
 
 
 class JuryAssignment(models.Model):
@@ -217,7 +216,7 @@ class DigitalResource(models.Model):
     title = models.CharField(max_length=200)
     category = models.CharField(max_length=30, choices=CATEGORY_CHOICES, default='other')
     description = models.CharField(max_length=300, blank=True)
-    file = models.FileField(upload_to='digital_resources/%Y/%m/', storage=get_resource_storage)
+    file = models.FileField(upload_to='digital_resources/%Y/%m/')
     visibility = models.CharField(max_length=20, choices=VISIBILITY_CHOICES, default='all')
     is_active = models.BooleanField(default=True)
     uploaded_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='uploaded_resources')
