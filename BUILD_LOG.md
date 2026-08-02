@@ -1,5 +1,10 @@
 # Build Log
 
+## 2026-08-01 — Google Tag Manager added site-wide (same pattern as GA4)
+- Added `GoogleTagManagerMiddleware` to `ift_platform/middleware.py`, mirroring the existing `GoogleAnalyticsMiddleware` approach (site has no shared base template, so middleware is the only way to cover every page in one place). Injects the GTM head script (`GTM-PF4TLHG6`) right after `<head>`, and the noscript iframe right after the opening `<body>` tag, on every HTML response.
+- Registered in `MIDDLEWARE` in `ift_platform/settings.py`, right after `GoogleAnalyticsMiddleware`.
+- Verified via test client on multiple page types (landing page, sign-in, school sign-up): both snippets present, correct order (head script before body content, noscript iframe right after `<body>`), GA4 unaffected.
+
 ## 2026-08-01 — Storage: replaced Wasabi-specific backend with generic django-storages default
 - Per request, removed the Wasabi-branded `admins/storage_backends.py` (custom `get_resource_storage()` scoped only to `DigitalResource.file`) and replaced it with a standard django-storages `S3Boto3Storage` configured as the **site-wide default** (`STORAGES['default']`), using conventional `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY`/`AWS_STORAGE_BUCKET_NAME`/`AWS_S3_ENDPOINT_URL`/`AWS_S3_REGION_NAME` env vars. Falls back to local disk (`FileSystemStorage`) when those aren't set, same as before.
 - This is broader than the original scope: it now also fixes the durability problem for the *pre-existing* uploads (Student photos, submission files, Hall of Fame photos), not just Digital Resources — those were already on ephemeral local disk before today's Digital Resources feature existed.

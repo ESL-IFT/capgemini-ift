@@ -70,6 +70,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'ift_platform.middleware.GoogleAnalyticsMiddleware',
+    'ift_platform.middleware.GoogleTagManagerMiddleware',
 ]
 
 ROOT_URLCONF = 'ift_platform.urls'
