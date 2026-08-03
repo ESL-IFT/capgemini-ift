@@ -354,18 +354,6 @@
                 </div>
                 {% endif %}
 
-                {% if not student.is_paid %}
-                <div style="background:linear-gradient(135deg,#5E2A97,#7B3FB5);border-radius:12px;padding:18px 24px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
-                    <div style="display:flex;align-items:center;gap:12px;">
-                        <span class="material-symbols-outlined" style="color:#DEDE50;font-size:28px;">payments</span>
-                        <div>
-                            <p style="margin:0;font-size:0.95rem;font-weight:600;color:#fff;">Complete Your Payment to Continue</p>
-                            <p style="margin:2px 0 0;font-size:0.8rem;color:rgba(255,255,255,0.8);">Pay the registration fee (&#8377;{{ payment_amount }}) to create or join a team and submit your idea.</p>
-                        </div>
-                    </div>
-                    <a href="{% url 'students:initiate_payment' %}" style="background:#DEDE50;color:#222;font-weight:600;font-size:0.85rem;padding:10px 24px;border-radius:8px;text-decoration:none;white-space:nowrap;">Pay Now</a>
-                </div>
-                {% endif %}
 
                 <!-- Welcome Banner -->
                 <div class="row align-items-start align-items-md-center mb-4 welcome-banner">

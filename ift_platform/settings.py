@@ -211,9 +211,6 @@ else:
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@indiafuturetycoons.com')
 ZEPTOMAIL_API_KEY = os.getenv('ZEPTOMAIL_API_KEY', '')
 SITE_URL = os.getenv('SITE_URL', 'http://localhost:8002')
-# Razorpay Configuration
-RAZORPAY_KEY_ID = os.getenv('RAZORPAY_KEY_ID', '')
-RAZORPAY_KEY_SECRET = os.getenv('RAZORPAY_KEY_SECRET', '')
 
 # Web Push (VAPID) — browser/phone push notifications. Optional; if unset,
 # push is silently disabled and only in-app notifications are created.
