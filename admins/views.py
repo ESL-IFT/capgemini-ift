@@ -1277,6 +1277,139 @@ def onboard_student(request):
 
 @login_required
 @user_passes_test(is_staff_or_superuser)
+def add_submission(request):
+    """Combined flow for students without email/internet access: admin fills
+    the student's details and their idea together in one form, creating both
+    the Student profile and the IdeaSubmission in one step. Email is
+    optional — students can be identified by name alone.
+    """
+    if request.method == 'POST':
+        first_name = request.POST.get('first_name', '').strip()
+        middle_name = request.POST.get('middle_name', '').strip()
+        last_name = request.POST.get('last_name', '').strip()
+        gender = request.POST.get('gender', '')
+        dob = request.POST.get('date_of_birth', '') or None
+        nationality = request.POST.get('nationality', 'Indian')
+        school_id = request.POST.get('school_name', '')
+        school_obj = None
+        try:
+            school_obj = School.objects.get(id=school_id)
+            school_name = school_obj.name
+        except (School.DoesNotExist, ValueError):
+            school_name = school_id
+        grade = request.POST.get('student_class', '')
+        division = request.POST.get('division', '')
+        roll_number = request.POST.get('roll_number', '')
+        academic_year = request.POST.get('academic_year', '')
+        school_branch = request.POST.get('school_branch', '')
+        school_board = request.POST.get('school_board', '')
+        stream = request.POST.get('stream', '')
+        student_email = request.POST.get('student_email', '').strip()
+        student_mobile = request.POST.get('student_mobile', '').strip()
+        parent_mobile = request.POST.get('parent_mobile', '').strip()
+        parent_email = request.POST.get('parent_email', '').strip()
+        address = request.POST.get('address', '').strip()
+        city = request.POST.get('city', '').strip()
+        state = request.POST.get('state', '').strip()
+        pin_code = request.POST.get('pin_code', '').strip()
+
+        if not all([first_name, last_name, school_name, grade, student_mobile]):
+            return JsonResponse({'success': False, 'message': 'Please fill in all required fields including student mobile.'}, status=400)
+
+        # Username from name (no email needed) — de-duplicated
+        base_slug = f"{first_name.lower()}.{last_name.lower()}".replace(' ', '')
+        username = f"{base_slug}.{roll_number or timezone.now().strftime('%H%M%S')}"
+        base_username = username
+        counter = 1
+        while User.objects.filter(username=username).exists():
+            username = f"{base_username}{counter}"
+            counter += 1
+
+        temp_password = f"ift{roll_number or secrets.token_hex(3)}"
+        user = User.objects.create_user(
+            username=username,
+            email=student_email,
+            first_name=first_name,
+            last_name=last_name,
+            password=temp_password,
+        )
+
+        student = Student.objects.create(
+            user=user,
+            student_id=f"IFT-{timezone.now().strftime('%Y')}-{user.id:04d}",
+            school=school_obj,
+            school_name=school_name,
+            school_branch=school_branch,
+            middle_name=middle_name,
+            gender=gender,
+            date_of_birth=dob,
+            nationality=nationality,
+            grade=grade,
+            division=division,
+            roll_number=roll_number,
+            academic_year=academic_year,
+            school_board=school_board,
+            stream=stream,
+            phone=student_mobile,
+            parent_mobile=parent_mobile,
+            parent_email=parent_email,
+            address=address,
+            city=city,
+            state=state,
+            pin_code=pin_code,
+        )
+
+        try:
+            from accounts.models import UserProfile
+            UserProfile.objects.create(user=user, role='student')
+        except Exception:
+            pass
+
+        track = request.POST.get('competition_track', '')
+        idea = IdeaSubmission.objects.create(
+            student=student,
+            title=request.POST.get('title', '').strip(),
+            competition_track=track,
+            status='submitted',
+            q1_target_group=request.POST.get('q1_target_group', ''),
+            q2_exact_problem=request.POST.get('q2_exact_problem', ''),
+            q3_solution_simple=request.POST.get('q3_solution_simple', ''),
+            q4_differentiation=request.POST.get('q4_differentiation', ''),
+            q5_build_steps=request.POST.get('q5_build_steps', ''),
+            q6_resources=request.POST.get('q6_resources', ''),
+            q7_positive_change=request.POST.get('q7_positive_change', ''),
+            q8_challenges=request.POST.get('q8_challenges', ''),
+            q9_team_fit=request.POST.get('q9_team_fit', ''),
+            q10_feedback=request.POST.get('q10_feedback', ''),
+            q11_creative_element=request.POST.get('q11_creative_element', ''),
+            q12_pitch=request.POST.get('q12_pitch', ''),
+        )
+
+        if student_email:
+            try:
+                send_onboard_credentials(user, temp_password, 'Student', {'username': username})
+            except Exception:
+                pass
+            message = f'Submission added for {first_name} {last_name}. Username: {username}. Credentials sent to {student_email}.'
+        else:
+            message = f'Submission added for {first_name} {last_name}. No email was given — note these credentials for the student: Username: {username} / Password: {temp_password}.'
+
+        return JsonResponse({
+            'success': True,
+            'message': message,
+            'redirect': '/super-admin/submissions/'
+        })
+
+    schools = School.objects.filter(is_active=True).order_by('name')
+    context = {
+        'schools': schools,
+        'idea_track_choices': IdeaSubmission.TRACK_CHOICES,
+    }
+    return render(request, 'admins/add_submission.html', context)
+
+
+@login_required
+@user_passes_test(is_staff_or_superuser)
 def edit_student(request, student_id):
     """Edit an existing student."""
     student = get_object_or_404(Student, id=student_id)

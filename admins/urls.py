@@ -40,6 +40,7 @@ urlpatterns = [
     path('submissions/export/', views.export_ideas_csv, name='export_ideas_csv'),
     path('submissions/import/', views.import_ideas_csv, name='import_ideas_csv'),
     path('submissions/sample-csv/', views.download_ideas_sample_csv, name='download_ideas_sample_csv'),
+    path('submissions/add/', views.add_submission, name='add_submission'),
     path('user-management/schools/', views.schools_list, name='schools_list'),
     path('user-management/schools/export/', views.export_schools_csv, name='export_schools_csv'),
     path('user-management/schools/import/', views.import_schools_csv, name='import_schools_csv'),
