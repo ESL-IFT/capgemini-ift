@@ -1416,6 +1416,304 @@ def bulk_delete_students(request):
     return JsonResponse({'success': True, 'deleted': deleted_count, 'message': f'{deleted_count} student(s) deleted.'})
 
 
+STUDENT_CSV_HEADERS = [
+    'first_name', 'last_name', 'email', 'mobile', 'school', 'grade',
+    'middle_name', 'gender', 'date_of_birth', 'nationality', 'division',
+    'roll_number', 'academic_year', 'school_board', 'stream',
+    'parent_mobile', 'parent_email', 'address', 'city', 'state', 'pin_code',
+]
+
+
+@login_required
+@user_passes_test(is_staff_or_superuser)
+def export_students_csv(request):
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="students_export.csv"'
+    writer = csv.writer(response)
+    writer.writerow(STUDENT_CSV_HEADERS)
+    for s in Student.objects.select_related('user', 'school').order_by('-created_at'):
+        writer.writerow([
+            s.user.first_name, s.user.last_name, s.user.email, s.phone,
+            s.school_display_name, s.grade, s.middle_name, s.gender,
+            s.date_of_birth or '', s.nationality, s.division, s.roll_number,
+            s.academic_year, s.school_board, s.stream, s.parent_mobile,
+            s.parent_email, s.address, s.city, s.state, s.pin_code,
+        ])
+    return response
+
+
+@login_required
+@user_passes_test(is_staff_or_superuser)
+def download_students_sample_csv(request):
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="students_sample.csv"'
+    writer = csv.writer(response)
+    writer.writerow(STUDENT_CSV_HEADERS)
+    writer.writerow([
+        'Aarav', 'Sharma', 'aarav.sharma@example.com', '9876543210',
+        'Delhi Public School', '10', '', 'male', '2010-05-14', 'Indian',
+        'A', '23', '2025-26', 'CBSE', 'science', '9876543211',
+        'parent@example.com', 'Sector B-6, Vasant Kunj', 'New Delhi', 'Delhi', '110070',
+    ])
+    writer.writerow([
+        'Isha', 'Patil', 'isha.patil@example.com', '9123456789',
+        'St. Xavier High School', '9', '', 'female', '2011-08-02', 'Indian',
+        'B', '07', '2025-26', 'ICSE', 'na', '9123456780',
+        '', 'Fort Area', 'Mumbai', 'Maharashtra', '400001',
+    ])
+    return response
+
+
+@login_required
+@user_passes_test(is_staff_or_superuser)
+def import_students_csv(request):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'POST required'}, status=405)
+
+    csv_file = request.FILES.get('csv_file')
+    if not csv_file:
+        return JsonResponse({'success': False, 'message': 'No file uploaded'})
+
+    if not csv_file.name.endswith('.csv'):
+        return JsonResponse({'success': False, 'message': 'Only CSV files are allowed'})
+
+    try:
+        decoded = csv_file.read().decode('utf-8-sig')
+    except UnicodeDecodeError:
+        return JsonResponse({'success': False, 'message': 'File encoding error. Please use UTF-8 CSV.'})
+
+    reader = csv.DictReader(io.StringIO(decoded))
+
+    required_fields = ['first_name', 'last_name', 'email', 'mobile', 'school', 'grade']
+    if not reader.fieldnames:
+        return JsonResponse({'success': False, 'message': 'CSV file is empty or has no headers'})
+
+    missing = [f for f in required_fields if f not in reader.fieldnames]
+    if missing:
+        return JsonResponse({'success': False, 'message': f'Missing required columns: {", ".join(missing)}'})
+
+    results = {'created': 0, 'skipped': 0, 'errors': []}
+
+    for row_num, row in enumerate(reader, start=2):
+        row = {k: (v.strip() if v else '') for k, v in row.items()}
+        first_name = row.get('first_name', '')
+        last_name = row.get('last_name', '')
+        email = row.get('email', '')
+        mobile = row.get('mobile', '')
+        school_name_raw = row.get('school', '')
+        grade = row.get('grade', '')
+
+        if not all([first_name, last_name, email, mobile, school_name_raw, grade]):
+            results['errors'].append({'row': row_num, 'field': 'general', 'message': 'first_name, last_name, email, mobile, school and grade are required'})
+            continue
+
+        if User.objects.filter(email__iexact=email).exists():
+            results['skipped'] += 1
+            results['errors'].append({'row': row_num, 'field': 'email', 'message': f'A user with email "{email}" already exists — skipped'})
+            continue
+
+        school_obj = School.objects.filter(name__iexact=school_name_raw).first()
+        if not school_obj:
+            results['errors'].append({'row': row_num, 'field': 'school', 'message': f'School "{school_name_raw}" not found. Add it first or check spelling.'})
+            continue
+
+        dob = row.get('date_of_birth') or None
+
+        try:
+            roll_number = row.get('roll_number', '')
+            username = f"{first_name.lower()}.{last_name.lower()}.{roll_number or timezone.now().strftime('%H%M%S%f')}"
+            base_username = username
+            counter = 1
+            while User.objects.filter(username=username).exists():
+                username = f"{base_username}{counter}"
+                counter += 1
+
+            temp_password = f"ift{roll_number or secrets.token_hex(3)}"
+            user = User.objects.create_user(
+                username=username,
+                email=email,
+                first_name=first_name,
+                last_name=last_name,
+                password=temp_password,
+            )
+
+            student = Student.objects.create(
+                user=user,
+                student_id=f"IFT-{timezone.now().strftime('%Y')}-{user.id:04d}",
+                school=school_obj,
+                school_name=school_obj.name,
+                school_branch=row.get('school_branch', ''),
+                middle_name=row.get('middle_name', ''),
+                gender=row.get('gender', ''),
+                date_of_birth=dob,
+                nationality=row.get('nationality', '') or 'Indian',
+                grade=grade,
+                division=row.get('division', ''),
+                roll_number=roll_number,
+                academic_year=row.get('academic_year', ''),
+                school_board=row.get('school_board', ''),
+                stream=row.get('stream', ''),
+                phone=mobile,
+                parent_mobile=row.get('parent_mobile', ''),
+                parent_email=row.get('parent_email', ''),
+                address=row.get('address', ''),
+                city=row.get('city', ''),
+                state=row.get('state', ''),
+                pin_code=row.get('pin_code', ''),
+            )
+
+            try:
+                from accounts.models import UserProfile
+                UserProfile.objects.create(user=user, role='student')
+            except Exception:
+                pass
+
+            try:
+                send_onboard_credentials(user, temp_password, 'Student', {'username': username})
+            except Exception:
+                pass
+
+            results['created'] += 1
+        except Exception as e:
+            results['errors'].append({'row': row_num, 'field': 'general', 'message': str(e)})
+
+    return JsonResponse({
+        'success': True,
+        'created': results['created'],
+        'skipped': results['skipped'],
+        'error_count': len(results['errors']),
+        'errors': results['errors'][:50],
+    })
+
+
+IDEA_CSV_Q_FIELDS = [
+    'q1_target_group', 'q2_exact_problem', 'q3_solution_simple', 'q4_differentiation',
+    'q5_build_steps', 'q6_resources', 'q7_positive_change', 'q8_challenges',
+    'q9_team_fit', 'q10_feedback', 'q11_creative_element', 'q12_pitch',
+]
+IDEA_CSV_HEADERS = ['student_email', 'title', 'competition_track', 'status'] + IDEA_CSV_Q_FIELDS
+IDEA_VALID_STATUSES = [c[0] for c in IdeaSubmission.STATUS_CHOICES]
+IDEA_VALID_TRACKS = [c[0] for c in IdeaSubmission.TRACK_CHOICES]
+
+
+@login_required
+@user_passes_test(is_staff_or_superuser)
+def export_ideas_csv(request):
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="ideas_export.csv"'
+    writer = csv.writer(response)
+    writer.writerow(IDEA_CSV_HEADERS)
+    for s in IdeaSubmission.objects.select_related('student__user').order_by('-created_at'):
+        row = [s.student.user.email, s.title, s.competition_track, s.status]
+        row += [getattr(s, f) for f in IDEA_CSV_Q_FIELDS]
+        writer.writerow(row)
+    return response
+
+
+@login_required
+@user_passes_test(is_staff_or_superuser)
+def download_ideas_sample_csv(request):
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="ideas_sample.csv"'
+    writer = csv.writer(response)
+    writer.writerow(IDEA_CSV_HEADERS)
+    writer.writerow([
+        'aarav.sharma@example.com', 'Smart Irrigation for Small Farms', 'clean-water', 'submitted',
+        'Small farmers with less than 2 acres of land in drought-prone villages.',
+        'They over-water or under-water crops because they cannot afford soil sensors.',
+        'A low-cost soil moisture sensor that texts the farmer when to water.',
+        'Existing sensors cost 5000+ rupees; ours uses cheap parts and costs 400 rupees.',
+        'Build sensor prototype, test on 3 farms, refine texting alerts, pilot for a season.',
+        'Arduino boards, moisture probes, a local SIM for SMS, and a farmer volunteer.',
+        'Farmers save water and get better yields with less guesswork.',
+        'Getting farmers to trust a new device; we will do free trial periods.',
+        'Our team includes a student whose family farms, so we understand the problem firsthand.',
+        'We showed a prototype to 5 farmers; they asked for SMS instead of an app, so we switched.',
+        'Using a basic phone SMS instead of a smartphone app so any farmer can use it.',
+        'Water is running out — let us help every small farm use exactly what it needs, nothing more.',
+    ])
+    return response
+
+
+@login_required
+@user_passes_test(is_staff_or_superuser)
+def import_ideas_csv(request):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'POST required'}, status=405)
+
+    csv_file = request.FILES.get('csv_file')
+    if not csv_file:
+        return JsonResponse({'success': False, 'message': 'No file uploaded'})
+
+    if not csv_file.name.endswith('.csv'):
+        return JsonResponse({'success': False, 'message': 'Only CSV files are allowed'})
+
+    try:
+        decoded = csv_file.read().decode('utf-8-sig')
+    except UnicodeDecodeError:
+        return JsonResponse({'success': False, 'message': 'File encoding error. Please use UTF-8 CSV.'})
+
+    reader = csv.DictReader(io.StringIO(decoded))
+
+    required_fields = ['student_email']
+    if not reader.fieldnames:
+        return JsonResponse({'success': False, 'message': 'CSV file is empty or has no headers'})
+
+    missing = [f for f in required_fields if f not in reader.fieldnames]
+    if missing:
+        return JsonResponse({'success': False, 'message': f'Missing required columns: {", ".join(missing)}'})
+
+    results = {'created': 0, 'skipped': 0, 'errors': []}
+
+    for row_num, row in enumerate(reader, start=2):
+        row = {k: (v.strip() if v else '') for k, v in row.items()}
+        student_email = row.get('student_email', '')
+
+        if not student_email:
+            results['errors'].append({'row': row_num, 'field': 'student_email', 'message': 'student_email is required'})
+            continue
+
+        student = Student.objects.filter(user__email__iexact=student_email).select_related('user').first()
+        if not student:
+            results['errors'].append({'row': row_num, 'field': 'student_email', 'message': f'No student found with email "{student_email}"'})
+            continue
+
+        if IdeaSubmission.objects.filter(student=student).exists():
+            results['skipped'] += 1
+            results['errors'].append({'row': row_num, 'field': 'student_email', 'message': f'Student "{student_email}" already has a submission — skipped'})
+            continue
+
+        status = row.get('status', 'submitted').lower() or 'submitted'
+        if status not in IDEA_VALID_STATUSES:
+            results['errors'].append({'row': row_num, 'field': 'status', 'message': f'Invalid status "{status}". Use: {", ".join(IDEA_VALID_STATUSES)}'})
+            continue
+
+        track = row.get('competition_track', '')
+        if track and track not in IDEA_VALID_TRACKS:
+            results['errors'].append({'row': row_num, 'field': 'competition_track', 'message': f'Invalid competition_track "{track}"'})
+            continue
+
+        try:
+            IdeaSubmission.objects.create(
+                student=student,
+                title=row.get('title', ''),
+                competition_track=track,
+                status=status,
+                **{f: row.get(f, '') for f in IDEA_CSV_Q_FIELDS},
+            )
+            results['created'] += 1
+        except Exception as e:
+            results['errors'].append({'row': row_num, 'field': 'general', 'message': str(e)})
+
+    return JsonResponse({
+        'success': True,
+        'created': results['created'],
+        'skipped': results['skipped'],
+        'error_count': len(results['errors']),
+        'errors': results['errors'][:50],
+    })
+
+
 @login_required
 @user_passes_test(is_staff_or_superuser)
 def schools_list(request):
