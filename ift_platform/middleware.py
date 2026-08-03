@@ -2,6 +2,29 @@
 
 import re
 
+from django.http import HttpResponsePermanentRedirect
+
+WWW_REDIRECT_HOST = "www.capgemini.indiafuturetycoons.com"
+WWW_REDIRECT_TARGET = "capgemini.indiafuturetycoons.com"
+
+
+class WWWCapgeminiRedirectMiddleware:
+    """Redirects www.capgemini.indiafuturetycoons.com to the bare capgemini
+    subdomain. Only triggers for that exact host, so every other host
+    (including the main indiafuturetycoons.com site, which lives in a
+    separate repo/deployment entirely) is untouched.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        if request.get_host().split(":")[0] == WWW_REDIRECT_HOST:
+            return HttpResponsePermanentRedirect(
+                f"https://{WWW_REDIRECT_TARGET}{request.get_full_path()}"
+            )
+        return self.get_response(request)
+
 GA_MEASUREMENT_ID = "G-VK29QNQ94H"
 GTM_CONTAINER_ID = "GTM-PF4TLHG6"
 
