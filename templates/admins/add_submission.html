@@ -602,8 +602,74 @@
                 <div class="form-section step-content" id="step1">
                     <div class="section-header">
                         <h2 class="section-title">
+                            <span class="material-symbols-outlined">group</span>
+                            Team (optional)
+                        </h2>
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group full-width">
+                            <label for="teamName" class="form-label">Team Name <span style="color:#999;font-weight:400;">(optional — leave blank for a solo submission)</span></label>
+                            <input type="text" id="teamName" name="team_name" class="form-input" placeholder="e.g. Team Innovators">
+                        </div>
+                        <div class="form-group full-width">
+                            <label class="form-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                                <input type="checkbox" id="addSecondMember" style="width:auto;">
+                                Add a second team member (our teams support up to 2 students)
+                            </label>
+                        </div>
+                    </div>
+
+                    <div id="secondMemberBlock" style="display:none;margin-top:0.5rem;">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="student2FirstName" class="form-label">2nd Student — First Name</label>
+                                <input type="text" id="student2FirstName" name="student2_first_name" class="form-input" placeholder="Enter first name">
+                            </div>
+                            <div class="form-group">
+                                <label for="student2LastName" class="form-label">2nd Student — Last Name</label>
+                                <input type="text" id="student2LastName" name="student2_last_name" class="form-input" placeholder="Enter last name">
+                            </div>
+                            <div class="form-group">
+                                <label for="student2Gender" class="form-label">2nd Student — Gender</label>
+                                <select id="student2Gender" name="student2_gender" class="form-input">
+                                    <option value="" disabled selected hidden>Select gender</option>
+                                    <option value="male">Male</option>
+                                    <option value="female">Female</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="student2Dob" class="form-label">2nd Student — Date of Birth</label>
+                                <input type="date" id="student2Dob" name="student2_date_of_birth" class="form-input">
+                            </div>
+                            <div class="form-group">
+                                <label for="student2School" class="form-label">2nd Student — School <span style="color:#999;font-weight:400;">(same as student 1 if left blank)</span></label>
+                                <select id="student2School" name="student2_school_name" class="form-input">
+                                    <option value="">Same as student 1</option>
+                                    {% for school in schools %}
+                                    <option value="{{ school.id }}">{{ school.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="student2Class" class="form-label">2nd Student — Class/Grade <span style="color:#999;font-weight:400;">(same as student 1 if left blank)</span></label>
+                                <select id="student2Class" name="student2_student_class" class="form-input">
+                                    <option value="">Same as student 1</option>
+                                    <option value="7">Class 7</option>
+                                    <option value="8">Class 8</option>
+                                    <option value="9">Class 9</option>
+                                    <option value="10">Class 10</option>
+                                    <option value="11">Class 11</option>
+                                    <option value="12">Class 12</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section-header" style="margin-top:1.5rem;">
+                        <h2 class="section-title">
                             <span class="material-symbols-outlined">person</span>
-                            A. Basic Information
+                            A. Basic Information (Student 1)
                         </h2>
                     </div>
                     <div class="form-grid">
@@ -664,8 +730,8 @@
                         </div>
 
                         <div class="form-group">
-                            <label for="nationality" class="form-label">Nationality <span class="required">*</span></label>
-                            <input type="text" id="nationality" name="nationality" class="form-input" placeholder="Enter nationality" required value="Indian">
+                            <label for="nationality" class="form-label">Nationality  <span style="color:#999;font-weight:400;">(optional)</span></label>
+                            <input type="text" id="nationality" name="nationality" class="form-input" placeholder="Enter nationality" value="Indian">
                             <span class="error-message" id="nationalityError"></span>
                         </div>
 
@@ -725,14 +791,14 @@
                         </div>
 
                         <div class="form-group">
-                            <label for="rollNumber" class="form-label">Roll Number <span class="required">*</span></label>
-                            <input type="text" id="rollNumber" name="roll_number" class="form-input" placeholder="Enter roll number" required>
+                            <label for="rollNumber" class="form-label">Roll Number  <span style="color:#999;font-weight:400;">(optional)</span></label>
+                            <input type="text" id="rollNumber" name="roll_number" class="form-input" placeholder="Enter roll number">
                             <span class="error-message" id="rollNumberError"></span>
                         </div>
 
                         <div class="form-group">
-                            <label for="academicYear" class="form-label">Academic Year <span class="required">*</span></label>
-                            <select id="academicYear" name="academic_year" class="form-input" required>
+                            <label for="academicYear" class="form-label">Academic Year  <span style="color:#999;font-weight:400;">(optional)</span></label>
+                            <select id="academicYear" name="academic_year" class="form-input">
                                 <option value="" disabled selected hidden>Select academic year</option>
                                 <option value="2024-2025">2024-2025</option>
                                 <option value="2025-2026" selected>2025-2026</option>
@@ -754,8 +820,8 @@
                         </div>
 
                         <div class="form-group">
-                            <label for="schoolBoard" class="form-label">School Board <span class="required">*</span></label>
-                            <select id="schoolBoard" name="school_board" class="form-input" required>
+                            <label for="schoolBoard" class="form-label">School Board  <span style="color:#999;font-weight:400;">(optional)</span></label>
+                            <select id="schoolBoard" name="school_board" class="form-input">
                                 <option value="" disabled selected hidden>Select board</option>
                                 <option value="CBSE">CBSE</option>
                                 <option value="ICSE">ICSE</option>
@@ -778,8 +844,8 @@
                     </div>
                     <div class="form-grid">
                         <div class="form-group">
-                            <label for="studentMobile" class="form-label">Student Mobile <span class="required">*</span></label>
-                            <input type="tel" id="studentMobile" name="student_mobile" class="form-input" placeholder="+91 XXXXX XXXXX" required>
+                            <label for="studentMobile" class="form-label">Student Mobile  <span style="color:#999;font-weight:400;">(optional)</span></label>
+                            <input type="tel" id="studentMobile" name="student_mobile" class="form-input" placeholder="+91 XXXXX XXXXX">
                             <span class="error-message" id="studentMobileError"></span>
                         </div>
 
@@ -790,38 +856,38 @@
                         </div>
 
                         <div class="form-group">
-                            <label for="parentMobile" class="form-label">Parent/Guardian Mobile <span class="required">*</span></label>
-                            <input type="tel" id="parentMobile" name="parent_mobile" class="form-input" placeholder="+91 XXXXX XXXXX" required>
+                            <label for="parentMobile" class="form-label">Parent/Guardian Mobile  <span style="color:#999;font-weight:400;">(optional)</span></label>
+                            <input type="tel" id="parentMobile" name="parent_mobile" class="form-input" placeholder="+91 XXXXX XXXXX">
                             <span class="error-message" id="parentMobileError"></span>
                         </div>
 
                         <div class="form-group">
-                            <label for="parentEmail" class="form-label">Parent/Guardian Email <span class="required">*</span></label>
-                            <input type="email" id="parentEmail" name="parent_email" class="form-input" placeholder="parent@email.com" required>
+                            <label for="parentEmail" class="form-label">Parent/Guardian Email  <span style="color:#999;font-weight:400;">(optional)</span></label>
+                            <input type="email" id="parentEmail" name="parent_email" class="form-input" placeholder="parent@email.com">
                             <span class="error-message" id="parentEmailError"></span>
                         </div>
 
                         <div class="form-group full-width">
-                            <label for="address" class="form-label">Address <span class="required">*</span></label>
-                            <textarea id="address" name="address" class="form-textarea" rows="2" placeholder="Enter full address" required></textarea>
+                            <label for="address" class="form-label">Address  <span style="color:#999;font-weight:400;">(optional)</span></label>
+                            <textarea id="address" name="address" class="form-textarea" rows="2" placeholder="Enter full address"></textarea>
                             <span class="error-message" id="addressError"></span>
                         </div>
 
                         <div class="form-group">
-                            <label for="city" class="form-label">City <span class="required">*</span></label>
-                            <input type="text" id="city" name="city" class="form-input" placeholder="Enter city" required>
+                            <label for="city" class="form-label">City  <span style="color:#999;font-weight:400;">(optional)</span></label>
+                            <input type="text" id="city" name="city" class="form-input" placeholder="Enter city">
                             <span class="error-message" id="cityError"></span>
                         </div>
 
                         <div class="form-group">
-                            <label for="state" class="form-label">State <span class="required">*</span></label>
-                            <input type="text" id="state" name="state" class="form-input" placeholder="Enter state" required>
+                            <label for="state" class="form-label">State  <span style="color:#999;font-weight:400;">(optional)</span></label>
+                            <input type="text" id="state" name="state" class="form-input" placeholder="Enter state">
                             <span class="error-message" id="stateError"></span>
                         </div>
 
                         <div class="form-group">
-                            <label for="pinCode" class="form-label">Pin Code <span class="required">*</span></label>
-                            <input type="text" id="pinCode" name="pin_code" class="form-input" placeholder="Enter 6-digit PIN" maxlength="6" required>
+                            <label for="pinCode" class="form-label">Pin Code  <span style="color:#999;font-weight:400;">(optional)</span></label>
+                            <input type="text" id="pinCode" name="pin_code" class="form-input" placeholder="Enter 6-digit PIN" maxlength="6">
                             <span class="error-message" id="pinCodeError"></span>
                         </div>
                     </div>
@@ -1340,6 +1406,14 @@
 
         alert('Form auto-filled with test data!');
     });
+
+    // ====== Team: toggle second member block ======
+    var addSecondMemberCb = document.getElementById('addSecondMember');
+    if (addSecondMemberCb) {
+        addSecondMemberCb.addEventListener('change', function () {
+            document.getElementById('secondMemberBlock').style.display = this.checked ? 'block' : 'none';
+        });
+    }
 
     // ====== Init ======
     updateStepDisplay();

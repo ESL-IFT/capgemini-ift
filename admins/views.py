@@ -1313,10 +1313,39 @@ def add_submission(request):
         state = request.POST.get('state', '').strip()
         pin_code = request.POST.get('pin_code', '').strip()
 
-        if not all([first_name, last_name, school_name, grade, student_mobile]):
-            return JsonResponse({'success': False, 'message': 'Please fill in all required fields including student mobile.'}, status=400)
+        if not all([first_name, last_name, gender, dob, school_name, grade]):
+            return JsonResponse({'success': False, 'message': 'Please fill in name, gender, date of birth, school and class/grade.'}, status=400)
 
-        # Username from name (no email needed) — de-duplicated
+        def make_student(first, last, gender_, dob_, school_obj_, school_name_, grade_, roll_number_=''):
+            base_slug = f"{first.lower()}.{last.lower()}".replace(' ', '')
+            username = f"{base_slug}.{roll_number_ or timezone.now().strftime('%H%M%S%f')}"
+            base_username = username
+            counter = 1
+            while User.objects.filter(username=username).exists():
+                username = f"{base_username}{counter}"
+                counter += 1
+            temp_password_ = f"ift{roll_number_ or secrets.token_hex(3)}"
+            user_ = User.objects.create_user(
+                username=username, first_name=first, last_name=last, password=temp_password_,
+            )
+            student_ = Student.objects.create(
+                user=user_,
+                student_id=f"IFT-{timezone.now().strftime('%Y')}-{user_.id:04d}",
+                school=school_obj_,
+                school_name=school_name_,
+                gender=gender_,
+                date_of_birth=dob_,
+                grade=grade_,
+                roll_number=roll_number_,
+            )
+            try:
+                from accounts.models import UserProfile
+                UserProfile.objects.create(user=user_, role='student')
+            except Exception:
+                pass
+            return user_, student_, username, temp_password_
+
+        # ---- Student 1 (leader) ----
         base_slug = f"{first_name.lower()}.{last_name.lower()}".replace(' ', '')
         username = f"{base_slug}.{roll_number or timezone.now().strftime('%H%M%S')}"
         base_username = username
@@ -1365,6 +1394,50 @@ def add_submission(request):
         except Exception:
             pass
 
+        # ---- Optional Team + 2nd member ----
+        from students.models import Team, TeamMembership
+        import string
+        team_name = request.POST.get('team_name', '').strip()
+        student2_first = request.POST.get('student2_first_name', '').strip()
+        student2_last = request.POST.get('student2_last_name', '').strip()
+        team_code = None
+        student2_username = None
+        student2_password = None
+
+        if team_name or (student2_first and student2_last):
+            student2_user = student2_student = None
+            if student2_first and student2_last:
+                s2_gender = request.POST.get('student2_gender', '')
+                s2_dob = request.POST.get('student2_date_of_birth', '') or None
+                s2_school_id = request.POST.get('student2_school_name', '')
+                s2_school_obj = school_obj
+                s2_school_name = school_name
+                if s2_school_id:
+                    try:
+                        s2_school_obj = School.objects.get(id=s2_school_id)
+                        s2_school_name = s2_school_obj.name
+                    except (School.DoesNotExist, ValueError):
+                        pass
+                s2_grade = request.POST.get('student2_student_class', '') or grade
+                student2_user, student2_student, student2_username, student2_password = make_student(
+                    student2_first, student2_last, s2_gender, s2_dob, s2_school_obj, s2_school_name, s2_grade,
+                )
+
+            while True:
+                team_code = 'IFT-' + ''.join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(5))
+                if not Team.objects.filter(team_code=team_code).exists():
+                    break
+
+            team = Team.objects.create(
+                name=team_name or f"{first_name} {last_name}'s Team",
+                team_code=team_code,
+                leader=user,
+            )
+            TeamMembership.objects.create(team=team, student=student, role='leader', status='active')
+            if student2_student:
+                TeamMembership.objects.create(team=team, student=student2_student, role='member', status='active')
+
+        # ---- Idea (attached to student 1 / team leader) ----
         track = request.POST.get('competition_track', '')
         idea = IdeaSubmission.objects.create(
             student=student,
@@ -1392,7 +1465,12 @@ def add_submission(request):
                 pass
             message = f'Submission added for {first_name} {last_name}. Username: {username}. Credentials sent to {student_email}.'
         else:
-            message = f'Submission added for {first_name} {last_name}. No email was given — note these credentials for the student: Username: {username} / Password: {temp_password}.'
+            message = f'Submission added for {first_name} {last_name}. No email was given — note these credentials: Username: {username} / Password: {temp_password}.'
+
+        if team_code:
+            message += f' Team code: {team_code}.'
+        if student2_username:
+            message += f' 2nd student credentials — Username: {student2_username} / Password: {student2_password}.'
 
         return JsonResponse({
             'success': True,
