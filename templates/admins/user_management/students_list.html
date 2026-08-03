@@ -906,7 +906,7 @@
                 <button onclick="clearFile()" style="background:none;border:none;cursor:pointer;color:#999;">&times;</button>
             </div>
             <p style="margin:12px 0 0;font-size:0.78rem;color:#999;">
-                <a href="{% url 'admins:download_students_sample_csv' %}" style="color:var(--primary);font-weight:600;">Download sample CSV</a> to see the required format. Required columns: <b>first_name</b>, <b>last_name</b>, <b>email</b>, <b>mobile</b>, <b>school</b>, <b>grade</b>. The school must already exist.
+                <a href="{% url 'admins:download_students_sample_csv' %}" style="color:var(--primary);font-weight:600;">Download sample CSV</a> to see the required format. Required columns: <b>first_name</b>, <b>last_name</b>, <b>gender</b>, <b>date_of_birth</b>, <b>school</b>, <b>grade</b>. Email/mobile are optional. The school must already exist. Add an optional <b>team_name</b> column to group up to 2 students into a team.
             </p>
         </div>
         <div id="importResults" style="display:none;padding:0 24px 16px;"></div>

@@ -1234,7 +1234,7 @@ document.addEventListener('keydown', function(e) { if (e.key === 'Escape') close
                 <button onclick="clearFile()" style="background:none;border:none;cursor:pointer;color:#999;">&times;</button>
             </div>
             <p style="margin:12px 0 0;font-size:0.78rem;color:#999;">
-                <a href="{% url 'admins:download_ideas_sample_csv' %}" style="color:var(--primary);font-weight:600;">Download sample CSV</a> to see the required format. Required column: <b>student_email</b> (must match an existing student). One submission per student — rows for students who already have one are skipped.
+                <a href="{% url 'admins:download_ideas_sample_csv' %}" style="color:var(--primary);font-weight:600;">Download sample CSV</a> to see the required format. Needs a <b>student_id</b> or <b>student_email</b> column to identify the student (student_id works even if the student has no email — it's in the students export). One submission per student — rows for students who already have one are skipped.
             </p>
         </div>
         <div id="importResults" style="display:none;padding:0 24px 16px;"></div>
