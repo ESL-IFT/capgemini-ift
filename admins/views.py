@@ -1952,6 +1952,192 @@ def import_ideas_csv(request):
     })
 
 
+COMBINED_CSV_HEADERS = [
+    'first_name', 'last_name', 'gender', 'date_of_birth', 'school', 'grade', 'team_name',
+    'student2_first_name', 'student2_last_name', 'student2_gender', 'student2_date_of_birth',
+    'student2_school', 'student2_grade',
+    'title', 'competition_track', 'status',
+] + IDEA_CSV_Q_FIELDS
+
+
+@login_required
+@user_passes_test(is_staff_or_superuser)
+def download_combined_submission_sample_csv(request):
+    """One CSV, one row = a new student (+ optional 2nd team member) + their idea."""
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="submissions_sample.csv"'
+    writer = csv.writer(response)
+    writer.writerow(COMBINED_CSV_HEADERS)
+    writer.writerow([
+        'Ravi', 'Kumar', 'male', '2011-03-10', 'Delhi Public School', '9', 'Team Waterworks',
+        'Kavya', 'Rao', 'female', '2011-09-01', '', '',
+        'Solar Water Purifier', 'clean-water', 'submitted',
+        'Villagers without clean water in drought-prone areas.',
+        'They fall sick often because there is no affordable way to purify well water.',
+        'A solar-powered filter that cleans water using UV light and a simple carbon filter.',
+        'Existing purifiers need electricity; ours only needs sunlight.',
+        'Build a prototype, test it on 2 wells, measure water quality before and after.',
+        'PVC pipe, a small solar panel, UV lamp, activated carbon, a local well to test on.',
+        'Fewer waterborne illnesses and less time spent boiling water.',
+        'Getting villagers to trust it — we will do a free trial at the village well.',
+        'One of our team members grew up in a village without clean water access.',
+        'Villagers asked for a simpler design with no moving parts, so we simplified it.',
+        'Using sunlight instead of electricity so it works even during power cuts.',
+        'Clean water for every village well, powered by nothing but the sun.',
+    ])
+    writer.writerow([
+        'Meera', 'Singh', 'female', '2012-01-15', 'St. Xavier High School', '8', '',
+        '', '', '', '', '', '',
+        'Rainwater Harvesting Kit', 'clean-water', 'submitted',
+        '', '', 'A low-cost rooftop rainwater collection kit for small homes.',
+        '', '', '', '', '', '', '', '', '',
+    ])
+    return response
+
+
+@login_required
+@user_passes_test(is_staff_or_superuser)
+def import_combined_submissions_csv(request):
+    """One CSV, one row = create a student (+ optional 2nd team member) and their
+    idea submission together — the bulk equivalent of the Add Submission form.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'POST required'}, status=405)
+
+    csv_file = request.FILES.get('csv_file')
+    if not csv_file:
+        return JsonResponse({'success': False, 'message': 'No file uploaded'})
+
+    if not csv_file.name.endswith('.csv'):
+        return JsonResponse({'success': False, 'message': 'Only CSV files are allowed'})
+
+    try:
+        decoded = csv_file.read().decode('utf-8-sig')
+    except UnicodeDecodeError:
+        return JsonResponse({'success': False, 'message': 'File encoding error. Please use UTF-8 CSV.'})
+
+    reader = csv.DictReader(io.StringIO(decoded))
+
+    required_fields = ['first_name', 'last_name', 'gender', 'date_of_birth', 'school', 'grade']
+    if not reader.fieldnames:
+        return JsonResponse({'success': False, 'message': 'CSV file is empty or has no headers'})
+
+    missing = [f for f in required_fields if f not in reader.fieldnames]
+    if missing:
+        return JsonResponse({'success': False, 'message': f'Missing required columns: {", ".join(missing)}'})
+
+    from students.models import Team, TeamMembership
+    import string
+
+    def make_student(first, last, gender_, dob_, school_obj_, school_name_, grade_):
+        username_ = f"{first.lower()}.{last.lower()}.{timezone.now().strftime('%H%M%S%f')}"
+        base_username_ = username_
+        counter_ = 1
+        while User.objects.filter(username=username_).exists():
+            username_ = f"{base_username_}{counter_}"
+            counter_ += 1
+        temp_password_ = f"ift{secrets.token_hex(3)}"
+        user_ = User.objects.create_user(username=username_, first_name=first, last_name=last, password=temp_password_)
+        student_ = Student.objects.create(
+            user=user_,
+            student_id=f"IFT-{timezone.now().strftime('%Y')}-{user_.id:04d}",
+            school=school_obj_, school_name=school_name_, gender=gender_, date_of_birth=dob_, grade=grade_,
+        )
+        try:
+            from accounts.models import UserProfile
+            UserProfile.objects.create(user=user_, role='student')
+        except Exception:
+            pass
+        return student_
+
+    results = {'created': 0, 'skipped': 0, 'errors': []}
+
+    for row_num, row in enumerate(reader, start=2):
+        row = {k: (v.strip() if v else '') for k, v in row.items()}
+        first_name = row.get('first_name', '')
+        last_name = row.get('last_name', '')
+        gender = row.get('gender', '')
+        dob = row.get('date_of_birth') or None
+        school_name_raw = row.get('school', '')
+        grade = row.get('grade', '')
+
+        if not all([first_name, last_name, gender, dob, school_name_raw, grade]):
+            results['errors'].append({'row': row_num, 'field': 'general', 'message': 'first_name, last_name, gender, date_of_birth, school and grade are required'})
+            continue
+
+        school_obj = School.objects.filter(name__iexact=school_name_raw).first()
+        if not school_obj:
+            results['errors'].append({'row': row_num, 'field': 'school', 'message': f'School "{school_name_raw}" not found. Add it first or check spelling.'})
+            continue
+
+        status = row.get('status', 'submitted').lower() or 'submitted'
+        if status not in IDEA_VALID_STATUSES:
+            results['errors'].append({'row': row_num, 'field': 'status', 'message': f'Invalid status "{status}". Use: {", ".join(IDEA_VALID_STATUSES)}'})
+            continue
+
+        track = row.get('competition_track', '')
+        if track and track not in IDEA_VALID_TRACKS:
+            results['errors'].append({'row': row_num, 'field': 'competition_track', 'message': f'Invalid competition_track "{track}"'})
+            continue
+
+        try:
+            student = make_student(first_name, last_name, gender, dob, school_obj, school_obj.name, grade)
+
+            team_name = row.get('team_name', '')
+            s2_first = row.get('student2_first_name', '')
+            s2_last = row.get('student2_last_name', '')
+            if team_name or (s2_first and s2_last):
+                student2 = None
+                if s2_first and s2_last:
+                    s2_school_raw = row.get('student2_school', '')
+                    s2_school_obj, s2_school_name = school_obj, school_obj.name
+                    if s2_school_raw:
+                        found = School.objects.filter(name__iexact=s2_school_raw).first()
+                        if found:
+                            s2_school_obj, s2_school_name = found, found.name
+                    student2 = make_student(
+                        s2_first, s2_last, row.get('student2_gender', ''),
+                        row.get('student2_date_of_birth') or None,
+                        s2_school_obj, s2_school_name,
+                        row.get('student2_grade', '') or grade,
+                    )
+
+                team = Team.objects.filter(name__iexact=team_name).first() if team_name else None
+                if team and team.is_full:
+                    results['errors'].append({'row': row_num, 'field': 'team_name', 'message': f'Team "{team_name}" already has 2 members — submission created without a team'})
+                else:
+                    if not team:
+                        while True:
+                            code = 'IFT-' + ''.join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(5))
+                            if not Team.objects.filter(team_code=code).exists():
+                                break
+                        team = Team.objects.create(name=team_name or f"{first_name} {last_name}'s Team", team_code=code, leader=student.user)
+                        TeamMembership.objects.create(team=team, student=student, role='leader', status='active')
+                    else:
+                        TeamMembership.objects.create(team=team, student=student, role='member', status='active')
+                    if student2:
+                        TeamMembership.objects.create(team=team, student=student2, role='member', status='active')
+
+            IdeaSubmission.objects.create(
+                student=student,
+                title=row.get('title', ''),
+                competition_track=track,
+                status=status,
+                **{f: row.get(f, '') for f in IDEA_CSV_Q_FIELDS},
+            )
+            results['created'] += 1
+        except Exception as e:
+            results['errors'].append({'row': row_num, 'field': 'general', 'message': str(e)})
+
+    return JsonResponse({
+        'success': True,
+        'created': results['created'],
+        'skipped': results['skipped'],
+        'error_count': len(results['errors']),
+        'errors': results['errors'][:50],
+    })
+
+
 @login_required
 @user_passes_test(is_staff_or_superuser)
 def schools_list(request):
