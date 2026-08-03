@@ -17,6 +17,83 @@ from ai_assistant.models import AIEvaluation
 from accounts.models import UserProfile, JuryProfile
 from accounts.emails import send_onboard_credentials, send_password_reset_by_admin
 from admins.models import EvaluatorAssignment
+from openpyxl import Workbook, load_workbook
+from openpyxl.styles import PatternFill, Font, Alignment
+
+REQUIRED_FILL = PatternFill(start_color='FCA5A5', end_color='FCA5A5', fill_type='solid')
+OPTIONAL_FILL = PatternFill(start_color='BBF7D0', end_color='BBF7D0', fill_type='solid')
+HEADER_FONT = Font(bold=True)
+
+
+def _build_sample_xlsx(headers, required_headers, sample_rows, filename):
+    """Builds an .xlsx sample template with required columns highlighted red
+    and optional columns highlighted green, plus a legend row. Returns an
+    HttpResponse ready to send.
+    """
+    wb = Workbook()
+    ws = wb.active
+    ws.title = 'Sample'
+    ws.append(headers)
+    for col_idx, header in enumerate(headers, start=1):
+        cell = ws.cell(row=1, column=col_idx)
+        cell.font = HEADER_FONT
+        cell.fill = REQUIRED_FILL if header in required_headers else OPTIONAL_FILL
+        cell.alignment = Alignment(horizontal='center')
+        ws.column_dimensions[cell.column_letter].width = max(14, len(header) + 2)
+    for row in sample_rows:
+        ws.append(row)
+
+    # Legend lives on its own sheet so it's never mistaken for a data row
+    # when this same file is re-uploaded as-is.
+    legend = wb.create_sheet('Legend')
+    legend.cell(row=1, column=1, value='Column color').font = HEADER_FONT
+    legend.cell(row=1, column=2, value='Meaning').font = HEADER_FONT
+    legend.cell(row=2, column=1).fill = REQUIRED_FILL
+    legend.cell(row=2, column=2, value='Required')
+    legend.cell(row=3, column=1).fill = OPTIONAL_FILL
+    legend.cell(row=3, column=2, value='Optional')
+    legend.column_dimensions['A'].width = 14
+    legend.column_dimensions['B'].width = 20
+
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    wb.save(response)
+    return response
+
+
+def _xlsx_cell_to_str(v):
+    if v is None:
+        return ''
+    import datetime
+    if isinstance(v, (datetime.date, datetime.datetime)):
+        return v.strftime('%Y-%m-%d')
+    return str(v).strip()
+
+
+def _parse_uploaded_rows(uploaded_file):
+    """Reads an uploaded .csv or .xlsx file into (fieldnames, list_of_dict_rows),
+    so import views can accept either format identically.
+    """
+    name = uploaded_file.name.lower()
+    if name.endswith('.xlsx'):
+        wb = load_workbook(filename=uploaded_file, data_only=True)
+        ws = wb.active
+        rows_iter = ws.iter_rows(values_only=True)
+        header = [str(h).strip() if h is not None else '' for h in next(rows_iter)]
+        rows = []
+        for r in rows_iter:
+            if all(v is None or str(v).strip() == '' for v in r):
+                continue
+            row = {header[i]: (_xlsx_cell_to_str(r[i]) if i < len(r) else '') for i in range(len(header))}
+            rows.append(row)
+        return header, rows
+    else:
+        decoded = uploaded_file.read().decode('utf-8-sig')
+        reader = csv.DictReader(io.StringIO(decoded))
+        rows = [{k: (v.strip() if v else '') for k, v in row.items()} for row in reader]
+        return reader.fieldnames, rows
 
 # In-memory progress tracker (works for single-server/SQLite setup)
 PROGRESS_TRACKER = {}
@@ -1659,23 +1736,22 @@ def export_students_csv(request):
 @login_required
 @user_passes_test(is_staff_or_superuser)
 def download_students_sample_csv(request):
-    response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = 'attachment; filename="students_sample.csv"'
-    writer = csv.writer(response)
-    writer.writerow(STUDENT_CSV_HEADERS)
-    writer.writerow([
-        'Aarav', 'Sharma', 'male', '2010-05-14', 'Delhi Public School', '10',
-        'Team Innovators', '', '', '', 'Indian',
-        'A', '23', '2025-26', 'CBSE', 'science', '9876543211',
-        'parent@example.com', 'Sector B-6, Vasant Kunj', 'New Delhi', 'Delhi', '110070',
-    ])
-    writer.writerow([
-        'Isha', 'Patil', 'female', '2011-08-02', 'St. Xavier High School', '9',
-        'Team Innovators', 'isha.patil@example.com', '9123456789', '', 'Indian',
-        'B', '07', '2025-26', 'ICSE', 'na', '9123456780',
-        '', 'Fort Area', 'Mumbai', 'Maharashtra', '400001',
-    ])
-    return response
+    required = {'first_name', 'last_name', 'gender', 'date_of_birth', 'school', 'grade'}
+    rows = [
+        [
+            'Aarav', 'Sharma', 'male', '2010-05-14', 'Delhi Public School', '10',
+            'Team Innovators', '', '', '', 'Indian',
+            'A', '23', '2025-26', 'CBSE', 'science', '9876543211',
+            'parent@example.com', 'Sector B-6, Vasant Kunj', 'New Delhi', 'Delhi', '110070',
+        ],
+        [
+            'Isha', 'Patil', 'female', '2011-08-02', 'St. Xavier High School', '9',
+            'Team Innovators', 'isha.patil@example.com', '9123456789', '', 'Indian',
+            'B', '07', '2025-26', 'ICSE', 'na', '9123456780',
+            '', 'Fort Area', 'Mumbai', 'Maharashtra', '400001',
+        ],
+    ]
+    return _build_sample_xlsx(STUDENT_CSV_HEADERS, required, rows, 'students_sample.xlsx')
 
 
 @login_required
@@ -1688,21 +1764,21 @@ def import_students_csv(request):
     if not csv_file:
         return JsonResponse({'success': False, 'message': 'No file uploaded'})
 
-    if not csv_file.name.endswith('.csv'):
-        return JsonResponse({'success': False, 'message': 'Only CSV files are allowed'})
+    if not (csv_file.name.lower().endswith('.csv') or csv_file.name.lower().endswith('.xlsx')):
+        return JsonResponse({'success': False, 'message': 'Only CSV or Excel (.xlsx) files are allowed'})
 
     try:
-        decoded = csv_file.read().decode('utf-8-sig')
+        fieldnames, parsed_rows = _parse_uploaded_rows(csv_file)
     except UnicodeDecodeError:
         return JsonResponse({'success': False, 'message': 'File encoding error. Please use UTF-8 CSV.'})
-
-    reader = csv.DictReader(io.StringIO(decoded))
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': f'Could not read file: {e}'})
 
     required_fields = ['first_name', 'last_name', 'gender', 'date_of_birth', 'school', 'grade']
-    if not reader.fieldnames:
-        return JsonResponse({'success': False, 'message': 'CSV file is empty or has no headers'})
+    if not fieldnames:
+        return JsonResponse({'success': False, 'message': 'File is empty or has no headers'})
 
-    missing = [f for f in required_fields if f not in reader.fieldnames]
+    missing = [f for f in required_fields if f not in fieldnames]
     if missing:
         return JsonResponse({'success': False, 'message': f'Missing required columns: {", ".join(missing)}'})
 
@@ -1711,8 +1787,7 @@ def import_students_csv(request):
 
     results = {'created': 0, 'skipped': 0, 'errors': []}
 
-    for row_num, row in enumerate(reader, start=2):
-        row = {k: (v.strip() if v else '') for k, v in row.items()}
+    for row_num, row in enumerate(parsed_rows, start=2):
         first_name = row.get('first_name', '')
         last_name = row.get('last_name', '')
         gender = row.get('gender', '')
@@ -1847,11 +1922,8 @@ def export_ideas_csv(request):
 @login_required
 @user_passes_test(is_staff_or_superuser)
 def download_ideas_sample_csv(request):
-    response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = 'attachment; filename="ideas_sample.csv"'
-    writer = csv.writer(response)
-    writer.writerow(IDEA_CSV_HEADERS)
-    writer.writerow([
+    required = {'student_id', 'student_email'}
+    rows = [[
         '', 'aarav.sharma@example.com', 'Smart Irrigation for Small Farms', 'clean-water', 'submitted',
         'Small farmers with less than 2 acres of land in drought-prone villages.',
         'They over-water or under-water crops because they cannot afford soil sensors.',
@@ -1865,8 +1937,8 @@ def download_ideas_sample_csv(request):
         'We showed a prototype to 5 farmers; they asked for SMS instead of an app, so we switched.',
         'Using a basic phone SMS instead of a smartphone app so any farmer can use it.',
         'Water is running out — let us help every small farm use exactly what it needs, nothing more.',
-    ])
-    return response
+    ]]
+    return _build_sample_xlsx(IDEA_CSV_HEADERS, required, rows, 'ideas_sample.xlsx')
 
 
 @login_required
@@ -1879,26 +1951,25 @@ def import_ideas_csv(request):
     if not csv_file:
         return JsonResponse({'success': False, 'message': 'No file uploaded'})
 
-    if not csv_file.name.endswith('.csv'):
-        return JsonResponse({'success': False, 'message': 'Only CSV files are allowed'})
+    if not (csv_file.name.lower().endswith('.csv') or csv_file.name.lower().endswith('.xlsx')):
+        return JsonResponse({'success': False, 'message': 'Only CSV or Excel (.xlsx) files are allowed'})
 
     try:
-        decoded = csv_file.read().decode('utf-8-sig')
+        fieldnames, parsed_rows = _parse_uploaded_rows(csv_file)
     except UnicodeDecodeError:
         return JsonResponse({'success': False, 'message': 'File encoding error. Please use UTF-8 CSV.'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': f'Could not read file: {e}'})
 
-    reader = csv.DictReader(io.StringIO(decoded))
+    if not fieldnames:
+        return JsonResponse({'success': False, 'message': 'File is empty or has no headers'})
 
-    if not reader.fieldnames:
-        return JsonResponse({'success': False, 'message': 'CSV file is empty or has no headers'})
-
-    if 'student_id' not in reader.fieldnames and 'student_email' not in reader.fieldnames:
-        return JsonResponse({'success': False, 'message': 'CSV must have a student_id or student_email column to identify the student'})
+    if 'student_id' not in fieldnames and 'student_email' not in fieldnames:
+        return JsonResponse({'success': False, 'message': 'File must have a student_id or student_email column to identify the student'})
 
     results = {'created': 0, 'skipped': 0, 'errors': []}
 
-    for row_num, row in enumerate(reader, start=2):
-        row = {k: (v.strip() if v else '') for k, v in row.items()}
+    for row_num, row in enumerate(parsed_rows, start=2):
         student_id_val = row.get('student_id', '')
         student_email = row.get('student_email', '')
         student_ref = student_id_val or student_email
@@ -1964,35 +2035,34 @@ COMBINED_CSV_HEADERS = [
 @user_passes_test(is_staff_or_superuser)
 def download_combined_submission_sample_csv(request):
     """One CSV, one row = a new student (+ optional 2nd team member) + their idea."""
-    response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = 'attachment; filename="submissions_sample.csv"'
-    writer = csv.writer(response)
-    writer.writerow(COMBINED_CSV_HEADERS)
-    writer.writerow([
-        'Ravi', 'Kumar', 'male', '2011-03-10', 'Delhi Public School', '9', 'Team Waterworks',
-        'Kavya', 'Rao', 'female', '2011-09-01', '', '',
-        'Solar Water Purifier', 'clean-water', 'submitted',
-        'Villagers without clean water in drought-prone areas.',
-        'They fall sick often because there is no affordable way to purify well water.',
-        'A solar-powered filter that cleans water using UV light and a simple carbon filter.',
-        'Existing purifiers need electricity; ours only needs sunlight.',
-        'Build a prototype, test it on 2 wells, measure water quality before and after.',
-        'PVC pipe, a small solar panel, UV lamp, activated carbon, a local well to test on.',
-        'Fewer waterborne illnesses and less time spent boiling water.',
-        'Getting villagers to trust it — we will do a free trial at the village well.',
-        'One of our team members grew up in a village without clean water access.',
-        'Villagers asked for a simpler design with no moving parts, so we simplified it.',
-        'Using sunlight instead of electricity so it works even during power cuts.',
-        'Clean water for every village well, powered by nothing but the sun.',
-    ])
-    writer.writerow([
-        'Meera', 'Singh', 'female', '2012-01-15', 'St. Xavier High School', '8', '',
-        '', '', '', '', '', '',
-        'Rainwater Harvesting Kit', 'clean-water', 'submitted',
-        '', '', 'A low-cost rooftop rainwater collection kit for small homes.',
-        '', '', '', '', '', '', '', '', '',
-    ])
-    return response
+    required = {'first_name', 'last_name', 'gender', 'date_of_birth', 'school', 'grade'}
+    rows = [
+        [
+            'Ravi', 'Kumar', 'male', '2011-03-10', 'Delhi Public School', '9', 'Team Waterworks',
+            'Kavya', 'Rao', 'female', '2011-09-01', '', '',
+            'Solar Water Purifier', 'clean-water', 'submitted',
+            'Villagers without clean water in drought-prone areas.',
+            'They fall sick often because there is no affordable way to purify well water.',
+            'A solar-powered filter that cleans water using UV light and a simple carbon filter.',
+            'Existing purifiers need electricity; ours only needs sunlight.',
+            'Build a prototype, test it on 2 wells, measure water quality before and after.',
+            'PVC pipe, a small solar panel, UV lamp, activated carbon, a local well to test on.',
+            'Fewer waterborne illnesses and less time spent boiling water.',
+            'Getting villagers to trust it — we will do a free trial at the village well.',
+            'One of our team members grew up in a village without clean water access.',
+            'Villagers asked for a simpler design with no moving parts, so we simplified it.',
+            'Using sunlight instead of electricity so it works even during power cuts.',
+            'Clean water for every village well, powered by nothing but the sun.',
+        ],
+        [
+            'Meera', 'Singh', 'female', '2012-01-15', 'St. Xavier High School', '8', '',
+            '', '', '', '', '', '',
+            'Rainwater Harvesting Kit', 'clean-water', 'submitted',
+            '', '', 'A low-cost rooftop rainwater collection kit for small homes.',
+            '', '', '', '', '', '', '', '', '',
+        ],
+    ]
+    return _build_sample_xlsx(COMBINED_CSV_HEADERS, required, rows, 'submissions_sample.xlsx')
 
 
 @login_required
@@ -2008,21 +2078,21 @@ def import_combined_submissions_csv(request):
     if not csv_file:
         return JsonResponse({'success': False, 'message': 'No file uploaded'})
 
-    if not csv_file.name.endswith('.csv'):
-        return JsonResponse({'success': False, 'message': 'Only CSV files are allowed'})
+    if not (csv_file.name.lower().endswith('.csv') or csv_file.name.lower().endswith('.xlsx')):
+        return JsonResponse({'success': False, 'message': 'Only CSV or Excel (.xlsx) files are allowed'})
 
     try:
-        decoded = csv_file.read().decode('utf-8-sig')
+        fieldnames, parsed_rows = _parse_uploaded_rows(csv_file)
     except UnicodeDecodeError:
         return JsonResponse({'success': False, 'message': 'File encoding error. Please use UTF-8 CSV.'})
-
-    reader = csv.DictReader(io.StringIO(decoded))
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': f'Could not read file: {e}'})
 
     required_fields = ['first_name', 'last_name', 'gender', 'date_of_birth', 'school', 'grade']
-    if not reader.fieldnames:
-        return JsonResponse({'success': False, 'message': 'CSV file is empty or has no headers'})
+    if not fieldnames:
+        return JsonResponse({'success': False, 'message': 'File is empty or has no headers'})
 
-    missing = [f for f in required_fields if f not in reader.fieldnames]
+    missing = [f for f in required_fields if f not in fieldnames]
     if missing:
         return JsonResponse({'success': False, 'message': f'Missing required columns: {", ".join(missing)}'})
 
@@ -2052,8 +2122,7 @@ def import_combined_submissions_csv(request):
 
     results = {'created': 0, 'skipped': 0, 'errors': []}
 
-    for row_num, row in enumerate(reader, start=2):
-        row = {k: (v.strip() if v else '') for k, v in row.items()}
+    for row_num, row in enumerate(parsed_rows, start=2):
         first_name = row.get('first_name', '')
         last_name = row.get('last_name', '')
         gender = row.get('gender', '')

@@ -566,7 +566,7 @@
                     <div class="col-12 col-md-6 d-flex justify-content-md-end align-items-center gap-2 mt-3 mt-md-0 flex-wrap">
                         <a href="{% url 'admins:download_combined_submission_sample_csv' %}" class="btn-secondary-custom">
                             <span class="material-symbols-outlined" style="font-size: 18px;">download</span>
-                            Sample CSV
+                            Sample Excel
                         </a>
                         <button class="btn-secondary-custom" onclick="document.getElementById('combinedImportModal').style.display='flex';">
                             <span class="material-symbols-outlined" style="font-size: 18px;">upload_file</span>
@@ -1230,8 +1230,8 @@ document.addEventListener('keydown', function(e) { if (e.key === 'Escape') close
             <div id="combinedImportDropZone" style="border:2px dashed #ddd;border-radius:12px;padding:40px 20px;text-align:center;cursor:pointer;transition:all 0.2s;" onclick="document.getElementById('combinedCsvFileInput').click();">
                 <span class="material-symbols-outlined" style="font-size:48px;color:#ccc;display:block;margin-bottom:8px;">cloud_upload</span>
                 <p style="margin:0;font-weight:600;color:#555;">Click to upload or drag & drop</p>
-                <p style="margin:4px 0 0;font-size:0.8rem;color:#999;">CSV files only</p>
-                <input type="file" id="combinedCsvFileInput" accept=".csv" style="display:none;" onchange="handleCombinedFileSelect(this)">
+                <p style="margin:4px 0 0;font-size:0.8rem;color:#999;">CSV or Excel (.xlsx) files</p>
+                <input type="file" id="combinedCsvFileInput" accept=".csv,.xlsx" style="display:none;" onchange="handleCombinedFileSelect(this)">
             </div>
             <div id="combinedSelectedFile" style="display:none;margin-top:12px;padding:12px 16px;background:#f8fafc;border-radius:8px;align-items:center;gap:8px;">
                 <span class="material-symbols-outlined" style="color:var(--primary);font-size:20px;">description</span>
@@ -1239,7 +1239,7 @@ document.addEventListener('keydown', function(e) { if (e.key === 'Escape') close
                 <button onclick="clearCombinedFile()" style="background:none;border:none;cursor:pointer;color:#999;">&times;</button>
             </div>
             <p style="margin:12px 0 0;font-size:0.78rem;color:#999;">
-                <a href="{% url 'admins:download_combined_submission_sample_csv' %}" style="color:var(--primary);font-weight:600;">Download sample CSV</a> to see the required format. Each row creates a <b>new</b> student (and their idea) in one go. Required columns: <b>first_name</b>, <b>last_name</b>, <b>gender</b>, <b>date_of_birth</b>, <b>school</b>, <b>grade</b>. Everything else — email, mobile, team_name, a 2nd team member, and the idea questions — is optional. No email needed; the student is identified by name alone.
+                <a href="{% url 'admins:download_combined_submission_sample_csv' %}" style="color:var(--primary);font-weight:600;">Download sample Excel (color-coded: red = required, green = optional)</a> to see the required format. Each row creates a <b>new</b> student (and their idea) in one go. Required columns: <b>first_name</b>, <b>last_name</b>, <b>gender</b>, <b>date_of_birth</b>, <b>school</b>, <b>grade</b>. Everything else — email, mobile, team_name, a 2nd team member, and the idea questions — is optional. No email needed; the student is identified by name alone.
             </p>
         </div>
         <div id="combinedImportResults" style="display:none;padding:0 24px 16px;"></div>
@@ -1361,8 +1361,8 @@ function uploadCombinedCSV() {
             <div id="importDropZone" style="border:2px dashed #ddd;border-radius:12px;padding:40px 20px;text-align:center;cursor:pointer;transition:all 0.2s;" onclick="document.getElementById('csvFileInput').click();">
                 <span class="material-symbols-outlined" style="font-size:48px;color:#ccc;display:block;margin-bottom:8px;">cloud_upload</span>
                 <p style="margin:0;font-weight:600;color:#555;">Click to upload or drag & drop</p>
-                <p style="margin:4px 0 0;font-size:0.8rem;color:#999;">CSV files only</p>
-                <input type="file" id="csvFileInput" accept=".csv" style="display:none;" onchange="handleFileSelect(this)">
+                <p style="margin:4px 0 0;font-size:0.8rem;color:#999;">CSV or Excel (.xlsx) files</p>
+                <input type="file" id="csvFileInput" accept=".csv,.xlsx" style="display:none;" onchange="handleFileSelect(this)">
             </div>
             <div id="selectedFile" style="display:none;margin-top:12px;padding:12px 16px;background:#f8fafc;border-radius:8px;align-items:center;gap:8px;">
                 <span class="material-symbols-outlined" style="color:var(--primary);font-size:20px;">description</span>
@@ -1370,7 +1370,7 @@ function uploadCombinedCSV() {
                 <button onclick="clearFile()" style="background:none;border:none;cursor:pointer;color:#999;">&times;</button>
             </div>
             <p style="margin:12px 0 0;font-size:0.78rem;color:#999;">
-                <a href="{% url 'admins:download_ideas_sample_csv' %}" style="color:var(--primary);font-weight:600;">Download sample CSV</a> to see the required format. Needs a <b>student_id</b> or <b>student_email</b> column to identify the student (student_id works even if the student has no email — it's in the students export). One submission per student — rows for students who already have one are skipped.
+                <a href="{% url 'admins:download_ideas_sample_csv' %}" style="color:var(--primary);font-weight:600;">Download sample Excel (color-coded: red = required, green = optional)</a> to see the required format. Needs a <b>student_id</b> or <b>student_email</b> column to identify the student (student_id works even if the student has no email — it's in the students export). One submission per student — rows for students who already have one are skipped.
             </p>
         </div>
         <div id="importResults" style="display:none;padding:0 24px 16px;"></div>

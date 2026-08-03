@@ -625,7 +625,7 @@
                     <div class="col-12 col-md-6 d-flex justify-content-md-end align-items-center gap-2 mt-3 mt-md-0 flex-wrap">
                         <a href="{% url 'admins:download_students_sample_csv' %}" class="btn-secondary-custom">
                             <span class="material-symbols-outlined" style="font-size: 18px;">download</span>
-                            Sample CSV
+                            Sample Excel
                         </a>
                         <button class="btn-secondary-custom" onclick="document.getElementById('importModal').style.display='flex';">
                             <span class="material-symbols-outlined" style="font-size: 18px;">upload_file</span>
@@ -897,8 +897,8 @@
             <div id="importDropZone" style="border:2px dashed #ddd;border-radius:12px;padding:40px 20px;text-align:center;cursor:pointer;transition:all 0.2s;" onclick="document.getElementById('csvFileInput').click();">
                 <span class="material-symbols-outlined" style="font-size:48px;color:#ccc;display:block;margin-bottom:8px;">cloud_upload</span>
                 <p style="margin:0;font-weight:600;color:#555;">Click to upload or drag & drop</p>
-                <p style="margin:4px 0 0;font-size:0.8rem;color:#999;">CSV files only</p>
-                <input type="file" id="csvFileInput" accept=".csv" style="display:none;" onchange="handleFileSelect(this)">
+                <p style="margin:4px 0 0;font-size:0.8rem;color:#999;">CSV or Excel (.xlsx) files</p>
+                <input type="file" id="csvFileInput" accept=".csv,.xlsx" style="display:none;" onchange="handleFileSelect(this)">
             </div>
             <div id="selectedFile" style="display:none;margin-top:12px;padding:12px 16px;background:#f8fafc;border-radius:8px;align-items:center;gap:8px;">
                 <span class="material-symbols-outlined" style="color:var(--primary);font-size:20px;">description</span>
@@ -906,7 +906,7 @@
                 <button onclick="clearFile()" style="background:none;border:none;cursor:pointer;color:#999;">&times;</button>
             </div>
             <p style="margin:12px 0 0;font-size:0.78rem;color:#999;">
-                <a href="{% url 'admins:download_students_sample_csv' %}" style="color:var(--primary);font-weight:600;">Download sample CSV</a> to see the required format. Required columns: <b>first_name</b>, <b>last_name</b>, <b>gender</b>, <b>date_of_birth</b>, <b>school</b>, <b>grade</b>. Email/mobile are optional. The school must already exist. Add an optional <b>team_name</b> column to group up to 2 students into a team.
+                <a href="{% url 'admins:download_students_sample_csv' %}" style="color:var(--primary);font-weight:600;">Download sample Excel (color-coded: red = required, green = optional)</a> to see the required format. Required columns: <b>first_name</b>, <b>last_name</b>, <b>gender</b>, <b>date_of_birth</b>, <b>school</b>, <b>grade</b>. Email/mobile are optional. The school must already exist. Add an optional <b>team_name</b> column to group up to 2 students into a team.
             </p>
         </div>
         <div id="importResults" style="display:none;padding:0 24px 16px;"></div>
