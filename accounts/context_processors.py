@@ -5,19 +5,8 @@ def vapid_public_key(request):
 
 
 def launch_confetti(request):
-    """Show launch-day celebratory confetti from 29 Jul 2026 11:00 AM IST onwards.
-
-    Server-side gate so all users get a consistent trigger regardless of their
-    device clock. The once-per-user behaviour is handled client-side via
-    localStorage in templates/partials/launch_confetti.html.
-    """
-    from datetime import datetime
-    from django.utils import timezone
-    try:
-        launch = timezone.make_aware(datetime(2026, 7, 29, 11, 0, 0))
-        return {'launch_confetti_active': timezone.now() >= launch}
-    except Exception:
-        return {'launch_confetti_active': False}
+    """Disabled on this deployment — always off."""
+    return {'launch_confetti_active': False}
 
 
 def _visibility_for_role(role):

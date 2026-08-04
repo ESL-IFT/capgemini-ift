@@ -23,8 +23,8 @@ def create_notification(user, notification_type, title, message='', icon='notifi
 
 
 def home(request):
-    """Root URL — skip the marketing landing page, go straight to signup."""
-    return redirect('accounts:sign_up')
+    """Root URL — skip the marketing landing page, go straight to sign-in."""
+    return redirect('accounts:sign_in')
 
 
 def privacy_policy(request):
