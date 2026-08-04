@@ -1809,8 +1809,8 @@ def import_students_csv(request):
 
         school_obj = School.objects.filter(name__iexact=school_name_raw).first()
         if not school_obj:
-            results['errors'].append({'row': row_num, 'field': 'school', 'message': f'School "{school_name_raw}" not found. Add it first or check spelling.'})
-            continue
+            school_obj = School.objects.create(name=school_name_raw)
+            results['errors'].append({'row': row_num, 'field': 'school', 'message': f'School "{school_name_raw}" did not exist — created automatically. Add its address/board/contact details later if needed.'})
 
         try:
             roll_number = row.get('roll_number', '')
@@ -2135,9 +2135,10 @@ def import_combined_submissions_csv(request):
             continue
 
         school_obj = School.objects.filter(name__iexact=school_name_raw).first()
+        school_auto_created = False
         if not school_obj:
-            results['errors'].append({'row': row_num, 'field': 'school', 'message': f'School "{school_name_raw}" not found. Add it first or check spelling.'})
-            continue
+            school_obj = School.objects.create(name=school_name_raw)
+            school_auto_created = True
 
         status = row.get('status', 'submitted').lower() or 'submitted'
         if status not in IDEA_VALID_STATUSES:
@@ -2150,6 +2151,9 @@ def import_combined_submissions_csv(request):
             continue
 
         try:
+            if school_auto_created:
+                results['errors'].append({'row': row_num, 'field': 'school', 'message': f'School "{school_name_raw}" did not exist — created automatically. Add its address/board/contact details later if needed.'})
+
             student = make_student(first_name, last_name, gender, dob, school_obj, school_obj.name, grade)
 
             team_name = row.get('team_name', '')
@@ -2164,6 +2168,10 @@ def import_combined_submissions_csv(request):
                         found = School.objects.filter(name__iexact=s2_school_raw).first()
                         if found:
                             s2_school_obj, s2_school_name = found, found.name
+                        else:
+                            s2_school_obj = School.objects.create(name=s2_school_raw)
+                            s2_school_name = s2_school_raw
+                            results['errors'].append({'row': row_num, 'field': 'student2_school', 'message': f'School "{s2_school_raw}" did not exist — created automatically.'})
                     student2 = make_student(
                         s2_first, s2_last, row.get('student2_gender', ''),
                         row.get('student2_date_of_birth') or None,

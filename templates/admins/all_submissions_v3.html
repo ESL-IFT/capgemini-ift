@@ -1239,7 +1239,7 @@ document.addEventListener('keydown', function(e) { if (e.key === 'Escape') close
                 <button onclick="clearCombinedFile()" style="background:none;border:none;cursor:pointer;color:#999;">&times;</button>
             </div>
             <p style="margin:12px 0 0;font-size:0.78rem;color:#999;">
-                <a href="{% url 'admins:download_combined_submission_sample_csv' %}" style="color:var(--primary);font-weight:600;">Download sample Excel (color-coded: red = required, green = optional)</a> to see the required format. Each row creates a <b>new</b> student (and their idea) in one go. Required columns: <b>first_name</b>, <b>last_name</b>, <b>gender</b>, <b>date_of_birth</b>, <b>school</b>, <b>grade</b>. Everything else — email, mobile, team_name, a 2nd team member, and the idea questions — is optional. No email needed; the student is identified by name alone.
+                <a href="{% url 'admins:download_combined_submission_sample_csv' %}" style="color:var(--primary);font-weight:600;">Download sample Excel (color-coded: red = required, green = optional)</a> to see the required format. Each row creates a <b>new</b> student (and their idea) in one go. Required columns: <b>first_name</b>, <b>last_name</b>, <b>gender</b>, <b>date_of_birth</b>, <b>school</b>, <b>grade</b>. Everything else — email, mobile, team_name, a 2nd team member, and the idea questions — is optional. No email needed; the student is identified by name alone. If the school doesn't exist yet, it's created automatically with just that name.
             </p>
         </div>
         <div id="combinedImportResults" style="display:none;padding:0 24px 16px;"></div>
