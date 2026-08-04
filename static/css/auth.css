@@ -39,8 +39,6 @@ body {
     object-position: center top;
     position: absolute;
     inset: 0;
-    transform: scale(1.4);
-    transform-origin: center 40%;
 }
 
 .auth-right {
@@ -60,7 +58,7 @@ body {
 }
 
 .logo {
-    max-width: 100px;
+    max-width: 200px;
     margin-bottom: 2rem;
 }
 
