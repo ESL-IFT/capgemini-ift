@@ -1,0 +1,90 @@
+<svg viewBox="0 0 600 600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .primary { stroke: #5E2A97; }
+      .primary-fill { fill: #5E2A97; }
+      .light { fill: #F3ECFB; }
+      .gold { fill: #F5C542; }
+      .gold-stroke { stroke: #F5C542; }
+      .line { fill: none; stroke: #5E2A97; stroke-width: 6; stroke-linecap: round; stroke-linejoin: round; }
+      .line-thin { fill: none; stroke: #5E2A97; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
+    </style>
+  </defs>
+
+  <!-- Background blob -->
+  <ellipse class="light" cx="300" cy="330" rx="260" ry="230"/>
+
+  <!-- Floating dots -->
+  <circle class="primary-fill" cx="90" cy="140" r="8" opacity="0.5"/>
+  <circle class="primary-fill" cx="520" cy="180" r="6" opacity="0.4"/>
+  <circle class="gold" cx="500" cy="440" r="10" opacity="0.7"/>
+  <circle class="gold" cx="80" cy="420" r="7" opacity="0.6"/>
+
+  <!-- Desk -->
+  <rect x="120" y="440" width="360" height="16" rx="8" class="primary-fill" opacity="0.15"/>
+  <path class="line" d="M150 456 L150 500"/>
+  <path class="line" d="M450 456 L450 500"/>
+
+  <!-- Laptop -->
+  <g>
+    <rect x="230" y="380" width="140" height="90" rx="10" class="line"/>
+    <rect x="245" y="396" width="110" height="58" rx="4" class="light"/>
+    <path class="line" d="M215 470 L385 470 L400 490 L200 490 Z"/>
+  </g>
+
+  <!-- Person sitting cross-legged behind desk -->
+  <g>
+    <!-- Legs (cross-legged, simplified) -->
+    <path class="line" d="M255 470 C255 500, 300 505, 300 505 C300 505, 345 500, 345 470"/>
+
+    <!-- Body -->
+    <path class="line" d="M255 400 C250 350, 260 300, 300 295 C340 300, 350 350, 345 400 Z"/>
+
+    <!-- Arms reaching to laptop -->
+    <path class="line" d="M262 360 C250 385, 250 400, 265 410"/>
+    <path class="line" d="M338 360 C350 385, 350 400, 335 410"/>
+
+    <!-- Head -->
+    <circle cx="300" cy="250" r="48" class="line"/>
+
+    <!-- Hair -->
+    <path class="line" d="M254 240 C250 205, 275 180, 300 180 C325 180, 350 205, 346 240"/>
+    <path class="line" d="M254 240 C258 260, 262 270, 262 270"/>
+    <path class="line" d="M346 240 C342 260, 338 270, 338 270"/>
+
+    <!-- Face -->
+    <circle cx="284" cy="252" r="4" class="primary-fill"/>
+    <circle cx="316" cy="252" r="4" class="primary-fill"/>
+    <path class="line-thin" d="M290 268 C295 273, 305 273, 310 268"/>
+  </g>
+
+  <!-- Lightbulb idea above head -->
+  <g>
+    <circle cx="300" cy="120" r="40" class="light" stroke="#5E2A97" stroke-width="6"/>
+    <path class="line" d="M280 130 C275 110, 280 95, 300 92 C320 95, 325 110, 320 130"/>
+    <path class="line" d="M288 130 L312 130"/>
+    <path class="line" d="M292 140 L308 140"/>
+    <path class="line" d="M296 148 L304 148"/>
+    <!-- rays -->
+    <path class="line-thin" d="M300 60 L300 45"/>
+    <path class="line-thin" d="M255 78 L244 68"/>
+    <path class="line-thin" d="M345 78 L356 68"/>
+    <path class="line-thin" d="M230 120 L215 120"/>
+    <path class="line-thin" d="M370 120 L385 120"/>
+  </g>
+
+  <!-- Floating idea icons -->
+  <g>
+    <!-- gear -->
+    <g transform="translate(130,240)">
+      <circle r="26" class="line"/>
+      <circle r="9" class="line"/>
+      <path class="line" d="M0 -26 L0 -34 M0 26 L0 34 M-26 0 L-34 0 M26 0 L34 0
+                              M-18 -18 L-24 -24 M18 -18 L24 -24 M-18 18 L-24 24 M18 18 L24 24"/>
+    </g>
+    <!-- star -->
+    <g transform="translate(470,270)">
+      <path class="line" d="M0 -22 L6 -6 L22 0 L6 6 L0 22 L-6 6 L-22 0 L-6 -6 Z"/>
+    </g>
+  </g>
+</svg>
