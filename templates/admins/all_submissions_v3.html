@@ -291,7 +291,7 @@
         .btn-secondary-custom:hover { background: #f8fafc; }
         .btn-icon-action {
             width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border-light);
-            background: white; display: flex; align-items: center; justify-content: center;
+            background: white; display: inline-flex; align-items: center; justify-content: center;
             cursor: pointer; transition: all 0.2s; color: var(--text-muted);
         }
         .btn-icon-action:hover { background: rgba(94, 42, 151, 0.1); color: var(--primary); border-color: var(--primary); }
@@ -553,8 +553,8 @@
         <div class="content-wrapper">
             <!-- Page Header -->
             <div class="page-header">
-                <div class="row align-items-center">
-                    <div class="col-12 col-md-6">
+                <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+                    <div>
                         <h1>Submissions</h1>
                         <nav aria-label="breadcrumb">
                             <ol class="breadcrumb">
@@ -563,7 +563,7 @@
                             </ol>
                         </nav>
                     </div>
-                    <div class="col-12 col-md-6 d-flex justify-content-md-end align-items-center gap-2 mt-3 mt-md-0 flex-wrap">
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
                         <a href="{% url 'admins:download_combined_submission_sample_csv' %}" class="btn-secondary-custom">
                             <span class="material-symbols-outlined" style="font-size: 18px;">download</span>
                             Sample Excel
