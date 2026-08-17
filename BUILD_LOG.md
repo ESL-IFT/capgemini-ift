@@ -158,3 +158,23 @@
 - Admin UI screenshot confirmed (all 4 cards).
 
 **Notes:** `top400.jpg` body text still says "School Champion" (client to confirm); nothing committed yet; LearningVideo/VideoProgress migration still out of scope.
+
+---
+
+## 2026-09-08 — Gunicorn worker-timeout fix (import cut off mid-way)
+
+**Why:** Bulk "Add Submission" combined CSV import cut off partway through
+(33/many rows created, then a 500). Deploy logs showed `WORKER TIMEOUT` /
+`SIGKILL` in gunicorn's sync worker after ~30s — the default sync worker
+kills the whole request (and worker process) once a single request runs
+past `--timeout`, with no room for a long-running import.
+
+**Fix:** switched the Dockerfile's gunicorn CMD from the default sync
+worker to `--worker-class gthread --workers 1 --threads 8 --timeout 120`.
+gthread treats `--timeout` as a worker heartbeat rather than a hard
+request-duration cap, so a slow request (large import, big file download)
+no longer gets killed mid-flight. Kept at 1 worker since `PROGRESS_TRACKER`
+(admins/views.py) is an in-memory dict shared by bulk-upload/evaluate
+progress bars — safe to revisit once that state moves to DB/cache.
+
+Config-only change (Dockerfile), no models/migrations touched.
