@@ -1337,6 +1337,12 @@ function pollCombinedImportProgress(taskId) {
         fetch("{% url 'admins:get_progress' task_id='PLACEHOLDER' %}".replace('PLACEHOLDER', taskId))
         .then(function(r) { return r.json(); })
         .then(function(data) {
+            if (data.error || typeof data.total === 'undefined') {
+                clearInterval(interval);
+                showCombinedImportFinalError('Lost track of the import (server may have restarted mid-upload). Refresh the page to check how many were actually imported before retrying.');
+                resetCombinedImportBtn();
+                return;
+            }
             var pct = data.total > 0 ? Math.round((data.current / data.total) * 100) : 0;
             document.getElementById('combinedImportProgressFill').style.width = pct + '%';
             document.getElementById('combinedImportProgressText').textContent = data.message + ' (' + pct + '%)';
