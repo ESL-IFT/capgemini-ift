@@ -46,7 +46,7 @@ class Command(BaseCommand):
 
             titles = set()
             for s in students:
-                idea = s.ideasubmission_set.first()
+                idea = s.submissions.first()
                 titles.add(idea.title if idea else None)
 
             if len(titles) != 1:
