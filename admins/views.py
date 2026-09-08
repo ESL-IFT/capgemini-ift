@@ -69,6 +69,10 @@ def _xlsx_cell_to_str(v):
     import datetime
     if isinstance(v, (datetime.date, datetime.datetime)):
         return v.strftime('%Y-%m-%d')
+    if isinstance(v, float) and v.is_integer():
+        # Excel stores whole numbers (e.g. grade "9") as floats (9.0) — avoid
+        # writing "9.0" into a text field like grade/roll_number.
+        return str(int(v))
     return str(v).strip()
 
 
@@ -1992,15 +1996,15 @@ def import_ideas_csv(request):
             results['errors'].append({'row': row_num, 'field': 'student_id', 'message': f'Student "{student_ref}" already has a submission — skipped'})
             continue
 
-        status = row.get('status', 'submitted').lower() or 'submitted'
+        status = row.get('status', 'submitted').strip().lower() or 'submitted'
         if status not in IDEA_VALID_STATUSES:
-            results['errors'].append({'row': row_num, 'field': 'status', 'message': f'Invalid status "{status}". Use: {", ".join(IDEA_VALID_STATUSES)}'})
-            continue
+            results['errors'].append({'row': row_num, 'field': 'status', 'message': f'Unrecognized status "{status}" — defaulted to "submitted".'})
+            status = 'submitted'
 
-        track = row.get('competition_track', '')
+        track = row.get('competition_track', '').strip()
         if track and track not in IDEA_VALID_TRACKS:
-            results['errors'].append({'row': row_num, 'field': 'competition_track', 'message': f'Invalid competition_track "{track}"'})
-            continue
+            results['errors'].append({'row': row_num, 'field': 'competition_track', 'message': f'Unrecognized competition_track "{track}" — left blank, idea still imported.'})
+            track = ''
 
         try:
             IdeaSubmission.objects.create(
@@ -2140,15 +2144,15 @@ def import_combined_submissions_csv(request):
             school_obj = School.objects.create(name=school_name_raw)
             school_auto_created = True
 
-        status = row.get('status', 'submitted').lower() or 'submitted'
+        status = row.get('status', 'submitted').strip().lower() or 'submitted'
         if status not in IDEA_VALID_STATUSES:
-            results['errors'].append({'row': row_num, 'field': 'status', 'message': f'Invalid status "{status}". Use: {", ".join(IDEA_VALID_STATUSES)}'})
-            continue
+            results['errors'].append({'row': row_num, 'field': 'status', 'message': f'Unrecognized status "{status}" — defaulted to "submitted".'})
+            status = 'submitted'
 
-        track = row.get('competition_track', '')
+        track = row.get('competition_track', '').strip()
         if track and track not in IDEA_VALID_TRACKS:
-            results['errors'].append({'row': row_num, 'field': 'competition_track', 'message': f'Invalid competition_track "{track}"'})
-            continue
+            results['errors'].append({'row': row_num, 'field': 'competition_track', 'message': f'Unrecognized competition_track "{track}" — left blank, idea still imported.'})
+            track = ''
 
         try:
             if school_auto_created:
