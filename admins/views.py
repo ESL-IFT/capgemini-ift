@@ -63,6 +63,32 @@ def _build_sample_xlsx(headers, required_headers, sample_rows, filename):
     return response
 
 
+def _parse_flexible_date(value):
+    """Best-effort parse of a date_of_birth cell into 'YYYY-MM-DD'.
+
+    Real Excel date cells already arrive as 'YYYY-MM-DD' strings via
+    _xlsx_cell_to_str, but some sheets store the date as free text in a
+    different format (DD/MM/YYYY, D-M-YYYY, etc.) — try the common ones
+    before giving up. Returns '' if nothing matches (caller treats that as
+    missing, same as before).
+    """
+    if not value:
+        return ''
+    value = str(value).strip()
+    if value in ('-', '--', 'na', 'n/a', 'nil'):
+        return ''
+    import re
+    if re.match(r'^\d{4}-\d{2}-\d{2}$', value):
+        return value  # already ISO
+    import datetime
+    for fmt in ('%d/%m/%Y', '%d-%m-%Y', '%d/%m/%y', '%d-%m-%y', '%m/%d/%Y', '%Y/%m/%d', '%d.%m.%Y'):
+        try:
+            return datetime.datetime.strptime(value, fmt).strftime('%Y-%m-%d')
+        except ValueError:
+            continue
+    return value  # give up — let Django's own error surface as before
+
+
 def _xlsx_cell_to_str(v):
     if v is None:
         return ''
@@ -1795,7 +1821,7 @@ def import_students_csv(request):
         first_name = row.get('first_name', '')
         last_name = row.get('last_name', '')
         gender = row.get('gender', '')
-        dob = row.get('date_of_birth') or None
+        dob = _parse_flexible_date(row.get('date_of_birth')) or None
         email = row.get('email', '')
         mobile = row.get('mobile', '')
         school_name_raw = row.get('school', '')
@@ -2148,7 +2174,7 @@ def import_combined_submissions_csv(request):
             first_name = row.get('first_name', '')
             last_name = row.get('last_name', '')
             gender = row.get('gender', '')
-            dob = row.get('date_of_birth') or None
+            dob = _parse_flexible_date(row.get('date_of_birth')) or None
             school_name_raw = row.get('school', '')
             grade = row.get('grade', '')
 
@@ -2196,7 +2222,7 @@ def import_combined_submissions_csv(request):
                                 tracker['errors'].append(f'Row {row_num}: school "{s2_school_raw}" did not exist — created automatically.')
                         student2 = make_student(
                             s2_first, s2_last, row.get('student2_gender', ''),
-                            row.get('student2_date_of_birth') or None,
+                            _parse_flexible_date(row.get('student2_date_of_birth')) or None,
                             s2_school_obj, s2_school_name,
                             row.get('student2_grade', '') or grade,
                         )
