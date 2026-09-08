@@ -80,6 +80,9 @@ def _parse_flexible_date(value):
     import re
     if re.match(r'^\d{4}-\d{2}-\d{2}$', value):
         return value  # already ISO
+    # Normalize odd separators/typos seen in manually-entered sheets:
+    # backslashes instead of slashes ("5\8\2013"), stray dots ("9/12/.2012").
+    value = value.replace('\\', '/').replace('/.', '/')
     import datetime
     for fmt in ('%d/%m/%Y', '%d-%m-%Y', '%d/%m/%y', '%d-%m-%y', '%m/%d/%Y', '%Y/%m/%d', '%d.%m.%Y'):
         try:
