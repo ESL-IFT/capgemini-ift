@@ -1239,6 +1239,12 @@ document.addEventListener('keydown', function(e) { if (e.key === 'Escape') close
                 <a href="{% url 'admins:download_combined_submission_sample_csv' %}" style="color:var(--primary);font-weight:600;">Download sample Excel (color-coded: red = required, green = optional)</a> to see the required format. Each row creates a <b>new</b> student (and their idea) in one go. Required columns: <b>first_name</b>, <b>last_name</b>, <b>gender</b>, <b>date_of_birth</b>, <b>school</b>, <b>grade</b>. Everything else — email, mobile, team_name, a 2nd team member, and the idea questions — is optional. No email needed; the student is identified by name alone. If the school doesn't exist yet, it's created automatically with just that name.
             </p>
         </div>
+        <div id="combinedImportProgressWrap" style="display:none;padding:0 24px 16px;">
+            <div style="background:#f1f5f9;border-radius:999px;height:10px;overflow:hidden;margin-bottom:8px;">
+                <div id="combinedImportProgressFill" style="background:linear-gradient(135deg,#5E2A97,#8B5CF6);height:100%;border-radius:999px;transition:width 0.3s ease;width:0%;"></div>
+            </div>
+            <p id="combinedImportProgressText" style="margin:0;font-size:0.8rem;color:#666;">Starting...</p>
+        </div>
         <div id="combinedImportResults" style="display:none;padding:0 24px 16px;"></div>
         <div style="padding:16px 24px 24px;display:flex;gap:8px;justify-content:flex-end;">
             <button onclick="closeCombinedImportModal()" style="padding:10px 20px;border:1px solid #ddd;border-radius:8px;background:#fff;font-family:'Poppins',sans-serif;font-weight:600;font-size:0.85rem;cursor:pointer;">Cancel</button>
@@ -1272,6 +1278,8 @@ function closeCombinedImportModal() {
     document.getElementById('combinedImportModal').style.display = 'none';
     clearCombinedFile();
     document.getElementById('combinedImportResults').style.display = 'none';
+    document.getElementById('combinedImportProgressWrap').style.display = 'none';
+    document.getElementById('combinedImportProgressFill').style.width = '0%';
 }
 
 document.addEventListener('keydown', function (e) {
@@ -1284,7 +1292,8 @@ function uploadCombinedCSV() {
 
     var btn = document.getElementById('combinedImportBtn');
     btn.disabled = true;
-    btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;margin-right:4px;">progress_activity</span> Importing...';
+    btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;margin-right:4px;">progress_activity</span> Uploading...';
+    document.getElementById('combinedImportResults').style.display = 'none';
 
     var formData = new FormData();
     formData.append('csv_file', fileInput.files[0]);
@@ -1296,55 +1305,80 @@ function uploadCombinedCSV() {
     })
     .then(function(r) { return r.json(); })
     .then(function(data) {
-        var resultsDiv = document.getElementById('combinedImportResults');
-        var html = '';
-
-        if (data.success) {
-            html += '<div style="padding:12px 16px;border-radius:8px;margin-bottom:8px;';
-            if (data.created > 0) {
-                html += 'background:#d1fae5;color:#065f46;"><span class="material-symbols-outlined" style="font-size:18px;vertical-align:middle;margin-right:4px;">check_circle</span>';
-                html += '<b>' + data.created + '</b> submission(s) imported successfully.';
-            } else {
-                html += 'background:#fef3c7;color:#92400e;"><span class="material-symbols-outlined" style="font-size:18px;vertical-align:middle;margin-right:4px;">info</span>';
-                html += 'No new submissions were imported.';
-            }
-            if (data.skipped > 0) html += ' <b>' + data.skipped + '</b> skipped.';
-            html += '</div>';
-
-            if (data.errors && data.errors.length > 0) {
-                html += '<div style="max-height:200px;overflow-y:auto;border:1px solid #fee2e2;border-radius:8px;">';
-                html += '<table style="width:100%;font-size:0.78rem;border-collapse:collapse;">';
-                html += '<thead><tr style="background:#fef2f2;"><th style="padding:8px 12px;text-align:left;font-weight:700;color:#991b1b;">Row</th><th style="padding:8px 12px;text-align:left;font-weight:700;color:#991b1b;">Field</th><th style="padding:8px 12px;text-align:left;font-weight:700;color:#991b1b;">Error</th></tr></thead><tbody>';
-                data.errors.forEach(function(err) {
-                    html += '<tr style="border-top:1px solid #fee2e2;"><td style="padding:6px 12px;">' + err.row + '</td><td style="padding:6px 12px;">' + err.field + '</td><td style="padding:6px 12px;">' + err.message + '</td></tr>';
-                });
-                html += '</tbody></table></div>';
-            }
+        if (data.task_id) {
+            document.getElementById('combinedImportProgressWrap').style.display = 'block';
+            btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;margin-right:4px;">progress_activity</span> Importing...';
+            pollCombinedImportProgress(data.task_id);
         } else {
-            html += '<div style="padding:12px 16px;border-radius:8px;background:#fee2e2;color:#991b1b;">';
-            html += '<span class="material-symbols-outlined" style="font-size:18px;vertical-align:middle;margin-right:4px;">error</span>';
-            html += data.message;
-            html += '</div>';
-        }
-
-        resultsDiv.innerHTML = html;
-        resultsDiv.style.display = 'block';
-
-        btn.disabled = false;
-        btn.style.opacity = '1';
-        btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;margin-right:4px;">upload</span> Import Submissions';
-
-        if (data.created > 0) {
-            setTimeout(function() { location.reload(); }, 2000);
+            showCombinedImportFinalError(data.message || 'Something went wrong');
+            resetCombinedImportBtn();
         }
     })
     .catch(function(err) {
-        document.getElementById('combinedImportResults').innerHTML = '<div style="padding:12px 16px;border-radius:8px;background:#fee2e2;color:#991b1b;">Network error. Please try again.</div>';
-        document.getElementById('combinedImportResults').style.display = 'block';
-        btn.disabled = false;
-        btn.style.opacity = '1';
-        btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;margin-right:4px;">upload</span> Import Submissions';
+        showCombinedImportFinalError('Network error. Please try again.');
+        resetCombinedImportBtn();
     });
+}
+
+function resetCombinedImportBtn() {
+    var btn = document.getElementById('combinedImportBtn');
+    btn.disabled = false;
+    btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;margin-right:4px;">upload</span> Import Submissions';
+}
+
+function showCombinedImportFinalError(message) {
+    var resultsDiv = document.getElementById('combinedImportResults');
+    resultsDiv.innerHTML = '<div style="padding:12px 16px;border-radius:8px;background:#fee2e2;color:#991b1b;"><span class="material-symbols-outlined" style="font-size:18px;vertical-align:middle;margin-right:4px;">error</span>' + message + '</div>';
+    resultsDiv.style.display = 'block';
+}
+
+function pollCombinedImportProgress(taskId) {
+    var interval = setInterval(function() {
+        fetch("{% url 'admins:get_progress' task_id='PLACEHOLDER' %}".replace('PLACEHOLDER', taskId))
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            var pct = data.total > 0 ? Math.round((data.current / data.total) * 100) : 0;
+            document.getElementById('combinedImportProgressFill').style.width = pct + '%';
+            document.getElementById('combinedImportProgressText').textContent = data.message + ' (' + pct + '%)';
+
+            if (data.status === 'completed') {
+                clearInterval(interval);
+
+                var resultsDiv = document.getElementById('combinedImportResults');
+                var html = '';
+                html += '<div style="padding:12px 16px;border-radius:8px;margin-bottom:8px;';
+                if (data.created > 0) {
+                    html += 'background:#d1fae5;color:#065f46;"><span class="material-symbols-outlined" style="font-size:18px;vertical-align:middle;margin-right:4px;">check_circle</span>';
+                    html += '<b>' + data.created + '</b> submission(s) imported successfully.';
+                } else {
+                    html += 'background:#fef3c7;color:#92400e;"><span class="material-symbols-outlined" style="font-size:18px;vertical-align:middle;margin-right:4px;">info</span>';
+                    html += 'No new submissions were imported.';
+                }
+                html += '</div>';
+
+                if (data.errors && data.errors.length > 0) {
+                    html += '<div style="max-height:200px;overflow-y:auto;border:1px solid #fee2e2;border-radius:8px;padding:8px 12px;font-size:0.78rem;color:#991b1b;">';
+                    data.errors.forEach(function(err) {
+                        html += '<div style="padding:3px 0;">' + err + '</div>';
+                    });
+                    html += '</div>';
+                }
+
+                resultsDiv.innerHTML = html;
+                resultsDiv.style.display = 'block';
+                resetCombinedImportBtn();
+
+                if (data.created > 0) {
+                    setTimeout(function() { location.reload(); }, 2500);
+                }
+            }
+        })
+        .catch(function() {
+            clearInterval(interval);
+            showCombinedImportFinalError('Lost connection while checking progress. Refresh to see how many were imported.');
+            resetCombinedImportBtn();
+        });
+    }, 1000);
 }
 </script>
 

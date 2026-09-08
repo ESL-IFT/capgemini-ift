@@ -2100,123 +2100,144 @@ def import_combined_submissions_csv(request):
     if missing:
         return JsonResponse({'success': False, 'message': f'Missing required columns: {", ".join(missing)}'})
 
-    from students.models import Team, TeamMembership
-    import string
+    task_id = str(uuid.uuid4())
+    PROGRESS_TRACKER[task_id] = {
+        'current': 0,
+        'total': len(parsed_rows),
+        'created': 0,
+        'skipped': 0,
+        'errors': [],
+        'status': 'running',
+        'message': 'Starting import...',
+    }
 
-    def make_student(first, last, gender_, dob_, school_obj_, school_name_, grade_):
-        username_ = f"{first.lower()}.{last.lower()}.{timezone.now().strftime('%H%M%S%f')}"
-        base_username_ = username_
-        counter_ = 1
-        while User.objects.filter(username=username_).exists():
-            username_ = f"{base_username_}{counter_}"
-            counter_ += 1
-        temp_password_ = f"ift{secrets.token_hex(3)}"
-        user_ = User.objects.create_user(username=username_, first_name=first, last_name=last, password=temp_password_)
-        student_ = Student.objects.create(
-            user=user_,
-            student_id=f"IFT-{timezone.now().strftime('%Y')}-{user_.id:04d}",
-            school=school_obj_, school_name=school_name_, gender=gender_, date_of_birth=dob_, grade=grade_,
-        )
-        try:
-            from accounts.models import UserProfile
-            UserProfile.objects.create(user=user_, role='student')
-        except Exception:
-            pass
-        return student_
+    def process_rows(rows, task_id):
+        import django
+        django.setup()
+        from django.db import connection
+        from students.models import Team, TeamMembership
+        import string
 
-    results = {'created': 0, 'skipped': 0, 'errors': []}
+        tracker = PROGRESS_TRACKER[task_id]
 
-    for row_num, row in enumerate(parsed_rows, start=2):
-        first_name = row.get('first_name', '')
-        last_name = row.get('last_name', '')
-        gender = row.get('gender', '')
-        dob = row.get('date_of_birth') or None
-        school_name_raw = row.get('school', '')
-        grade = row.get('grade', '')
-
-        if not all([first_name, last_name, gender, dob, school_name_raw, grade]):
-            results['errors'].append({'row': row_num, 'field': 'general', 'message': 'first_name, last_name, gender, date_of_birth, school and grade are required'})
-            continue
-
-        school_obj = School.objects.filter(name__iexact=school_name_raw).first()
-        school_auto_created = False
-        if not school_obj:
-            school_obj = School.objects.create(name=school_name_raw)
-            school_auto_created = True
-
-        status = row.get('status', 'submitted').strip().lower() or 'submitted'
-        if status not in IDEA_VALID_STATUSES:
-            results['errors'].append({'row': row_num, 'field': 'status', 'message': f'Unrecognized status "{status}" — defaulted to "submitted".'})
-            status = 'submitted'
-
-        track = row.get('competition_track', '').strip()
-        if track and track not in IDEA_VALID_TRACKS:
-            results['errors'].append({'row': row_num, 'field': 'competition_track', 'message': f'Unrecognized competition_track "{track}" — left blank, idea still imported.'})
-            track = ''
-
-        try:
-            if school_auto_created:
-                results['errors'].append({'row': row_num, 'field': 'school', 'message': f'School "{school_name_raw}" did not exist — created automatically. Add its address/board/contact details later if needed.'})
-
-            student = make_student(first_name, last_name, gender, dob, school_obj, school_obj.name, grade)
-
-            team_name = row.get('team_name', '')
-            s2_first = row.get('student2_first_name', '')
-            s2_last = row.get('student2_last_name', '')
-            if team_name or (s2_first and s2_last):
-                student2 = None
-                if s2_first and s2_last:
-                    s2_school_raw = row.get('student2_school', '')
-                    s2_school_obj, s2_school_name = school_obj, school_obj.name
-                    if s2_school_raw:
-                        found = School.objects.filter(name__iexact=s2_school_raw).first()
-                        if found:
-                            s2_school_obj, s2_school_name = found, found.name
-                        else:
-                            s2_school_obj = School.objects.create(name=s2_school_raw)
-                            s2_school_name = s2_school_raw
-                            results['errors'].append({'row': row_num, 'field': 'student2_school', 'message': f'School "{s2_school_raw}" did not exist — created automatically.'})
-                    student2 = make_student(
-                        s2_first, s2_last, row.get('student2_gender', ''),
-                        row.get('student2_date_of_birth') or None,
-                        s2_school_obj, s2_school_name,
-                        row.get('student2_grade', '') or grade,
-                    )
-
-                team = Team.objects.filter(name__iexact=team_name).first() if team_name else None
-                if team and team.is_full:
-                    results['errors'].append({'row': row_num, 'field': 'team_name', 'message': f'Team "{team_name}" already has 2 members — submission created without a team'})
-                else:
-                    if not team:
-                        while True:
-                            code = 'IFT-' + ''.join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(5))
-                            if not Team.objects.filter(team_code=code).exists():
-                                break
-                        team = Team.objects.create(name=team_name or f"{first_name} {last_name}'s Team", team_code=code, leader=student.user)
-                        TeamMembership.objects.create(team=team, student=student, role='leader', status='active')
-                    else:
-                        TeamMembership.objects.create(team=team, student=student, role='member', status='active')
-                    if student2:
-                        TeamMembership.objects.create(team=team, student=student2, role='member', status='active')
-
-            IdeaSubmission.objects.create(
-                student=student,
-                title=row.get('title', ''),
-                competition_track=track,
-                status=status,
-                **{f: row.get(f, '') for f in IDEA_CSV_Q_FIELDS},
+        def make_student(first, last, gender_, dob_, school_obj_, school_name_, grade_):
+            username_ = f"{first.lower()}.{last.lower()}.{timezone.now().strftime('%H%M%S%f')}"
+            base_username_ = username_
+            counter_ = 1
+            while User.objects.filter(username=username_).exists():
+                username_ = f"{base_username_}{counter_}"
+                counter_ += 1
+            temp_password_ = f"ift{secrets.token_hex(3)}"
+            user_ = User.objects.create_user(username=username_, first_name=first, last_name=last, password=temp_password_)
+            student_ = Student.objects.create(
+                user=user_,
+                student_id=f"IFT-{timezone.now().strftime('%Y')}-{user_.id:04d}",
+                school=school_obj_, school_name=school_name_, gender=gender_, date_of_birth=dob_, grade=grade_,
             )
-            results['created'] += 1
-        except Exception as e:
-            results['errors'].append({'row': row_num, 'field': 'general', 'message': str(e)})
+            try:
+                from accounts.models import UserProfile
+                UserProfile.objects.create(user=user_, role='student')
+            except Exception:
+                pass
+            return student_
 
-    return JsonResponse({
-        'success': True,
-        'created': results['created'],
-        'skipped': results['skipped'],
-        'error_count': len(results['errors']),
-        'errors': results['errors'][:50],
-    })
+        for row_num, row in enumerate(rows, start=2):
+            tracker['current'] = row_num - 1
+            tracker['message'] = f'Processing row {row_num - 1}/{tracker["total"]}...'
+
+            first_name = row.get('first_name', '')
+            last_name = row.get('last_name', '')
+            gender = row.get('gender', '')
+            dob = row.get('date_of_birth') or None
+            school_name_raw = row.get('school', '')
+            grade = row.get('grade', '')
+
+            if not all([first_name, last_name, gender, dob, school_name_raw, grade]):
+                tracker['errors'].append(f'Row {row_num}: first_name, last_name, gender, date_of_birth, school and grade are required')
+                continue
+
+            school_obj = School.objects.filter(name__iexact=school_name_raw).first()
+            school_auto_created = False
+            if not school_obj:
+                school_obj = School.objects.create(name=school_name_raw)
+                school_auto_created = True
+
+            status = row.get('status', 'submitted').strip().lower() or 'submitted'
+            if status not in IDEA_VALID_STATUSES:
+                tracker['errors'].append(f'Row {row_num}: unrecognized status "{status}" — defaulted to "submitted".')
+                status = 'submitted'
+
+            track = row.get('competition_track', '').strip()
+            if track and track not in IDEA_VALID_TRACKS:
+                tracker['errors'].append(f'Row {row_num}: unrecognized competition_track "{track}" — left blank, idea still imported.')
+                track = ''
+
+            try:
+                if school_auto_created:
+                    tracker['errors'].append(f'Row {row_num}: school "{school_name_raw}" did not exist — created automatically.')
+
+                student = make_student(first_name, last_name, gender, dob, school_obj, school_obj.name, grade)
+
+                team_name = row.get('team_name', '')
+                s2_first = row.get('student2_first_name', '')
+                s2_last = row.get('student2_last_name', '')
+                if team_name or (s2_first and s2_last):
+                    student2 = None
+                    if s2_first and s2_last:
+                        s2_school_raw = row.get('student2_school', '')
+                        s2_school_obj, s2_school_name = school_obj, school_obj.name
+                        if s2_school_raw:
+                            found = School.objects.filter(name__iexact=s2_school_raw).first()
+                            if found:
+                                s2_school_obj, s2_school_name = found, found.name
+                            else:
+                                s2_school_obj = School.objects.create(name=s2_school_raw)
+                                s2_school_name = s2_school_raw
+                                tracker['errors'].append(f'Row {row_num}: school "{s2_school_raw}" did not exist — created automatically.')
+                        student2 = make_student(
+                            s2_first, s2_last, row.get('student2_gender', ''),
+                            row.get('student2_date_of_birth') or None,
+                            s2_school_obj, s2_school_name,
+                            row.get('student2_grade', '') or grade,
+                        )
+
+                    team = Team.objects.filter(name__iexact=team_name).first() if team_name else None
+                    if team and team.is_full:
+                        tracker['errors'].append(f'Row {row_num}: team "{team_name}" already has 2 members — submission created without a team')
+                    else:
+                        if not team:
+                            while True:
+                                code = 'IFT-' + ''.join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(5))
+                                if not Team.objects.filter(team_code=code).exists():
+                                    break
+                            team = Team.objects.create(name=team_name or f"{first_name} {last_name}'s Team", team_code=code, leader=student.user)
+                            TeamMembership.objects.create(team=team, student=student, role='leader', status='active')
+                        else:
+                            TeamMembership.objects.create(team=team, student=student, role='member', status='active')
+                        if student2:
+                            TeamMembership.objects.create(team=team, student=student2, role='member', status='active')
+
+                IdeaSubmission.objects.create(
+                    student=student,
+                    title=row.get('title', ''),
+                    competition_track=track,
+                    status=status,
+                    **{f: row.get(f, '') for f in IDEA_CSV_Q_FIELDS},
+                )
+                tracker['created'] += 1
+            except Exception as e:
+                tracker['errors'].append(f'Row {row_num}: {e}')
+
+        tracker['current'] = tracker['total']
+        connection.close()
+        tracker['status'] = 'completed'
+        tracker['message'] = f'Import complete. {tracker["created"]} submission(s) created.'
+
+    thread = threading.Thread(target=process_rows, args=(parsed_rows, task_id))
+    thread.daemon = True
+    thread.start()
+
+    return JsonResponse({'task_id': task_id, 'total': len(parsed_rows)})
 
 
 @login_required
